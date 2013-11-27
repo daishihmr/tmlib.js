@@ -12,6 +12,7 @@
         "scripts/mapsprite.js",
         "scripts/example.js",
         "scripts/benchmark.js",
+        "scripts/layer.js",
     ]);
 })(this);
 

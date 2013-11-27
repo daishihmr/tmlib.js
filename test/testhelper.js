@@ -96,6 +96,7 @@
             "src/display/mapsprite.js",
             "src/display/renderer.js",
             "src/display/bitmaplabel.js",
+            "src/display/layer.js",
         ],
         "ui": [
             "src/ui/userinterface.js",
