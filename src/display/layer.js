@@ -16,14 +16,26 @@ tm.display = tm.display || {};
 
     });
 
+    /**
+     * @classs tm.display.CanvasLayer
+     * CanvasApp用レイヤクラス.
+     *
+     * TODO Scene直下に置くことを前提としている.
+     */
     tm.define("tm.display.CanvasLayer", {
         superClass: tm.display.Layer,
 
+        /**
+         * @property
+         */
         canvas: null,
+
+        /**
+         * @property
+         */
         renderer: null,
 
         _drawInterval: 0,
-
         _drawCounter: 0,
 
         init: function(width, height) {
@@ -36,10 +48,16 @@ tm.display = tm.display || {};
         },
 
         _calcWorldMatrix: function() {
+            // TODO 移動や回転、拡大は未サポート
             this._worldMatrix.identity();
         },
 
+        /**
+         * サイズ変更
+         */
         resize: function(width, height) {
+            // TODO シーンへの追加時に自動的にリサイズするべき？
+
             this.width = width;
             this.height = height;
             
@@ -63,6 +81,7 @@ tm.display = tm.display || {};
 
                 this._drawCounter = this._drawInterval;
             }
+
             canvas.context.drawImage(this.canvas.element, 0, 0);
         }
 
@@ -86,6 +105,10 @@ tm.display = tm.display || {};
         "set": function(v)  { this.canvas.height = v; }
     });
 
+    /**
+     * @property    drawInterval
+     * 描画間隔
+     */
     tm.display.CanvasLayer.prototype.accessor("drawInterval", {
         "get": function()   { return this._drawInterval; },
         "set": function(v)  { this._drawInterval = this._drawCounter = v; }
