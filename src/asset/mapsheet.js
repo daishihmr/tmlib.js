@@ -188,10 +188,12 @@
         _propertiesToJson: function(elm) {
             var properties = elm.getElementsByTagName("properties")[0];
             var obj = {};
-            for (var k = 0;k < properties.childNodes.length;k++) {
-                var p = properties.childNodes[k];
-                if (p.tagName === "property") {
-                    obj[p.getAttribute('name')] = p.getAttribute('value');
+            if (properties) {
+                for (var k = 0;k < properties.childNodes.length;k++) {
+                    var p = properties.childNodes[k];
+                    if (p.tagName === "property") {
+                        obj[p.getAttribute('name')] = p.getAttribute('value');
+                    }
                 }
             }
 
