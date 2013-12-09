@@ -44,6 +44,20 @@
             this._build();
         },
 
+        isHitPointTile: function(x, y, layer) {
+            layer = layer || 0;
+
+            var p = this.globalToLocal(tm.geom.Vector2(x, y));
+            var axisX = Math.floor((x / this.width) * this.mapSheet.width);
+            var axisY = Math.floor((y / this.height) * this.mapSheet.height);
+
+            if (axisX < 0 || this.mapSheet.width <= axisX || axisY < 0 || this.mapSheet.height <= axisY) {
+                return false;
+            }
+
+            return this.mapSheet.layers[layer].data[axisY * this.mapSheet.width + axisX] !== -1;
+        },
+
         /**
          * @TODO ?
          * @private
