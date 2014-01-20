@@ -89,6 +89,7 @@ module.exports = function(grunt) {
     "src/display/animationsprite.js",
     "src/display/mapsprite.js",
     "src/display/renderer.js",
+    "src/display/layer.js",
     
     "src/ui/userinterface.js",
     "src/ui/button.js",
