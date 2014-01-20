@@ -11558,20 +11558,20 @@ tm.app = tm.app || {};
             // }
             // fn();
             
-            tm.setLoop(function(){ self._loop(); }, 1000/this.fps);
+            // tm.setLoop(function(){ self._loop(); }, 1000/this.fps);
             
-            return ;
+            // return ;
             
-            if (true) {
+            // if (true) {
                 setTimeout(arguments.callee.bind(this), 1000/this.fps);
                 this._loop();
-            }
+            // }
             
-            return ;
+            // return ;
             
-            var self = this;
+            // var self = this;
             // setInterval(function(){ self._loop(); }, 1000/self.fps);
-            tm.setLoop(function(){ self._loop(); }, 1000/self.fps);
+            // tm.setLoop(function(){ self._loop(); }, 1000/self.fps);
         },
         
         /*
@@ -15354,6 +15354,10 @@ tm.display = tm.display || {};
             
             obj.draw(this.canvas);
             
+            if (obj instanceof tm.display.Layer) {
+                return;
+            }
+
             // 子供達も実行
             if (obj.children.length > 0) {
                 var tempChildren = obj.children.slice();
