@@ -55,8 +55,8 @@ tm.event = tm.event || {};
             var oldEventName = 'on' + e.type;
             if (this[oldEventName]) this[oldEventName](e);
             
-            var listeners = this._listeners[e.type];
-            if (listeners) {
+            var listeners = [].concat(this._listeners[e.type]);
+            if (this._listeners[e.type]) {
                 for (var i=0,len=listeners.length; i<len; ++i) {
                     listeners[i].call(this, e);
                 }

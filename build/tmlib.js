@@ -1922,8 +1922,8 @@ tm.event = tm.event || {};
             var oldEventName = 'on' + e.type;
             if (this[oldEventName]) this[oldEventName](e);
             
-            var listeners = this._listeners[e.type];
-            if (listeners) {
+            var listeners = [].concat(this._listeners[e.type]);
+            if (this._listeners[e.type]) {
                 for (var i=0,len=listeners.length; i<len; ++i) {
                     listeners[i].call(this, e);
                 }
@@ -2115,7 +2115,6 @@ tm.util = tm.util || {};
             
             // コールバック
             httpRequest.onreadystatechange = function() {
-                console.log("httpRequest.readyState = " + httpRequest.readyState);
                 if (httpRequest.readyState == 4) {
                     // 成功
                     if (httpRequest.status === 200) {
