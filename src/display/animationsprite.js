@@ -68,7 +68,7 @@ tm.display = tm.display || {};
         },
 
         /**
-         * @TODO ?
+         * 再生
          */
         gotoAndPlay: function(name) {
             name = (name !== undefined) ? name : "default";
@@ -83,7 +83,7 @@ tm.display = tm.display || {};
         },
 
         /**
-         * @TODO ?
+         * ストップ
          */
         gotoAndStop: function(name) {
             name = (name !== undefined) ? name : "default";
@@ -98,7 +98,7 @@ tm.display = tm.display || {};
         },
 
         /**
-         * @TODO ?
+         * フレーム数のカウントアップ
          * @private
          */
         _updateFrame: function() {
@@ -107,7 +107,6 @@ tm.display = tm.display || {};
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _normalizeFrame: function() {

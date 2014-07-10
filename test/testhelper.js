@@ -19,6 +19,10 @@
             "src/core/string.js",
             "src/core/list.js",
         ],
+        "event": [
+            "src/event/event.js",
+            "src/event/eventdispatcher.js",
+        ],
         "util": [
             "src/util/random.js",
             "src/util/ajax.js",
@@ -50,10 +54,6 @@
             "src/dom/trans.js",
             "src/dom/data.js",
         ],
-        "event": [
-            "src/event/event.js",
-            "src/event/eventdispatcher.js",
-        ],
         "asset": [
             "src/asset/manager.js",
             "src/asset/loader.js",
@@ -78,8 +78,10 @@
             "src/anim/tween.js",
         ],
         "app": [
-            "src/app/baseapp.js",
+            "src/app/timer.js",
             "src/app/element.js",
+            "src/app/updater.js",
+            "src/app/baseapp.js",
             "src/app/object2d.js",
             "src/app/scene.js",
             "src/app/collision.js",
@@ -107,6 +109,15 @@
             "src/ui/labelarea.js",
             "src/ui/loadingscene.js",
         ],
+        "scene": [
+            "src/scene/titlescene.js",
+            "src/scene/resultscene.js",
+            "src/scene/loadingscene.js",
+            "src/scene/countdownscene.js",
+            "src/scene/splashscene.js",
+            "src/scene/managerscene.js",
+            "src/scene/numericalinputscene.js",
+        ],
         "three": [
             "src/three/three.js",
         ],
@@ -128,6 +139,19 @@
         //     "src/dirty.js",
         // ],
     };
+
+    global.testhelper.testScripts = [
+        "app/scene.js",
+        "app/timer.js",
+        "app/object2d.js",
+        "app/timeline.js",
+        "app/tweener.js",
+        "app/collision.js",
+
+        "scene/scene.js",
+
+        "input/pointing.js",
+    ];
     
     global.testhelper.scripts.all = (function() {
         var scripts = [];

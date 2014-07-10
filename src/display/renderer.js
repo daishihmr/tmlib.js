@@ -7,13 +7,13 @@
     
     /**
      * @class tm.display.CanvasRenderer
-     * @TODO キャンバス描画クラス？
+     * キャンバス描画クラス
      */
     tm.define("tm.display.CanvasRenderer", {
         /** キャンバス */
         canvas: null,
 
-        /** @property _context @private */
+        /** @property @private _context     コンテキスト */
 
         /**
          * @constructor
@@ -25,8 +25,7 @@
         },
 
         /**
-         * @property
-         * @TODO ?
+         * 描画
          */
         render: function(root) {
             this.canvas.save();
@@ -35,16 +34,32 @@
         },
 
         /**
-         * @property
-         * @TODO ?
+         * オブジェクトを描画
          */
         renderObject: function(obj) {
-            obj._dirtyCalc();
-
             if (obj.visible === false) return ;
             var context = this._context;
 
-            if (!obj.draw) this._setRenderFunction(obj);
+            // TODO: 別の場所で呼ぶよう調整する
+            obj._dirtyCalc && obj._dirtyCalc();
+
+            // 描画可能かをチェック
+            if (!this._checkRenderable(obj)) {
+                // 子供達のみ描画実行
+                if (obj.children.length > 0) {
+                    var tempChildren = obj.children.slice();
+                    for (var i=0,len=tempChildren.length; i<len; ++i) {
+                        this.renderObject(tempChildren[i]);
+                    }
+                }
+
+                return ;
+            }
+
+            // 
+            if (!obj.draw) {
+                this._setRenderFunction(obj);
+            }
 
             // 情報をセット
             if (obj.fillStyle)   context.fillStyle   = obj.fillStyle;
@@ -68,24 +83,55 @@
             var m = obj._worldMatrix.m;
             context.setTransform( m[0], m[3], m[1], m[4], m[2], m[5] );
             
-            obj.draw(this.canvas);
-            
-            if (obj instanceof tm.display.Layer) {
-                return;
-            }
 
-            // 子供達も実行
-            if (obj.children.length > 0) {
-                var tempChildren = obj.children.slice();
-                for (var i=0,len=tempChildren.length; i<len; ++i) {
-                    this.renderObject(tempChildren[i]);
+            if (obj.clipping) {
+                context.save();
+
+                // クリップ処理を実行
+                if (obj.clip) {
+                    obj.clip();
+                }
+                else {
+                    onclip.call(obj, this.canvas);
+                }
+                context.clip();
+
+                obj.draw(this.canvas);
+                
+                // 子供達も実行
+                if (obj.children.length > 0) {
+                    var tempChildren = obj.children.slice();
+                    for (var i=0,len=tempChildren.length; i<len; ++i) {
+                        this.renderObject(tempChildren[i]);
+                    }
+                }
+
+                context.restore();
+            }
+            else {
+                obj.draw(this.canvas);
+                
+                // 子供達も実行
+                if (obj.children.length > 0) {
+                    var tempChildren = obj.children.slice();
+                    for (var i=0,len=tempChildren.length; i<len; ++i) {
+                        this.renderObject(tempChildren[i]);
+                    }
                 }
             }
         },
 
         /**
-         * @property
-         * @TODO ?
+         * @private
+         */
+        _checkRenderable: function(obj) {
+            if (obj._renderable === undefined) {
+                obj._renderable = (obj instanceof tm.display.CanvasElement);
+            }
+            return obj._renderable;
+        },
+
+        /**
          * @private
          */
         _setRenderFunction: function(obj) {
@@ -157,6 +203,16 @@
         }
     };
 
+    var onclip = function(c) {
+        c.beginPath();
+        c.rect(
+            -this.width*this.origin.x,
+            -this.height*this.origin.y,
+            this.width,
+            this.height
+            );
+    };
+
 })();
  
 
@@ -166,7 +222,7 @@
     
     /**
      * @class tm.display.BoundingRectRenderer
-     * @TODO なにをするクラス？
+     * バウンディング表示レンダー
      * @extends tm.display.CanvasRenderer
      */
     tm.define("tm.display.BoundingRectRenderer", {
@@ -181,8 +237,6 @@
         },
 
         /**
-         * @property
-         * @TODO ?
          * @private
          */
         _setRenderFunction: function(obj) {
@@ -190,10 +244,6 @@
         }
     });
 
-    /**
-     * @TODO ?
-     * コンストラクタ
-     */
     var render = function(canvas) {
         canvas.save();
         canvas.lineWidth = 2;

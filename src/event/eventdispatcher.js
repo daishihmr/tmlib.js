@@ -48,20 +48,31 @@ tm.event = tm.event || {};
         },
         
         /**
-         * イベント起動
+         * イベント発火
          */
         fire: function(e) {
             e.target = this;
             var oldEventName = 'on' + e.type;
             if (this[oldEventName]) this[oldEventName](e);
             
-            var listeners = [].concat(this._listeners[e.type]);
-            if (this._listeners[e.type]) {
-                for (var i=0,len=listeners.length; i<len; ++i) {
-                    listeners[i].call(this, e);
+            var listeners = this._listeners[e.type];
+            if (listeners) {
+                var temp = listeners.clone();
+                for (var i=0,len=temp.length; i<len; ++i) {
+                    temp[i].call(this, e);
                 }
             }
             
+            return this;
+        },
+
+        /*
+         * イベント名でイベント発火
+         */
+        flare: function(eventName) {
+            var e = tm.event.Event(eventName);
+            this.fire(e);
+
             return this;
         },
         

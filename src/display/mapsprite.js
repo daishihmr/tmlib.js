@@ -17,6 +17,7 @@
         /** @property chipWidth */
         /** @property chipHeight */
         /** @property originX */
+        /** @property originY */
         /** @property width */
         /** @property height */
 
@@ -45,7 +46,6 @@
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _build: function() {
@@ -62,7 +62,6 @@
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _buildLayer: function(layer) {
@@ -103,7 +102,6 @@
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _buildObject: function(layer) {

@@ -12,6 +12,8 @@ tm.app = tm.app || {};
      * ベースアプリケーション
      */
     tm.app.BaseApp = tm.createClass({
+
+        superClass: tm.event.EventDispatcher,
         
         /** エレメント */
         element       : null,
@@ -25,10 +27,12 @@ tm.app = tm.app || {};
         keyboard      : null,
         /** 加速度センサー */
         accelerometer : null,
+        /** 更新クラス */
+        updater       : null,
         /** statsライブラリ */
         stats         : null,
-        /** フレーム */
-        frame         : 0,
+        /** タイマー */
+        timer         : null,
         /** フレームレート */
         fps           : 30,
         /** 現在更新中か */
@@ -43,7 +47,12 @@ tm.app = tm.app || {};
          * @param {Object} elm
          */
         init: function(elm) {
+            this.superInit();
+
             this.element = elm;
+
+            // タイマー
+            this.timer = tm.app.Timer();
 
             // マウスを生成
             this.mouse      = tm.input.Mouse(this.element);
@@ -57,6 +66,8 @@ tm.app = tm.app || {};
             
             // 加速度センサーを生成
             this.accelerometer = tm.input.Accelerometer();
+
+            this.updater = tm.app.Updater(this);
             
             // 再生フラグ
             this.isPlaying = true;
@@ -67,13 +78,16 @@ tm.app = tm.app || {};
             
             // 決定時の処理をオフにする(iPhone 時のちらつき対策)
             this.element.addEventListener("touchstart", function(e) { e.stop(); });
+            this.element.addEventListener("touchmove", function(e) { e.stop(); });
             
             // ウィンドウフォーカス時イベントリスナを登録
             window.addEventListener("focus", function() {
+                this.fire(tm.event.Event("focus"));
                 this.currentScene.dispatchEvent(tm.event.Event("focus"));
             }.bind(this));
             // ウィンドウブラー時イベントリスナを登録
             window.addEventListener("blur", function() {
+                this.fire(tm.event.Event("blur"));
                 this.currentScene.dispatchEvent(tm.event.Event("blur"));
             }.bind(this));
             // クリック
@@ -93,20 +107,20 @@ tm.app = tm.app || {};
             // }
             // fn();
             
-            // tm.setLoop(function(){ self._loop(); }, 1000/this.fps);
+            tm.setLoop(function(){ self._loop(); }, this.timer.frameTime);
             
-            // return ;
+            return ;
             
-            // if (true) {
+            if (true) {
                 setTimeout(arguments.callee.bind(this), 1000/this.fps);
                 this._loop();
-            // }
+            }
             
-            // return ;
+            return ;
             
-            // var self = this;
+            var self = this;
             // setInterval(function(){ self._loop(); }, 1000/self.fps);
-            // tm.setLoop(function(){ self._loop(); }, 1000/self.fps);
+            tm.setLoop(function(){ self._loop(); }, 1000/self.fps);
         },
         
         /*
@@ -154,17 +168,22 @@ tm.app = tm.app || {};
          * @param {Object} scene
          */
         pushScene: function(scene) {
-            e = tm.event.Event("exit");
+            this.fire(tm.event.Event("push"));
+
+            var e = tm.event.Event("pause");
             e.app = this;
             this.currentScene.dispatchEvent(e);
             
             this._scenes.push(scene);
             ++this._sceneIndex;
             
-            e = tm.event.Event("enter");
+            this.fire(tm.event.Event("pushed"));
+
+            var e = tm.event.Event("enter");
             e.app = this;
             scene.app = this;
             scene.dispatchEvent(e);
+
 
             return this;
         },
@@ -173,16 +192,20 @@ tm.app = tm.app || {};
          * シーンをポップする(ポーズやオブション画面などで使用)
          */
         popScene: function() {
+            this.fire(tm.event.Event("pop"));
+            
             var scene = this._scenes.pop();
             --this._sceneIndex;
             
-            e = tm.event.Event("exit");
+            var e = tm.event.Event("exit");
             e.app = this;
             scene.dispatchEvent(e);
             scene.app = null;
+
+            this.fire(tm.event.Event("poped"));
             
             // 
-            e = tm.event.Event("enter");
+            var e = tm.event.Event("resume");
             e.app = this;
             this.currentScene.dispatchEvent(e);
             
@@ -252,13 +275,13 @@ tm.app = tm.app || {};
             // this.touches.update();
             
             if (this.isPlaying) {
-                this.currentScene._update(this);
-                ++this.frame;
+                this.updater.update(this.currentScene);
+                this.timer.update();
             }
         },
         
         /**
-         * @TODO ? オーバーライド予定？
+         * 描画用仮想関数
          * @private
          */
         _draw: function() {},
@@ -304,11 +327,49 @@ tm.app = tm.app || {};
     /**
      * @property currentScene
      * カレントシーン
-     * @TODO どうしよう？
      */
     tm.app.BaseApp.prototype.accessor("currentScene", {
         "get": function() { return this._scenes[this._sceneIndex]; },
         "set": function(v){ this._scenes[this._sceneIndex] = v; }
     });
     
+    /**
+     * @property frame
+     * フレーム
+     */
+    tm.app.BaseApp.prototype.accessor("frame", {
+        "get": function() {
+            return this.timer.frame;
+        },
+        "set": function(v){
+            this.timer.frame = v;
+        }
+    });
+    
+    /**
+     * @property fps
+     * fps
+     */
+    tm.app.BaseApp.prototype.accessor("fps", {
+        "get": function() {
+            return this.timer.fps;
+        },
+        "set": function(v){
+            this.timer.fps = v;
+        }
+    });
+    
 })();
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -4,7 +4,7 @@ module.exports = function(grunt) {
   
   var banner = '\
 /*\n\
- * tmlib.js <%= version %>\n\
+ * tmlib.js <%= pkg.version %>\n\
  * http://github.com/phi-jp/tmlib.js\n\
  * MIT Licensed\n\
  * \n\
@@ -73,6 +73,8 @@ module.exports = function(grunt) {
 
     "src/anim/tween.js",
 
+    "src/app/timer.js",
+    "src/app/updater.js",
     "src/app/baseapp.js",
     "src/app/element.js",
     "src/app/object2d.js",
@@ -96,7 +98,16 @@ module.exports = function(grunt) {
     "src/ui/menudialog.js",
     "src/ui/sketch.js",
     "src/ui/gauge.js",
+    "src/ui/labelarea.js",
     "src/ui/loadingscene.js",
+
+    "src/scene/titlescene.js",
+    "src/scene/resultscene.js",
+    "src/scene/loadingscene.js",
+    "src/scene/countdownscene.js",
+    "src/scene/splashscene.js",
+    "src/scene/managerscene.js",
+    "src/scene/numericalinputscene.js",
     
     "src/three/three.js",
 
@@ -112,7 +123,7 @@ module.exports = function(grunt) {
   ];
 
   grunt.initConfig({
-    version: pkg.version,
+    pkg: pkg,
     buildDir: "build",
 
     concat: {
@@ -120,14 +131,15 @@ module.exports = function(grunt) {
         src: target,
         dest: '<%= buildDir %>/tmlib.js',
         options: {
-          banner: banner
+          banner: banner,
+          process: true,
         }
       },
     },
     uglify: {
       tmlib: {
         options: {
-
+          banner: banner,
         },
         files: {
           '<%= buildDir %>/tmlib.min.js': [ '<%= buildDir %>/tmlib.js' ]

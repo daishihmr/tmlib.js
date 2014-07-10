@@ -1,5 +1,5 @@
 
-describe('Number Test', function() {
+describe('Number', function() {
     
     it('round', function() {
         assert.equal((42.1947).round(), 42);
@@ -46,6 +46,39 @@ describe('Number Test', function() {
 
     it('padding', function() {
         assert.equal((50).padding(10), "0000000050");
+    });
+
+    it('times', function() {
+        var arr = [];
+        (5).times(function(i) {
+            arr.push(i);
+        });
+        assert(arr.equals([0, 1, 2, 3, 4]));
+    });
+
+    it('upto', function() {
+        var arr = [];
+        (6).upto(8, function(i) {
+            arr.push(i);
+        });
+        assert(arr.equals([6, 7, 8]));
+    });
+
+    it('downto', function() {
+        var arr = [];
+        (8).downto(6, function(i) {
+            arr.push(i);
+        });
+        console.log(arr);
+        assert(arr.equals([8, 7, 6]));
+    });
+
+    it('step', function() {
+        var arr = [];
+        (2.4).step(5.3, 0.8, function(n) {
+            arr.push(n);
+        });
+        assert(arr.equals([2.4, 3.2, 4.0, 4.8]));
     });
 
 });

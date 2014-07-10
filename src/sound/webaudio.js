@@ -58,12 +58,17 @@ tm.sound = tm.sound || {};
          */
         play: function(time) {
             if (time === undefined) time = 0;
-            this.source.noteOn(this.context.currentTime + time);
-            /*
-            this.source.noteGrainOn(this.context.currentTime + time, 0, this.buffer.duration);
-            console.dir(this.buffer.duration);
-            console.dir(this.context.currentTime)
-            */
+
+            if (this.source.playbackState == 0) {
+                this.source.noteOn(this.context.currentTime + time);
+            }
+            
+            var self = this;
+            var time = (this.source.buffer.duration/this.source.playbackRate.value)*1000;
+            window.setTimeout(function() {
+                var e = tm.event.Event("ended");
+                self.fire(e);
+            }, time);
 
             return this;
         },
@@ -73,6 +78,9 @@ tm.sound = tm.sound || {};
          */
         stop: function(time) {
             if (time === undefined) time = 0;
+            if (this.source.playbackState == 0) {
+                return ;
+            }
             this.source.noteOff(this.context.currentTime + time);
             
             var buffer = this.buffer;
@@ -89,7 +97,7 @@ tm.sound = tm.sound || {};
         },
 
         /**
-         * @TODO ?
+         * ポーズ
          */
         pause: function() {
             this.source.disconnect();
@@ -98,7 +106,7 @@ tm.sound = tm.sound || {};
         },
 
         /**
-         * @TODO ?
+         * レジューム
          */
         resume: function() {
             this.source.connect(this.panner);
@@ -178,35 +186,28 @@ tm.sound = tm.sound || {};
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _load: function(src) {
             if (!this.context) return ;
 
-            var xhr = new XMLHttpRequest();
             var self = this;
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === 4) {
-                    if (xhr.status === 200 || xhr.status === 0) {
-                        self.context.decodeAudioData(xhr.response, function(buffer) {
-                            self._setup();
-                            self.buffer = buffer;
-                            self.loaded = true;
-                            self.dispatchEvent( tm.event.Event("load") );
-                        });
-                    } else {
-                        console.error(xhr);
-                    }
+            tm.util.Ajax.load({
+                type: "GET",
+                url: src,
+                responseType: "arraybuffer",
+                success: function(data) {
+                    self.context.decodeAudioData(data, function(buffer) {
+                        self._setup();
+                        self.buffer = buffer;
+                        self.loaded = true;
+                        self.dispatchEvent( tm.event.Event("load") );
+                    });
                 }
-            };
-            xhr.open("GET", src, true);
-            xhr.responseType = "arraybuffer";
-            xhr.send();
+            });
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _setup: function() {
@@ -221,7 +222,7 @@ tm.sound = tm.sound || {};
         },
 
         /**
-         * @TODO ?
+         * トーン
          */
         tone: function(hertz, seconds) {
             // handle parameter
@@ -248,7 +249,7 @@ tm.sound = tm.sound || {};
 
     /**
      * @property    buffer
-     * @TODO ?
+     * バッファー
      */
     tm.sound.WebAudio.prototype.accessor("buffer", {
         get: function()  { return this.source.buffer; },
@@ -257,7 +258,7 @@ tm.sound = tm.sound || {};
 
     /**
      * @property    loop
-     * @TODO ?
+     * ループフラグ
      */
     tm.sound.WebAudio.prototype.accessor("loop", {
         get: function()  { return this.source.loop; },
@@ -266,7 +267,7 @@ tm.sound = tm.sound || {};
 
     /**
      * @property    valume
-     * @TODO ?
+     * ボリューム
      */
     tm.sound.WebAudio.prototype.accessor("volume", {
         get: function()  { return this.source.gain.value; },
@@ -275,7 +276,7 @@ tm.sound = tm.sound || {};
 
     /**
      * @property    playbackRate
-     * @TODO ?
+     * プレイバックレート
      */
     tm.sound.WebAudio.prototype.accessor("playbackRate", {
         get: function()  { return this.source.playbackRate.value; },

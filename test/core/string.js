@@ -1,5 +1,5 @@
 
-describe('String Test', function() {
+describe('String', function() {
     
     it('format', function() {
         assert.equal("hsl({0}, {1}%, {2}%)".format(240, 50, 60), "hsl(240, 50%, 60%)");
@@ -48,6 +48,15 @@ describe('String Test', function() {
 
     it('repeat', function() {
         assert.equal("1234".repeat(4), '1234123412341234');
+    });
+
+    it('count', function() {
+        assert.equal("This is a string.".count("is"), 2);
+    });
+
+    it('toArray', function() {
+        assert("12345".toArray().equals(['1', '2', '3', '4', '5']));
+        assert("あいうえお".toArray().equals(['あ', 'い', 'う', 'え', 'お']));
     });
     
 });

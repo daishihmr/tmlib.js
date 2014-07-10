@@ -28,17 +28,17 @@
      * @extends tm.display.CanvasElement
      */
     tm.define(&quot;tm.display.MapSprite&quot;, {
-<span id='tm-display-MapSprite-property-mapSheet'>        superClass: &quot;tm.display.CanvasElement&quot;,
+        superClass: &quot;tm.display.CanvasElement&quot;,
+
+<span id='tm-display-MapSprite-property-mapSheet'>        /** @property mapSheet */
+</span><span id='tm-display-MapSprite-property-chipWidth'>        /** @property chipWidth */
+</span><span id='tm-display-MapSprite-property-chipHeight'>        /** @property chipHeight */
+</span><span id='tm-display-MapSprite-property-originX'>        /** @property originX */
+</span><span id='tm-display-MapSprite-property-width'>        /** @property width */
+</span><span id='tm-display-MapSprite-property-height'>        /** @property height */
 </span>
-<span id='tm-display-MapSprite-property-chipWidth'>        /** @property mapSheet */
-</span><span id='tm-display-MapSprite-property-chipHeight'>        /** @property chipWidth */
-</span><span id='tm-display-MapSprite-property-originX'>        /** @property chipHeight */
-</span><span id='tm-display-MapSprite-property-width'>        /** @property originX */
-</span><span id='tm-display-MapSprite-property-height'>        /** @property width */
-</span><span id='tm-display-MapSprite-method-constructor'>        /** @property height */
-</span>
-        /**
-         * @constructor
+<span id='tm-display-MapSprite-method-constructor'>        /**
+</span>         * @constructor
          */
         init: function(mapSheet, chipWidth, chipHeight) {
             this.superInit();
@@ -59,11 +59,10 @@
             this.height= chipWidth*this.mapSheet.height;
 
             this._build();
-<span id='tm-display-MapSprite-method-_build'>        },
-</span>
-        /**
-         * @TODO ?
-         * @private
+        },
+
+<span id='tm-display-MapSprite-method-_build'>        /**
+</span>         * @private
          */
         _build: function() {
             var self = this;
@@ -76,11 +75,10 @@
                     self._buildLayer(layer);
                 }
             });
-<span id='tm-display-MapSprite-method-_buildLayer'>        },
-</span>
-        /**
-         * @TODO ?
-         * @private
+        },
+
+<span id='tm-display-MapSprite-method-_buildLayer'>        /**
+</span>         * @private
          */
         _buildLayer: function(layer) {
             var self        = this;
@@ -117,11 +115,10 @@
                 }.bind(this));
             }
 
-<span id='tm-display-MapSprite-method-_buildObject'>        },
-</span>
-        /**
-         * @TODO ?
-         * @private
+        },
+
+<span id='tm-display-MapSprite-method-_buildObject'>        /**
+</span>         * @private
          */
         _buildObject: function(layer) {
             var self = this;

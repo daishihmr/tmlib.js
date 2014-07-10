@@ -5,8 +5,8 @@
     
 /**
  * @class tm.util.Flow
- * it is inspire in made flow.js of @uupaa
  * @extends tm.event.EventDispatcher
+ * it is inspire in made flow.js of `@uupaa`
  */
 tm.define("tm.util.Flow", {
     superClass: "tm.event.EventDispatcher",
@@ -38,6 +38,10 @@ tm.define("tm.util.Flow", {
         this.callback = callback;
         this.counter = 0;
         this.args = {};
+
+        this._check();
+
+        return this;
     },
     
     /**

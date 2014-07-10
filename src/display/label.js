@@ -9,7 +9,7 @@ tm.display = tm.display || {};
     
     var dummyCanvas  = null;
     var dummyContext = null;
-    
+
     /**
      * @class tm.display.Label
      * システムフォントを描画するクラス
@@ -23,7 +23,7 @@ tm.display = tm.display || {};
         fill: true,
         /** ストロークフラグ */
         stroke: false,
-        /** @TODO ? */
+        /** デバッグボックス */
         debugBox: false,
 
         /** @property _fontSize @private */
@@ -43,19 +43,19 @@ tm.display = tm.display || {};
             this.text       = text || "";
             
             this._fontSize   = size || 24;
-            this._fontFamily = "'Consolas', 'Monaco', 'ＭＳ ゴシック'";
+            this._fontFamily = tm.display.Label.default.fontFamily;
             this._fontWeight = "";
             this._lineHeight = 1.2;
             this._updateFont();
             
-            this.align      = "start";
-            this.baseline   = "alphabetic";
+            this.align = tm.display.Label.default.align;
+            this.baseline = tm.display.Label.default.baseline;
 
             this.maxWidth   = null;
         },
         
         /**
-         * @TODO ?
+         * アラインをセット
          */
         setAlign: function(align) {
             this.align = align;
@@ -63,7 +63,7 @@ tm.display = tm.display || {};
         },
         
         /**
-         * @TODO ?
+         * ベースラインをセット
          */
         setBaseline: function(baseline) {
             this.baseline = baseline;
@@ -71,7 +71,7 @@ tm.display = tm.display || {};
         },
         
         /**
-         * @TODO ?
+         * フォントサイズをセット
          */
         setFontSize: function(size) {
             this.fontSize = size;
@@ -79,7 +79,7 @@ tm.display = tm.display || {};
         },
         
         /**
-         * @TODO ?
+         * フォントファミリーをセット
          */
         setFontFamily: function(family) {
             this.fontFamily= family;
@@ -87,7 +87,7 @@ tm.display = tm.display || {};
         },
 
         /**
-         * @TODO ?
+         * フォントウェイトをセット
          */
         setFontWeight: function(weight) {
             this.fontWeight= weight;
@@ -95,7 +95,6 @@ tm.display = tm.display || {};
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _updateFont: function() {
@@ -109,7 +108,6 @@ tm.display = tm.display || {};
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _updateLines: function() {
@@ -172,6 +170,14 @@ tm.display = tm.display || {};
             this._lineHeight = v; this._updateFont();
         },
     });
+    
+    tm.display.Label.default = {
+        align: "center",
+        baseline: "middle",
+        fontFamily: "'HiraKakuProN-W3'", // Hiragino or Helvetica
+        // align: "start",
+        // baseline: "alphabetic",
+    };
 
     
 })();

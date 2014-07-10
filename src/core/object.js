@@ -43,7 +43,7 @@
     
     /**
      * @method defineInstanceVariable
-     * @TODO ?
+     * インスタンス変数を定義する
      */
     Object.prototype.defineFunction("defineInstanceVariable", function(name, val){
         Object.defineProperty(this.prototype, name, {
@@ -55,7 +55,7 @@
     
     /**
      * @method defineInstanceMethod
-     * @TODO ?
+     * インスタンスメソッドを定義する
      */
     Object.prototype.defineFunction("defineInstanceMethod", function(name, fn){
         Object.defineProperty(this.prototype, name, {
@@ -67,7 +67,7 @@
     
     /**
      * @method setter
-     * @TODO ?
+     * セッターを定義する
      */
     Object.defineInstanceMethod("setter", function(name, fn){
         Object.defineProperty(this, name, {
@@ -80,7 +80,7 @@
     
     /**
      * @method getter
-     * @TODO ?
+     * ゲッターを定義する
      */
     Object.defineInstanceMethod("getter", function(name, fn){
         Object.defineProperty(this, name, {
@@ -93,7 +93,7 @@
     
     /**
      * @method accessor
-     * @TODO ?
+     * アクセッサ(セッター/ゲッター)を定義する
      */
     Object.defineInstanceMethod("accessor", function(name, param) {
         Object.defineProperty(this, name, {
@@ -105,10 +105,26 @@
         // (param["get"]) && this.getter(name, param["get"]);
         // (param["set"]) && this.setter(name, param["set"]);
     });
+    
+    /**
+     * @method $forIn
+     * オブジェクト用ループ処理
+     */
+    Object.defineInstanceMethod("$forIn", function(fn, self) {
+        self = self || this;
+
+        Object.keys(this).forEach(function(key, index) {
+            var value = this[key];
+
+            fn.call(self, key, value, index);
+        }, this);
+
+        return this;
+    });
 
     /**
      * @method  $has
-     * text
+     * そのプロパティを持っているかを判定する
      */
     Object.defineInstanceMethod("$has", function(key) {
         return this.hasOwnProperty(key);
@@ -135,7 +151,7 @@
     Object.defineInstanceMethod("$safe", function(source) {
         Array.prototype.forEach.call(arguments, function(source) {
             for (var property in source) {
-                if (!this[property]) this[property] = source[property];
+                if (this[property] === undefined || this[property] === null) this[property] = source[property];
             }
         }, this);
         return this;
@@ -159,7 +175,7 @@
 
     /**
      * @method  $pick
-     * text
+     * ピック
      */
     Object.defineInstanceMethod("$pick", function() {
         var temp = {};
@@ -173,7 +189,7 @@
 
     /**
      * @method  $omit
-     * text
+     * オミット
      */
     Object.defineInstanceMethod("$omit", function() {
         var temp = {};

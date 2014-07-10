@@ -18,7 +18,12 @@
   <pre class="prettyprint lang-js">
 
 (function() {
-    
+
+<span id='tm-asset-Loader'>    /**
+</span>     * @class tm.asset.Loader
+     * @extends tm.event.EventDispatcher
+     * アセットローダー
+     */
     tm.define(&quot;tm.asset.Loader&quot;, {
         superClass: &quot;tm.event.EventDispatcher&quot;,
         
@@ -43,16 +48,16 @@
             return this;
         },
 
-<span id='global-method-get'>        /**
+<span id='tm-asset-Loader-method-get'>        /**
 </span>         * アセットのゲット
          * @param {Object} key
          */
         get: function(key) {
             return this.assets[key];
-<span id='global-method-set'>        },
-</span>
-        /**
-         * アセットのセット
+        },
+
+<span id='tm-asset-Loader-method-set'>        /**
+</span>         * アセットのセット
          * @param {Object} key
          * @param {Object} asset
          */
@@ -72,7 +77,10 @@
             
             path = path || key;
             // type が省略されている場合は拡張子から判定する
-            type = type || path.split('.').last;
+            type = (function() {
+                var temp_path = path.split('?')[0].split('#')[0];
+                return type || temp_path.split('.').last;
+            })();
             
             var asset = tm.asset.Loader._funcs[type](path);
             this.set(key, asset);

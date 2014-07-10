@@ -10,7 +10,7 @@
      * @extends tm.event.EventDispatcher
      */
     tm.define("tm.app.Tweener", {
-        superClass: "tm.event.EventDispatcher",
+        superClass: "tm.app.Element",
 
         /**
          * @constructor
@@ -19,7 +19,7 @@
         init: function(elm) {
             this.superInit();
 
-            this.setTarget(elm);
+            this.setTarget(elm || {});
             this.loop = false;
 
             this._init();
@@ -40,13 +40,9 @@
          * @param {Object} target
          */
         setTarget: function(target) {
-            if (this._fn) {
-                this.element.removeEventListener("enterframe", this._fn);
-            }
-
             this.element = target;
-            this._fn = function(e) { this.update(e.app); }.bind(this);
-            this.element.addEventListener("enterframe", this._fn);
+
+            return this;
         },
 
         /**
@@ -76,8 +72,8 @@
                     // 全てのアニメーション終了チェック
                     if (this.tweens.length <= 0) {
                         this.isAnimation = false;
-                        var e = tm.event.Event("animationend");
-                        this.element.dispatchEvent(e);
+                        var e = tm.event.Event("finish");
+                        this.element.fire(e);
                         this.dispatchEvent(e);
                     }
                 }
@@ -128,7 +124,7 @@
                 this._func(app);
             }
             else if (task.type == "call") {
-                task.data.func.apply(null, task.data.args);
+                task.data.func.apply(task.data.self, task.data.args);
                 // 1フレーム消費しないよう再帰
                 this._updateTask(app);
             }
@@ -178,7 +174,7 @@
         },
 
         /**
-         * @TODO ?
+         * 追加
          * @param {Object} param
          */
         add: function(param) {
@@ -226,6 +222,16 @@
                 duration: duration,
                 fn: fn,
                 type: "to"
+            });
+            return this;
+        },
+
+        from: function(props, duration, fn) {
+            this._addTweenTask({
+                props: props,
+                duration: duration,
+                fn: fn,
+                type: "from"
             });
             return this;
         },
@@ -345,11 +351,12 @@
          * @param {Function} fn
          * @param {Object} args
          */
-        call: function(fn, args) {
+        call: function(fn, self, args) {
             this._tasks.push({
                 type: "call",
                 data: {
                     func: fn,
+                    self: self || this,
                     args: args,
                 },
             });
@@ -433,6 +440,9 @@
     tm.app.Element.prototype.getter("tweener", function() {
         if (!this._tweener) {
             this._tweener = tm.app.Tweener(this);
+            this.on("enterframe", function(e) {
+                this._tweener.update(e.app);
+            });
         }
         
         return this._tweener;

@@ -23,29 +23,32 @@
 
     tm.asset = tm.asset || {};
     
+<span id='tm-asset-Manager'>    /**
+</span>     * アセットマネージャー
+     */
     tm.asset.Manager = {
-        assets: {},
-        
-<span id='global-method-get'>        /**
+<span id='tm-asset-Manager-property-assets'>        assets: {},
+</span>        
+<span id='tm-asset-Manager-method-get'>        /**
 </span>         * アセットのゲット
          * @param {Object} key
          */
         get: function(key) {
             return this.assets[key];
-<span id='global-method-set'>        },
-</span>
-        /**
-         * アセットのセット
+        },
+
+<span id='tm-asset-Manager-method-set'>        /**
+</span>         * アセットのセット
          * @param {Object} key
          * @param {Object} asset
          */
         set: function(key, asset) {
             this.assets[key] = asset;
-<span id='global-method-contains'>            return this;
-</span>        },
+            return this;
+        },
 
-        /**
-         * @TODO ?
+<span id='tm-asset-Manager-method-contains'>        /**
+</span>         * キーと一致するアセットを含んでいるか
          * @param {Object} key
          */
         contains: function(key) {

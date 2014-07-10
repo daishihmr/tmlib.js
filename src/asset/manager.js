@@ -6,7 +6,11 @@
 
     tm.asset = tm.asset || {};
     
+    /**
+     * アセットマネージャー
+     */
     tm.asset.Manager = {
+        /** アセット */
         assets: {},
         
         /**
@@ -28,7 +32,7 @@
         },
 
         /**
-         * @TODO ?
+         * キーと一致するアセットを含んでいるか
          * @param {Object} key
          */
         contains: function(key) {

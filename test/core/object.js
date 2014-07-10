@@ -1,5 +1,18 @@
 
-describe('Object Test', function() {
+describe('core.Object', function() {
+    
+    it('$forIn', function() {
+        var obj = { name: 'phi', age: 25, bloodType: 'O' };
+        var temp = {};
+
+        obj.$forIn(function(key, value) {
+            temp[key] = value;
+        });
+
+        assert.equal(temp['name'], 'phi');
+        assert.equal(temp['age'], 25);
+        assert.equal(temp['bloodType'], 'O');
+    });
     
     it('$has', function() {
         var obj = { name: 'phi', age: 24 };

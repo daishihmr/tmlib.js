@@ -18,6 +18,8 @@
         scale: null,
         /** 回転 */
         rotation: 0,
+        /** 起きているフラグ */
+        awake: true,
         /** @private  幅 */
         _width:  64,
         /** @private  高さ */
@@ -54,7 +56,7 @@
         },
         
         /**
-         * @TODO ?
+         * 最終的な行列をゲット
          */
         getFinalMatrix: function() {
             var matrix = tm.geom.Matrix33();
@@ -87,7 +89,7 @@
         },
  
         /**
-         * @TODO ?
+         * 円として点と衝突判定
          * @param {Number} x
          * @param {Number} y
          */
@@ -101,7 +103,7 @@
         },
  
         /**
-         * @TODO ?
+         * 矩形として点と衝突判定
          * @param {Number} x
          * @param {Number} y
          */
@@ -250,7 +252,7 @@
         },
 
         /**
-         * @TODO ?
+         * 回転をセット
          * @param {Number} rotation
          */
         setRotation: function(rotation) {
@@ -259,7 +261,7 @@
         },
 
         /**
-         * @TODO ?
+         * スケールをセット
          * @param {Number} x
          * @param {Number} y
          */
@@ -274,7 +276,7 @@
         },
         
         /**
-         * @TODO ?
+         * 基準点をセット
          * @param {Number} x
          * @param {Number} y
          */
@@ -317,7 +319,7 @@
          * 起動
          */
         wakeUp: function() {
-            this.isUpdate = true;
+            this.awake = true;
             return this;
         },
         
@@ -325,7 +327,7 @@
          * 停止
          */
         sleep: function() {
-            this.isUpdate = false;
+            this.awake = false;
             return this;
         },
         
@@ -348,37 +350,7 @@
         },
         
         /**
-         * @TODO ?
-         * @private
-         * @param {Object} app
-         */
-        _update: function(app) {
-            // 更新有効チェック
-            if (this.isUpdate == false) return ;
-            
-            if (this.update) this.update(app);
-            
-            if (this.hasEventListener("enterframe")) {
-                var e = tm.event.Event("enterframe");
-                e.app = app;
-                this.dispatchEvent(e);
-            }
-            
-            if (this.interactive) {
-                this._checkPointing(app);
-            }
-            
-            // 子供達も実行
-            if (this.children.length > 0) {
-                var tempChildren = this.children.slice();
-                for (var i=0,len=tempChildren.length; i<len; ++i) {
-                    tempChildren[i]._update(app);
-                }
-            }
-        },
-        
-        /**
-         * @TODO ?
+         * ポインティングをチェック
          * @private
          * @param {Object} app
          */
@@ -387,7 +359,7 @@
         },
         
         /**
-         * @TODO ?
+         * マウスチェック
          * @private
          * @param {Object} app
          */
@@ -396,7 +368,7 @@
         },
 
         /**
-         * @TODO ?
+         * タッチチェック
          * @private
          * @param {Object} app
          */
@@ -409,7 +381,7 @@
         },
         
         /**
-         * @TODO ?
+         * チェックポインンティング
          * @private
          * @param {Object} app
          * @param {Object} p
@@ -448,7 +420,7 @@
         },
         
         /**
-         * @TODO ?
+         * ポイントイベントを発火する
          * @private
          * @param {Object} mouse
          * @param {Object} touch
@@ -463,7 +435,7 @@
         },
         
         /**
-         * @TODO ?
+         * ワールドマトリックスを計算
          * @private
          */
         _calcWorldMatrix: function() {
@@ -509,7 +481,7 @@
         },
         
         /**
-         * @TODO ?
+         * dirty method
          * @private
          */
         _dirtyCalc: function() {
@@ -597,7 +569,9 @@
      * 半径
      */
     tm.app.Object2D.prototype.accessor("radius", {
-        "get": function()   { return this._radius || (this.width+this.height)/4; },
+        "get": function()   {
+            return (this._radius !== undefined) ? this._radius : (this.width+this.height)/4;
+        },
         "set": function(v)  { this._radius = v; }
     });
     
@@ -720,7 +694,7 @@
     /**
      * @member      tm.app.Object2D
      * @property    _checkPointing
-     * @TODO ?
+     * ポイントをチェック
      * @param {Object} isMobile
      * @private
      */

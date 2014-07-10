@@ -10,7 +10,7 @@ tm.namespace("tm.app", function() {
      * @extends tm.event.EventDispatcher
      */
     tm.define("tm.app.Timeline", {
-        superClass: "tm.event.EventDispatcher",
+        superClass: "tm.app.Element",
         
         /**
          * @constructor
@@ -19,11 +19,11 @@ tm.namespace("tm.app", function() {
         init: function(elm) {
             this.superInit();
             
-            this.setTarget(elm);
-
-            this.fps = 30;
+            this.setTarget(elm || {});
             
             this.currentFrame = 0;
+            this.currentTime = 0;
+            this.prevTime = 0;
             this.duration = 0;
             this.isPlay = true;
             this._tweens  = [];
@@ -36,20 +36,19 @@ tm.namespace("tm.app", function() {
          */
         update: function(app) {
             if (!this.isPlay) return ;
-            
-            if (this.currentFrame > this.duration) {
-//                this.gotoAndPlay(0);
-            }
-            else {
+
+            if (this.prevTime <= this.duration) {
                 this._updateTween();
                 this._updateAction();
             }
-            
+
             this.currentFrame++;
+            this.prevTime = this.currentTime;
+            this.currentTime = ((this.currentFrame/app.fps)*1000)|0;
         },
         
         /**
-         * @TODO ?
+         * トゥイーンを更新
          * @private
          */
         _updateTween: function() {
@@ -57,11 +56,11 @@ tm.namespace("tm.app", function() {
             for (var i=0,len=tweens.length; i<len; ++i) {
                 var tween = tweens[i];
                 
-                if (tween.delay > this.currentFrame) {
+                if (tween.delay > this.currentTime) {
                     continue ;
                 }
                 
-                var time = this.currentFrame - tween.delay;
+                var time = this.currentTime - tween.delay;
                 tween._setTime(time);
                 if (tween.time >= tween.duration) {
                 }
@@ -72,7 +71,7 @@ tm.namespace("tm.app", function() {
         },
         
         /**
-         * @TODO ?
+         * アクションを更新
          * @private
          */
         _updateAction: function() {
@@ -81,9 +80,10 @@ tm.namespace("tm.app", function() {
             for (var i=0,len=actions.length; i<len; ++i) {
                 var action = actions[i];
                 
-                if (action.delay == this.currentFrame) {
+                if (this.prevTime <= action.delay && action.delay < this.currentTime) {
                     if (action.type == "call") {
-                        action.func();
+                        action.func.call(action.self);
+                        // action.func();
                     }
                     else if (action.type == "set") {
                         var props = action.props;
@@ -97,12 +97,13 @@ tm.namespace("tm.app", function() {
         
         /**
          * 指定した値までアニメーション
+         * @param {Object} delay
          * @param {Object} props
          * @param {Object} duration
-         * @param {Object} delay
          * @param {Function} func
          */
-        to: function(props, duration, delay, fn) {
+        to: function(delay, props, duration, fn) {
+            console.assert(typeof delay == "number", "to の第一引数はdelayに変わりました");
             this._addTween({
                 props: props,
                 duration: duration,
@@ -115,12 +116,13 @@ tm.namespace("tm.app", function() {
 
         /**
          * 指定した値を足した値までアニメーション
+         * @param {Object} delay
          * @param {Object} props
          * @param {Object} duration
-         * @param {Object} delay
          * @param {Function} func
          */
-        by: function(props, duration, delay, fn) {
+        by: function(delay, props, duration, fn) {
+            console.assert(typeof delay == "number", "by の第一引数はdelayに変わりました");
             for (var key in props) {
                 props[key] += this.element[key] || 0;
             }
@@ -136,13 +138,15 @@ tm.namespace("tm.app", function() {
         
         /**
          * 関数を実行
-         * @param {Function} func
          * @param {Object} delay
+         * @param {Function} func
          */
-        call: function(func, delay) {
+        call: function(delay, func, self) {
+            console.assert(typeof delay == "number", "call の第一引数はdelayに変わりました");
             this._addAction({
                 "type": "call",
                 func: func,
+                self: self || this,
                 delay: delay,
             });
             return this;
@@ -150,10 +154,11 @@ tm.namespace("tm.app", function() {
         
         /**
          * プロパティをセット
-         * @param {Object} props
          * @param {Object} delay
+         * @param {Object} props
          */
-        set: function(props, delay) {
+        set: function(delay, props) {
+            console.assert(typeof delay == "number", "set の第一引数はdelayに変わりました");
             this._addAction({
                 "type": "set",
                 props: props,
@@ -161,21 +166,18 @@ tm.namespace("tm.app", function() {
             });
             return this;
         },
-        
+
+
         /**
-         * ターゲットをセット
+         * ターゲットのセット
          * @param {Object} target
          */
         setTarget: function(target) {
-            if (this._fn) {
-                this.element.removeEventListener("enterframe", this._fn);
-            }
-            
             this.element = target;
-            this._fn = function(e) { this.update(e.app); }.bind(this);
-            this.element.addEventListener("enterframe", this._fn);
+
+            return this;
         },
-        
+
         /**
          * ターゲットをゲット
          */
@@ -238,7 +240,7 @@ tm.namespace("tm.app", function() {
         },
         
         /**
-         * @TODO ?
+         * 時間を更新
          * @private
          * @param {Object} task
          */
@@ -249,16 +251,17 @@ tm.namespace("tm.app", function() {
         },
 
         /**
-         * @TODO ?
+         * dirty method
          * @private
          * @param {Object} t
          */
         _dirty: function(t) {
-            return (t/this.fps).toInt();
+            return t;
+//            return (t/this.fps).toInt();
         },
         
         /**
-         * @TODO ?
+         * ロード
          * @param {Object} data
          */
         load: function(data) {
@@ -275,6 +278,8 @@ tm.namespace("tm.app", function() {
          */
         clear: function() {
             this.currentFrame = 0;
+            this.prevTime = 0;
+            this.currentTime = 0;
             this.duration = 0;
             this.isPlay = true;
             this._tweens  = [];
@@ -295,8 +300,11 @@ tm.namespace("tm.app", function() {
     tm.app.Element.prototype.getter("timeline", function() {
         if (!this._timeline) {
             this._timeline = tm.app.Timeline(this);
+            this.on("enterframe", function(e) {
+                this._timeline.update(e.app);
+            });
         }
-        
+
         return this._timeline;
     });
     

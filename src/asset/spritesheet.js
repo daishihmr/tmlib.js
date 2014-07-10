@@ -12,7 +12,7 @@
     tm.define("tm.asset.SpriteSheet", {
         superClass: "tm.event.EventDispatcher",
 
-        /** loaded  */
+        /** ロード済みかどうか */
         loaded: false,
 
         /**
@@ -35,7 +35,7 @@
         },
 
         /**
-         * @TODO ?
+         * ロード
          */
         load: function(path) {
         	tm.util.Ajax.load({
@@ -49,7 +49,7 @@
         },
 
         /**
-         * @TODO ?
+         * パース
          */
         parse: function(param) {
             this.frame = param.frame;
@@ -82,21 +82,20 @@
         },
 
         /**
-         * @TODO ?
+         * フレームを取得
          */
         getFrame: function(index) {
             return this.frames[index];
         },
         
         /**
-         * @TODO ?
+         * アニメーションを取得
          */
         getAnimation: function(name) {
             return this.animations[name];
         },
         
         /**
-         * @TODO ?
          * @private
          */
         _calcFrames: function(frame) {
@@ -123,7 +122,6 @@
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _calcAnim: function(animations) {

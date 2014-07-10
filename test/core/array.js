@@ -1,7 +1,8 @@
 
-describe('Array Test', function() {
+describe('Array', function() {
     
     it('first', function() {
+        // 最初の要素を取得
         var arr = [1, 2, 3, 4, 5, 6];
         assert.equal(arr.first, 1);
     });
@@ -32,6 +33,13 @@ describe('Array Test', function() {
             [2, 2, 2, 3, 4, 5],
             66,
         ]));
+    });
+
+    it('contains', function() {
+        var arr = [6, 5, 2, 3, 1, 4];
+        assert.equal(arr.contains(2), true);
+        assert.equal(arr.contains(2, 3), false);
+        assert.equal(arr.contains(7), false);
     });
     
     it('at', function()
@@ -106,13 +114,19 @@ describe('Array Test', function() {
     });
 
     it('flatten', function() {
-        var arr = [1, 2, 3, [4, 5, 6]];
-        assert(arr.flatten().equals([1, 2, 3, 4, 5, 6]));
+        var arr = [1, 2, 3, [4, 5], [6, [7, 8]]];
+
+        // default
+        assert(arr.flatten().deepEquals([1, 2, 3, 4, 5, 6, 7, 8]));
+        // level 1
+        assert(arr.flatten(1).deepEquals([1, 2, 3, 4, 5, 6, [7, 8]]));
+        // level 2
+        assert(arr.flatten(2).deepEquals([1, 2, 3, 4, 5, 6, 7, 8]));
     });
     
     it('uniq', function() {
         var arr = [0, 1, 2, 3, 4, 5, 6, 6, 5, 4, 3, 2, 1, 100];
-        assert(Array.uniq(arr).equals([0, 1, 2, 3, 4, 5, 6, 100]));
+        assert(arr.uniq().equals([0, 1, 2, 3, 4, 5, 6, 100]));
     });
     
 });
