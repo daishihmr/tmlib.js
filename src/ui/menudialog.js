@@ -86,29 +86,20 @@
                 .setBaseline("middle")
                 .setPosition(this.params.screenWidth * 0.5, this.params.screenHeight - this.params.fontSize)
                 .addChildTo(this);
-        },
 
-        /**
-         * @private
-         */
-        _onOpen: function() {
-            var self = this;
             var y = this.params.screenHeight * 0.5 - this.menu.length * 25;
 
-            this.title = tm.display.Label(this.titleText, this.params.fontSize * 1.2)
+            this.title = tm.display.Label(this.params.title, this.params.fontSize * 1.2)
                 .setAlign("center")
                 .setBaseline("middle")
-                .setPosition(this.params.screenWidth * 0.5, y)
-                .addChildTo(this);
+                .setPosition(this.params.screenWidth * 0.5, y);
 
-            this.cursor = this._createCursor().addChildTo(this);
-
+            var self = this;
             this.menuItems = this.menu.map(function(text, i) {
                 y += 50;
                 var menuItem = tm.ui.LabelButton(text)
                     .setPosition(self.params.screenWidth * 0.5, y)
                     .setFontSize(self.params.fontSize)
-                    .addChildTo(self)
                     .setInteractive(true)
                     .on("pointingend", function() {
                         if (self.currentIndex === i) {
@@ -121,7 +112,23 @@
                 return menuItem;
             });
 
+            this.cursor = this._createCursor();
             this.cursor.y = this.menuItems[this.currentIndex].y;
+        },
+
+        /**
+         * @private
+         */
+        _onOpen: function() {
+            var self = this;
+
+            this.title.addChildTo(this);
+
+            this.cursor.addChildTo(this);
+
+            this.menuItems.forEach(function(menuItem) {
+                menuItem.addChildTo(self);
+            });
 
             // close window when touch bg outside
             this.on("pointingend", function(e) {
