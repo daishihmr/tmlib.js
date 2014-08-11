@@ -51,6 +51,19 @@
 
             this.params = {}.$extend(tm.ui.MenuDialog.DEFAULT_PARAM, params);
 
+            this.fromJSON({
+                children: {
+                    bg: {
+                        type: "tm.display.RectangleShape",
+                        init: [this.params.width, this.params.height, {
+                            fillStyle: this.params.backgroundColor,
+                            strokeStyle: "transparent"
+                        }],
+                        originX: 0, originY: 0,
+                    },
+                },
+            });
+
             this.menu = this.params.menu.clone();
             this.currentIndex = this.params.defaultIndex;
             if (this.params.menuDesctiptions) {
@@ -65,18 +78,18 @@
             }
 
             var height = Math.max((1 + this.menu.length) * 50, 50) + 40;
-            this.box = tm.display.RectangleShape(this.params.screenWidth * 0.8, height, {
+            this.box = tm.display.RectangleShape(this.params.width * 0.8, height, {
                 strokeStyle: "transparent",
                 fillStyle: this.params.boxColor,
             })
-                .setPosition(this.params.screenWidth * 0.5, this.params.screenHeight * 0.5)
+                .setPosition(this.params.width * 0.5, this.params.height * 0.5)
                 .setSize(1, 1)
                 .setBoundingType("rect")
                 .addChildTo(this);
 
             this.box.tweener
                 .to({
-                    width: this.params.screenWidth * 0.8,
+                    width: this.params.width * 0.8,
                     height: height
                 }, 200, "easeOutExpo")
                 .call(this._onOpen.bind(this));
@@ -84,21 +97,21 @@
             this.description = tm.display.Label("", this.params.fontSize)
                 .setAlign("center")
                 .setBaseline("middle")
-                .setPosition(this.params.screenWidth * 0.5, this.params.screenHeight - this.params.fontSize)
+                .setPosition(this.params.width * 0.5, this.params.height - this.params.fontSize)
                 .addChildTo(this);
 
-            var y = this.params.screenHeight * 0.5 - this.menu.length * 25;
+            var y = this.params.height * 0.5 - this.menu.length * 25;
 
             this.title = tm.display.Label(this.params.title, this.params.fontSize * 1.2)
                 .setAlign("center")
                 .setBaseline("middle")
-                .setPosition(this.params.screenWidth * 0.5, y);
+                .setPosition(this.params.width * 0.5, y);
 
             var self = this;
             this.menuItems = this.menu.map(function(text, i) {
                 y += 50;
                 var menuItem = tm.ui.LabelButton(text)
-                    .setPosition(self.params.screenWidth * 0.5, y)
+                    .setPosition(self.params.width * 0.5, y)
                     .setFontSize(self.params.fontSize)
                     .setInteractive(true)
                     .on("pointingend", function() {
@@ -108,7 +121,7 @@
                             self.currentIndex = i;
                         }
                     });
-                menuItem.width = self.params.screenWidth * 0.7;
+                menuItem.width = self.params.width * 0.7;
                 return menuItem;
             });
 
@@ -148,11 +161,11 @@
         _createCursor: function() {
             var self = this;
 
-            var cursor = tm.display.RectangleShape(this.params.screenWidth * 0.7, 30, {
+            var cursor = tm.display.RectangleShape(this.params.width * 0.7, 30, {
                 strokeStyle: "transparent",
                 fillStyle: this.params.cursorColor
             });
-            cursor.x = this.params.screenWidth * 0.5;
+            cursor.x = this.params.width * 0.5;
             cursor.target = this.currentIndex;
             
             cursor.update = function() {
@@ -245,22 +258,13 @@
                     .setLoop(true);
             }
         },
-
-        /**
-         * 描画
-         */
-        draw: function(canvas) {
-            canvas.fillStyle = this.params.backgroundColor;
-            canvas.fillRect(0, 0, this.params.screenWidth, this.params.screenHeight);
-        },
-
     });
 
     tm.ui.MenuDialog.DEFAULT_PARAM = {
         title: "MENU",
         defaultIndex: 0,
-        screenWidth: 640,
-        screenHeight: 960,
+        width: 640,
+        height: 960,
         fontSize: 30,
         okKey: "enter",
         cancelKey: "escape",
