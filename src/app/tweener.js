@@ -95,7 +95,7 @@
             if (!task) {
 
                 if (this.loop === true) {
-                    this._index = 0;
+                    this._index = this._loopStartIndex || 0;
                 }
                 else {
                     this.isPlaying = false;
@@ -420,6 +420,15 @@
          */
         setLoop: function(flag) {
             this.loop = flag;
+            return this;
+        },
+
+        /**
+         * アニメーションループ開始地点設定
+         */
+        startLoop: function() {
+            this._loopStartIndex = this._tasks.length;
+            this.setLoop(true);
             return this;
         },
 
