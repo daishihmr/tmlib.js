@@ -429,7 +429,20 @@
         clear: function() {
             this._init();
             return this;
-        }
+        },
+
+        /**
+         * アニメーションをスキップ
+         */
+        skip: function() {
+            if (this._func === this._updateTween) {
+                var tween = this._tween;
+                tween._setTime(tween.duration);
+            } else if (this._func === this._updateWait) {
+                this._func = this._updateTask;
+            }
+            return this;
+        },
     });
 
     /**
