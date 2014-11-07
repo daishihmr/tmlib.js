@@ -1,5 +1,5 @@
 /*
- * tmlib.js 0.3.0
+ * tmlib.js 0.4.0
  * http://github.com/phi-jp/tmlib.js
  * MIT Licensed
  * 
@@ -25,7 +25,7 @@ if (typeof module !== 'undefined' && module.exports) {
     /**
      * バージョン
      */
-    tm.VERSION = '0.3.0';
+    tm.VERSION = '0.4.0';
 
     /**
      * tmlib.js のルートパス
@@ -1442,7 +1442,14 @@ if (typeof module !== 'undefined' && module.exports) {
         // オブジェクトの場合
         if (typeof arg == "object") {
             /** @ignore */
-            rep_fn = function(m, k) { return arg[k]; }
+            rep_fn = function(m, k) {
+                if (arg[k] === undefined) {
+                    return '';
+                }
+                else {
+                    return arg[k];
+                }
+            }
         }
         // 複数引数だった場合
         else {
@@ -1573,7 +1580,6 @@ if (typeof module !== 'undefined' && module.exports) {
      */
     String.defineInstanceMethod("count", function(str) {
         var re = new RegExp(str, 'gm');
-        console.log(this.match(re));
         return this.match(re).length;
     });
     
@@ -18700,17 +18706,9 @@ tm.sound = tm.sound || {};
 
 tm.sound = tm.sound || {};
 
-
 (function() {
 
     var context = null;
-    if (tm.global.webkitAudioContext) {
-        context = new webkitAudioContext();
-    } else if (tm.global.mozAudioContext) {
-        context = new mozAudioContext();
-    } else if (tm.global.AudioContext) {
-        context = new AudioContext();
-    }
 
     /**
      * @class tm.sound.WebAudio
@@ -18769,7 +18767,7 @@ tm.sound = tm.sound || {};
             if (time === undefined) time = 0;
 
             this.source.start(this.context.currentTime + time);
-            
+
             var self = this;
             var time = (this.source.buffer.duration/this.source.playbackRate.value)*1000;
             window.setTimeout(function() {
@@ -18792,11 +18790,11 @@ tm.sound = tm.sound || {};
                 return ;
             }
             this.source.stop(this.context.currentTime + time);
-            
+
             var buffer = this.buffer;
             var volume = this.volume;
             var loop   = this.loop;
-            
+
             this.source = this.context.createBufferSource();
             this.source.connect(this.gainNode);
             this.buffer = buffer;
@@ -18909,9 +18907,15 @@ tm.sound = tm.sound || {};
                 success: function(data) {
                     // console.debug("WebAudio ajax load success");
                     self.context.decodeAudioData(data, function(buffer) {
-                        console.debug("WebAudio decodeAudioData success");
+                        // console.debug("WebAudio decodeAudioData success");
                         self._setup();
                         self.buffer = buffer;
+                        self.loaded = true;
+                        self.dispatchEvent( tm.event.Event("load") );
+                    }, function() {
+                        console.warn("音声ファイルのデコードに失敗しました。(" + src + ")");
+                        self._setup();
+                        self.buffer = context.createBuffer(1, 1, 22050);
                         self.loaded = true;
                         self.dispatchEvent( tm.event.Event("load") );
                     });
@@ -18946,7 +18950,7 @@ tm.sound = tm.sound || {};
             // handle parameter
             hertz   = hertz !== undefined ? hertz : 200;
             seconds = seconds !== undefined ? seconds : 1;
-            // set default value    
+            // set default value
             var nChannels   = 1;
             var sampleRate  = 44100;
             var amplitude   = 2;
@@ -19022,9 +19026,40 @@ tm.sound = tm.sound || {};
         }
     });
 
+    /**
+     * @property    loopStart
+     * ループ開始位置（秒）
+     */
+    tm.sound.WebAudio.prototype.accessor("loopStart", {
+        get: function()  { return this.source.loopStart; },
+        set: function(v) { this.source.loopStart = v; }
+    });
+
+    /**
+     * @property    loopEnd
+     * ループ終了位置（秒）
+     */
+    tm.sound.WebAudio.prototype.accessor("loopEnd", {
+        get: function()  { return this.source.loopEnd; },
+        set: function(v) { this.source.loopEnd = v; }
+    });
+
     /** @static @property */
     tm.sound.WebAudio.isAvailable = (tm.global.webkitAudioContext || tm.global.mozAudioContext || tm.global.AudioContext) ? true : false;
 
+    tm.sound.WebAudio.createContext = function() {
+        if (tm.global.webkitAudioContext) {
+            context = new webkitAudioContext();
+        } else if (tm.global.mozAudioContext) {
+            context = new mozAudioContext();
+        } else if (tm.global.AudioContext) {
+            context = new AudioContext();
+        }
+
+        tm.sound.WebAudio.context = context;
+    };
+
+    tm.sound.WebAudio.createContext();
 })();
 
 
