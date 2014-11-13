@@ -18897,7 +18897,10 @@ tm.sound = tm.sound || {};
          * @private
          */
         _load: function(src) {
-            if (!this.context) return ;
+            if (!this.context) {
+                console.warn("本環境はWebAudio未対応です。(" + src + ")");
+                return;
+            }
 
             var self = this;
             tm.util.Ajax.load({
