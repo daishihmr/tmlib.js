@@ -43,13 +43,13 @@ tm.display = tm.display || {};
             this.text       = text || "";
             
             this._fontSize   = size || 24;
-            this._fontFamily = tm.display.Label.default.fontFamily;
+            this._fontFamily = tm.display.Label["default"].fontFamily;
             this._fontWeight = "";
             this._lineHeight = 1.2;
             this._updateFont();
             
-            this.align = tm.display.Label.default.align;
-            this.baseline = tm.display.Label.default.baseline;
+            this.align = tm.display.Label["default"].align;
+            this.baseline = tm.display.Label["default"].baseline;
 
             this.maxWidth   = null;
         },
@@ -171,7 +171,7 @@ tm.display = tm.display || {};
         },
     });
     
-    tm.display.Label.default = {
+    tm.display.Label["default"] = {
         align: "center",
         baseline: "middle",
         fontFamily: "'HiraKakuProN-W3'", // Hiragino or Helvetica

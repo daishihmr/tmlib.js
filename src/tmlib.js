@@ -227,7 +227,7 @@ if (typeof module !== 'undefined' && module.exports) {
         return this;
     };
     
-    tm.import = function(namespace) {
+    tm["import"] = function(namespace) {
         var target = tm[namespace];
         tm.global.$strict(target);
         

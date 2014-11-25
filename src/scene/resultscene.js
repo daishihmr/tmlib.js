@@ -11,7 +11,7 @@
         init: function(param) {
             this.superInit();
 
-            param = {}.$extend(tm.scene.ResultScene.default, param);
+            param = {}.$extend(tm.scene.ResultScene["default"], param);
 
             this.fromJSON({
                 children: {
@@ -118,7 +118,7 @@
         },
     });
 
-    tm.scene.ResultScene.default = {
+    tm.scene.ResultScene["default"] = {
         score: 256,
         message: "this is tmlib.js",
         hashtags: "tmlibjs,game",
