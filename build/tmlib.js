@@ -235,7 +235,7 @@ if (typeof module !== 'undefined' && module.exports) {
         return this;
     };
     
-    tm.import = function(namespace) {
+    tm["import"] = function(namespace) {
         var target = tm[namespace];
         tm.global.$strict(target);
         
@@ -11394,7 +11394,7 @@ tm.anim = tm.anim || {};
 
         init: function() {
             this.frame = 0;
-            this.fps = tm.app.Timer.default.fps;
+            this.fps = tm.app.Timer["default"].fps;
         },
 
         reset: function() {
@@ -11473,7 +11473,7 @@ tm.anim = tm.anim || {};
         },
     });    
 
-    tm.app.Timer.default = {
+    tm.app.Timer["default"] = {
         fps: 30,
     };
 
@@ -14914,13 +14914,13 @@ tm.display = tm.display || {};
             this.text       = text || "";
             
             this._fontSize   = size || 24;
-            this._fontFamily = tm.display.Label.default.fontFamily;
+            this._fontFamily = tm.display.Label["default"].fontFamily;
             this._fontWeight = "";
             this._lineHeight = 1.2;
             this._updateFont();
             
-            this.align = tm.display.Label.default.align;
-            this.baseline = tm.display.Label.default.baseline;
+            this.align = tm.display.Label["default"].align;
+            this.baseline = tm.display.Label["default"].baseline;
 
             this.maxWidth   = null;
         },
@@ -15042,7 +15042,7 @@ tm.display = tm.display || {};
         },
     });
     
-    tm.display.Label.default = {
+    tm.display.Label["default"] = {
         align: "center",
         baseline: "middle",
         fontFamily: "'HiraKakuProN-W3'", // Hiragino or Helvetica
@@ -17045,7 +17045,7 @@ tm.ui = tm.ui || {};
         init: function(param) {
             this.superInit();
 
-            param = {}.$extend(tm.scene.TitleScene.default, param);
+            param = {}.$extend(tm.scene.TitleScene["default"], param);
 
             this.fromJSON({
                 children: {
@@ -17118,7 +17118,7 @@ tm.ui = tm.ui || {};
         },
     });
 
-    tm.scene.TitleScene.default = {
+    tm.scene.TitleScene["default"] = {
         title: "Time is money",
         fontSize: 72,
         fontColor: "#444",
@@ -17145,7 +17145,7 @@ tm.ui = tm.ui || {};
         init: function(param) {
             this.superInit();
 
-            param = {}.$extend(tm.scene.ResultScene.default, param);
+            param = {}.$extend(tm.scene.ResultScene["default"], param);
 
             this.fromJSON({
                 children: {
@@ -17252,7 +17252,7 @@ tm.ui = tm.ui || {};
         },
     });
 
-    tm.scene.ResultScene.default = {
+    tm.scene.ResultScene["default"] = {
         score: 256,
         message: "this is tmlib.js",
         hashtags: "tmlibjs,game",
