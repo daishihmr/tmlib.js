@@ -1,5 +1,5 @@
 /*
- * tmlib.js 0.4.0
+ * tmlib.js 0.4.1
  * http://github.com/phi-jp/tmlib.js
  * MIT Licensed
  * 
@@ -26,7 +26,7 @@ if (typeof module !== 'undefined' && module.exports) {
     /**
      * バージョン
      */
-    tm.VERSION = '0.4.0';
+    tm.VERSION = '0.4.1';
 
     /**
      * tmlib.js のルートパス
@@ -380,1162 +380,6 @@ if (typeof module !== 'undefined' && module.exports) {
     }, false);
 
 })();
-/*
- * object.js
- */
-
-(function() {
-    
-    /**
-     * @class global.Object
-     * Objectの拡張
-     */
-    
-    /**
-     * @method defineVariable
-     * 変数を追加
-     * @param   {String} key name
-     * @param   {Object} param
-     */
-    Object.defineProperty(Object.prototype, "defineVariable", {
-        value: function(name, val) {
-            Object.defineProperty(this, name, {
-                value: val,
-                enumerable: true,
-                writable: true
-            });
-        }
-    });
-    
-    /**
-     * @method defineFunction
-     * 関数を追加
-     * @param   {String} key name
-     * @param   {Function} function
-     */
-    Object.defineProperty(Object.prototype, "defineFunction", {
-        value: function(name, fn) {
-            Object.defineProperty(this, name, {
-                value: fn,
-                enumerable: false,
-                writable: true
-            });
-        }
-    });
-    
-    /**
-     * @method defineInstanceVariable
-     * インスタンス変数を定義する
-     */
-    Object.prototype.defineFunction("defineInstanceVariable", function(name, val){
-        Object.defineProperty(this.prototype, name, {
-            value: val,
-            enumerable: true,
-            writable: true
-        });
-    });
-    
-    /**
-     * @method defineInstanceMethod
-     * インスタンスメソッドを定義する
-     */
-    Object.prototype.defineFunction("defineInstanceMethod", function(name, fn){
-        Object.defineProperty(this.prototype, name, {
-            value: fn,
-            enumerable: false,
-            writable: true
-        });
-    });
-    
-    /**
-     * @method setter
-     * セッターを定義する
-     */
-    Object.defineInstanceMethod("setter", function(name, fn){
-        Object.defineProperty(this, name, {
-            set: fn,
-            enumerable: false,
-            configurable: true
-        });
-    });
-    
-    /**
-     * @method getter
-     * ゲッターを定義する
-     */
-    Object.defineInstanceMethod("getter", function(name, fn){
-        Object.defineProperty(this, name, {
-            get: fn,
-            enumerable: false,
-            configurable: true
-        });
-    });
-    
-    /**
-     * @method accessor
-     * アクセッサ(セッター/ゲッター)を定義する
-     */
-    Object.defineInstanceMethod("accessor", function(name, param) {
-        Object.defineProperty(this, name, {
-            set: param["set"],
-            get: param["get"],
-            enumerable: false,
-            configurable: true
-        });
-    });
-    
-    /**
-     * @method $forIn
-     * オブジェクト用ループ処理
-     */
-    Object.defineInstanceMethod("$forIn", function(fn, self) {
-        self = self || this;
-
-        Object.keys(this).forEach(function(key, index) {
-            var value = this[key];
-
-            fn.call(self, key, value, index);
-        }, this);
-
-        return this;
-    });
-
-    /**
-     * @method  $has
-     * そのプロパティを持っているかを判定する
-     */
-    Object.defineInstanceMethod("$has", function(key) {
-        return this.hasOwnProperty(key);
-    });
-
-    /**
-     * @method  $extend
-     * 他のライブラリと競合しちゃうので extend -> $extend としました
-     */
-    Object.defineInstanceMethod("$extend", function() {
-        Array.prototype.forEach.call(arguments, function(source) {
-            for (var property in source) {
-                this[property] = source[property];
-            }
-        }, this);
-        return this;
-    });
-    
-    /**
-     * @method  $safe
-     * 安全拡張
-     * 上書きしない
-     */
-    Object.defineInstanceMethod("$safe", function(source) {
-        Array.prototype.forEach.call(arguments, function(source) {
-            for (var property in source) {
-                if (this[property] === undefined) this[property] = source[property];
-            }
-        }, this);
-        return this;
-    });
-    
-    
-    /**
-     * @method  $strict
-     * 厳格拡張
-     * すでにあった場合は警告
-     */
-    Object.defineInstanceMethod("$strict", function(source) {
-        Array.prototype.forEach.call(arguments, function(source) {
-            for (var property in source) {
-                console.assert(!this[property], "tm error: {0} is Already".format(property));
-                this[property] = source[property];
-            }
-        }, this);
-        return this;
-    });
-
-    /**
-     * @method  $pick
-     * ピック
-     */
-    Object.defineInstanceMethod("$pick", function() {
-        var temp = {};
-
-        Array.prototype.forEach.call(arguments, function(key) {
-            if (key in this) temp[key] = this[key];
-        }, this);
-
-        return temp;
-    });
-
-    /**
-     * @method  $omit
-     * オミット
-     */
-    Object.defineInstanceMethod("$omit", function() {
-        var temp = {};
-
-        for (var key in this) {
-            if (Array.prototype.indexOf.call(arguments, key) == -1) {
-                temp[key] = this[key];
-            }
-        }
-
-        return temp;
-    });
-    
-})();
-
-
-/*
- * array.js
- */
-
-(function() {
-    
-    /**
-     * @class   global.Array
-     * Arrayの拡張
-     * 
-     *      @example display
-     *      [1, 2, 3].first;
-     */
-    
-    /**
-     * @property    first
-     * 最初の要素
-     */
-    Array.prototype.accessor("first", {
-        "get": function()   { return this[0]; },
-        "set": function(v)  { this[0] = v; }
-    });
-    
-    /**
-     * @property    last
-     * 最後の要素
-     */
-    Array.prototype.accessor("last", {
-        "get": function()   { return this[this.length-1]; },
-        "set": function(v)  { this[this.length-1] = v; }
-    });
-
-    /**
-     * @method  equals
-     * 渡された配列と等しいかどうかをチェック
-     */
-    Array.defineInstanceMethod("equals", function(arr) {
-        // 長さチェック
-        if (this.length !== arr.length) return false;
-        
-        for (var i=0,len=this.length; i<len; ++i) {
-            if (this[i] !== arr[i]) {
-                return false;
-            }
-        }
-        return true;
-    });
-    
-    /**
-     * @method  deepEquals
-     * ネストされている配列含め渡された配列と等しいかどうかをチェック
-     * equalsDeep にするか検討. (Java では deepEquals なのでとりあえず合わせとく)
-     */
-    Array.defineInstanceMethod("deepEquals", function(arr) {
-        // 長さチェック
-        if (this.length !== arr.length) return false;
-        
-        for (var i=0,len=this.length; i<len; ++i) {
-            var result = (this[i].deepEquals) ? this[i].deepEquals(arr[i]) : (this[i] === arr[i]);
-            if (result === false) {
-                return false;
-            }
-        }
-        return true;
-    });
-
-    /**
-     * @property    contains
-     * 要素が含まれいるかをチェック
-     */
-    Array.defineInstanceMethod("contains", function(item, fromIndex) {
-        return this.indexOf(item, fromIndex) != -1;
-    });
-    
-    /**
-     * @method  at
-     * ループ添字アクセス(Ruby っぽいやつ)
-     */
-    Array.defineInstanceMethod("at", function(i) {
-        i%=this.length;
-        i+=this.length;
-        i%=this.length;
-        return this[i];
-    });
-    
-    
-    /**
-     * @method  swap
-     * a番目 と b番目 を入れ替える
-     */
-    Array.defineInstanceMethod("swap", function(a, b) {
-        var temp = this[a];
-        this[a] = this[b];
-        this[b] = temp;
-        
-        return this;
-    });
-    
-    
-    /**
-     * @method  erase
-     * elm と一致する要素を削除
-     */
-    Array.defineInstanceMethod("erase", function(elm) {
-        var index  = this.indexOf(elm);
-        if (index >= 0) {
-            this.splice(index, 1);
-        }
-        return this;
-    });
-    
-    /**
-     * @method  eraseAll
-     * elm と一致する要素を全て削除
-     */
-    Array.defineInstanceMethod("eraseAll", function(elm) {
-        for (var i=0,len=this.length; i<len; ++i) {
-            if (this[i] == elm) {
-                this.splice(i--, 1);
-            }
-        }
-        return this;
-    });
-    
-    /**
-     * @method  eraseIf
-     * 条件にマッチした要素を削除
-     */
-    Array.defineInstanceMethod("eraseIf", function(fn) {
-        for (var i=0,len=this.length; i<len; ++i) {
-            if ( fn(this[i], i, this) ) {
-                this.splice(i, 1);
-                break;
-            }
-            // if ( fn(this[i], i, this) ) { this.splice(i--, 1); }
-        }
-        return this;
-    });
-    
-    /**
-     * @method  eraseIfAll
-     * 条件にマッチした要素を削除
-     */
-    Array.defineInstanceMethod("eraseIfAll", function(fn) {
-        for (var i=0,len=this.length; i<len; ++i) {
-            if ( fn(this[i], i, this) ) {
-                this.splice(i, 1);
-            }
-        }
-        return this;
-    });
-    
-    /**
-     * @method  random
-     * 要素の中からランダムで取り出す
-     */
-    Array.defineInstanceMethod("random", function(min, max) {
-        min = min || 0;
-        max = max || this.length-1;
-        return this[ Math.rand(min, max) ];
-    });
-    
-    /**
-     * @method  pickup
-     * 要素の中からランダムで取り出す
-     */
-    Array.defineInstanceMethod("pickup", function(min, max) {
-        min = min || 0;
-        max = max || this.length-1;
-        return this[ Math.rand(min, max) ];
-    });
-    
-    /**
-     * @method  uniq
-     * 重複削除
-     */
-    Array.defineInstanceMethod("uniq", function(deep) {
-        return this.filter(function(value, index, self) {
-            return self.indexOf(value) === index;
-        });
-    });
-    
-
-    /**
-     * @method  flatten
-     * フラット.
-     * Ruby のやつ.
-     */
-    Array.defineInstanceMethod("flatten", function(level) {
-        var arr = null;
-
-        if (level) {
-            arr = this;
-            for (var i=0; i<level; ++i) {
-                arr = Array.prototype.concat.apply([], arr);
-            }
-        }
-        else {
-            // 完全フラット
-            arr = this.reduce(function (previousValue, curentValue) {
-                return Array.isArray(curentValue) ?
-                    previousValue.concat(curentValue.flatten()) : previousValue.concat(curentValue);
-            }, []);
-        }
-
-        return arr;
-    });
-    
-    /**
-     * @method  clone
-     * 配列をクローン
-     */
-    Array.defineInstanceMethod("clone", function(deep) {
-        if (deep == true) {
-            var a = Array(this.length);
-            for (var i=0,len=this.length; i<len; ++i) {
-                a[i] = (this[i].clone) ? this[i].clone(deep) : this[i];
-            }
-            return a;
-        };
-        
-        return Array.prototype.slice.apply(this);
-    });
-    
-    /**
-     * @method  clear
-     * クリア
-     */
-    Array.defineInstanceMethod("clear", function() {
-        this.length = 0;
-        return this;
-    });
-    
-    /**
-     * @method  fill
-     * 特定の値で満たす
-     */
-    Array.defineInstanceMethod("fill", function(value, start, end) {
-        start = start || 0;
-        end   = end   || (this.length);
-        
-        for (var i=start; i<end; ++i) {
-            this[i] = value;
-        }
-        
-        return this;
-    });
-    
-
-    /**
-     * @method  range
-     * python のやつ
-     */
-    Array.defineInstanceMethod("range", function(start, end, step) {
-        if (arguments.length == 1) {
-            this.clear();
-            for (var i=0; i<start; ++i) this[i] = i;
-        }
-        else if (start < end){
-            step  = step || 1;
-            this.clear();
-            for (var i=start, index=0; i<end; i+=step, ++index) {
-                this[index] = i;
-            }
-        }
-        else {
-            step  = step || -1;
-            this.clear();
-            for (var i=start, index=0; i>end; i+=step, ++index) {
-                this[index] = i;
-            }
-        }
-        
-        return this;
-    });
-    
-    /**
-     * @method  shuffle
-     * シャッフル
-     */
-    Array.defineInstanceMethod("shuffle", function() {
-        for (var i=0,len=this.length; i<len; ++i) {
-            var j = Math.rand(0, len-1);
-            
-            if (i != j) {
-                this.swap(i, j);
-            }
-        }
-        
-        return this;
-    });
-
-    /**
-     * @method  sum
-     * 合計
-     */
-    Array.defineInstanceMethod("sum", function() {
-        var sum = 0;
-        for (var i=0,len=this.length; i<len; ++i) {
-            sum += this[i];
-        }
-        return sum;
-    });
-
-    /**
-     * @method  average
-     * 平均
-     */
-    Array.defineInstanceMethod("average", function() {
-        var sum = 0;
-        var len = this.length;
-        for (var i=0; i<len; ++i) {
-            sum += this[i];
-        }
-        return sum/len;
-    });
-
-    /**
-     * @method  each
-     * 繰り返し
-     * チェーンメソッド対応
-     */
-    Array.defineInstanceMethod("each", function() {
-        this.forEach.apply(this, arguments);
-        return this;
-    });
-
-    
-    /**
-     * @method  toULElement
-     * ULElement に変換
-     */
-    Array.defineInstanceMethod("toULElement", function(){
-        // TODO: 
-    });
-
-    /**
-     * @method  toOLElement
-     * OLElement に変換
-     */
-    Array.defineInstanceMethod("toOLElement", function(){
-        // TODO:
-    });
-
-    
-    /**
-     * @static
-     * @method  range
-     * range
-     */
-    Array.defineFunction("range", function(start, end, step) {
-        return Array.prototype.range.apply([], arguments);
-    });
-    
-})();
-
-
-/*
- * date.js
- */
-
-(function() {
-    
-    /**
-     * @class   global.Date
-     * Date(日付)の拡張
-     */
-    
-    var MONTH = [
-        "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"
-    ];
-    
-    var WEEK = [
-        "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
-    ];
-    
-    /**
-     * @method  format
-     * 日付フォーマットに合わせた文字列を返す
-     */
-    Date.defineInstanceMethod("format", function(pattern) {
-        /*
-        var str = "{y}/{m}/{d}".format({
-            y: this.getYear()+1900,
-            m: this.getMonth()+1,
-            d: this.getDate(),
-        });
-        
-        return str;
-        */
-        
-        var year    = this.getFullYear();
-        var month   = this.getMonth();
-        var date    = this.getDate();
-        var day     = this.getDay();
-        var hours   = this.getHours();
-        var minutes = this.getMinutes();
-        var seconds = this.getSeconds();
-        var millseconds = this.getMilliseconds();
-        var str = "";
-        
-        for (var i=0,len=pattern.length; i<len; ++i) {
-            var ch = pattern.charAt(i);
-            var temp = "";
-            switch(ch) {
-                // 日
-                case "d": temp = date.padding(2, '0'); break;
-                case "D": temp = WEEK[day].substr(0, 3); break;
-                case "j": temp = date; break;
-                case "l": temp = WEEK[day]; break;
-                // case "N": temp = ; break;
-                // case "S": temp = ; break;
-                // case "w": temp = ; break;
-                // case "z": temp = ; break;
-                
-                // 月
-                case "F": temp = MONTH[month]; break;
-                case "m": temp = (month+1).padding(2, '0'); break;
-                case "M": temp = MONTH[month].substr(0, 3); break;
-                case "n": temp = (month+1); break;
-                // case "t": temp = (month+1); break;
-                
-                // 年
-                // case "L": temp = ; break;
-                // case "o": temp = ; break;
-                case "Y": temp = year; break;
-                case "y": temp = year.toString().substr(2, 2); break;
-                
-                
-                // 時間
-                // case "a": temp = ; break;
-                // case "A": temp = ; break;
-                // case "B": temp = ; break;
-                // case "g": temp = ; break;
-                case "G": temp = hours; break;
-                // case "h": temp = ; break;
-                case "H": temp = hours.padding(2, '0'); break;
-                case "i": temp = minutes.padding(2, '0'); break;
-                case "s": temp = seconds.padding(2, '0'); break;
-                case "S": temp = millseconds.padding(3, '0'); break;
-                
-                default : temp = ch; break;
-            }
-            str += temp;
-        }
-        return str;
-    });
-    
-})();
-
-
-/*
- * function.js
- */
-
-(function() {
-    
-    /**
-     * @class   global.Function
-     * Functionの拡張
-     */
-    if (!Function.prototype.bind) {
-        /**
-         * @member  global.Function
-         * @method  bind
-         * バインド
-         */
-        Function.defineInstanceMethod("bind", function(obj) {
-            var self = this;
-            
-            return function() {
-                self.apply(obj, arguments);
-            };
-        });
-    }
-
-
-    // 関数名（無名関数は空文字列）を取得 (IE用パッチ)
-    if (!Function.prototype.$has("name")) {
-        Function.prototype.getter("name", function() {
-            return (''+this).replace(/^\s*function\s*([^\(]*)[\S\s]+$/im, '$1');
-        });
-    }
-    
-
-    /**
-     * @method  toArrayFunction
-     * 関数を配列対応関数に変換.
-     * forEach の逆アプローチ的な感じ.
-     * 配列を継承したクラスなどに使用する.
-     * ## Example
-     *      var hoge = function(n) { console.log(this*n); return this*n; };
-     *      var arr = [5, 10, 15];
-     *      arr.hogeArray = hoge.toArrayFunction();
-     *      var result = arr.hogeArray(100);
-     *      console.log(result);
-     */
-    Function.defineInstanceMethod("toArrayFunction", function() {
-        var self = this;
-        return function() {
-            var resultList = [];
-            for (var i=0,len=this.length; i<len; ++i) {
-                resultList.push( self.apply(this[i], arguments) );
-            }
-            return resultList;
-        }
-    });
-    
-    // forEach や map はもう標準化されてきてるので実装しないよん♪
-    
-})();
-
-
-/*
- * math.js
- */
-
-(function() {
-    
-    /**
-     * @class global.Math
-     * Mathの拡張
-     */
-
-    
-    /**
-     * @property    DEG_TO_RAD
-     * Degree to Radian.
-     */
-    Math.DEG_TO_RAD = Math.PI/180;
-    
-    /**
-     * @property    RAD_TO_DEG
-     * Radian to Degree.
-     */
-    Math.RAD_TO_DEG = 180/Math.PI;
-    
-    /**
-     * @method
-     * Degree を Radian に変換
-     */
-    Math.degToRad = function(deg) {
-        return deg * Math.DEG_TO_RAD;
-    };
-    
-    /**
-     * @method
-     * Radian を Degree に変換
-     */
-    Math.radToDeg = function(rad) {
-        return rad * Math.RAD_TO_DEG;
-    };
-    
-
-    
-    /**
-     * @method
-     * クランプ
-     */
-    Math.defineFunction("clamp", function(value, min, max) {
-        return (value < min) ? min : ( (value > max) ? max : value );
-    });
-    
-    /**
-     * @method
-     * min <= value <= max のとき true を返す
-     */
-    Math.defineFunction("inside", function(value, min, max) {
-        return (value >= min) && (value) <= max;
-    });
-    
-    /**
-     * @method
-     * ランダムな値を指定された範囲内で生成
-     */
-    Math.defineFunction("rand", function(min, max) {
-        return window.Math.floor( Math.random()*(max-min+1) ) + min;
-    });
-    
-    /**
-     * @method
-     * ランダムな値を指定された範囲内で生成
-     */
-    Math.defineFunction("randf", function(min, max) {
-        return window.Math.random()*(max-min)+min;
-    });
-    
-})();
-
-
-/*
- * number.js
- */
-
-(function() {
-    
-    /**
-     * @class global.Number
-     * Numberの拡張
-     */
-    
-    /**
-     * @method  round
-     * 四捨五入
-     * 桁数指定版
-     */
-    Number.defineInstanceMethod("round", function(figure) {
-        figure = figure || 0;
-        var base = Math.pow(10, figure);
-        var temp = this * base;
-        temp = Math.round(temp);
-        return temp/base;
-    });
-    
-    /**
-     * @method  ceil
-     * 切り上げ.
-     * 桁数指定版
-     */
-    Number.defineInstanceMethod("ceil",  function(figure) {
-        figure = figure || 0;
-        var base = Math.pow(10, figure);
-        var temp = this * base;
-        temp = Math.ceil(temp);
-        return temp/base;
-    });
-    /**
-     * @method  floor
-     * 切り捨て
-     * 桁数指定版
-     */
-    Number.defineInstanceMethod("floor",  function(figure) {
-        figure = figure || 0;
-        var base = Math.pow(10, figure);
-        var temp = this * base;
-        temp = Math.floor(temp);
-        
-        // ~~this
-        // this|0
-        
-        return temp/base;
-    });
-    
-    /**
-     * @method  toInt
-     * integer 型に変換する
-     */
-    Number.defineInstanceMethod("toInt",  function() {
-        return (this | 0);
-    });
-    
-    /**
-     * @method  toHex
-     * 16進数化
-     */
-    Number.defineInstanceMethod("toHex",  function() {
-        return this.toString(16);
-    });
-    
-    /**
-     * @method  toBin
-     * 2進数化
-     */
-    Number.defineInstanceMethod("toBin",  function() {
-        return this.toString(2);
-    });
-    
-    
-    /**
-     * @method  toUnsigned
-     * unsigned 型に変換する
-     */
-    Number.defineInstanceMethod("toUnsigned",  function() {
-        return this >>> 0;
-    });
-    
-    /**
-     * @method  padding
-     * 文字埋め
-     */
-    Number.defineInstanceMethod("padding",  function(n, ch) {
-        var str = this+'';
-        n  = n-str.length;
-        ch = ch || '0';
-        
-        while(n-- > 0) { str = ch + str; }
-        
-        return str;
-    });
-    
-    /**
-     * @method  times
-     * 数値分繰り返す
-     */
-    Number.defineInstanceMethod("times",  function(fn, self) {
-        self = self || this;
-        for (var i=0; i<this; ++i) {
-            fn.call(self, i);
-        }
-        return this;
-    });
-    
-    /**
-     * @method  upto
-     * インクリメント繰り返し
-     */
-    Number.defineInstanceMethod("upto",  function(t, fn, self) {
-        self = self || this;
-        for (var i=+this; i<=t; ++i) {
-            fn.call(self, i);
-        }
-        return this;
-    });
-    
-    /**
-     * @method  upto
-     * デクリメント繰り返し
-     */
-    Number.defineInstanceMethod("downto",  function(t, fn, self) {
-        self = self || this;
-        for (var i=+this; i>=t; --i) {
-            fn.call(self, i);
-        }
-        return this;
-    });
-
-    /**
-     * @method step
-     * ステップ繰り返し(float対応)
-     */
-    Number.defineInstanceMethod("step",  function(limit, step, fn, self) {
-        self = self || this;
-        for (var i=+this; i<=limit; i+=step) {
-            fn.call(self, i);
-        }
-        return this;
-    });
-
-    
-})();
-
-
-/*
- * string.js
- */
-
-(function() {
-    
-    /**
-     * @class global.String
-     * Stringの拡張
-     * `String` is a global object that may be used to construct String instances.
-     */
-    
-    
-    /**
-     * @method  format
-     * 
-     * フォーマット
-     * 
-     * ## example
-     * 
-     *      document.write("{0} + {1} = {2}".format(5, 10, 5+10));   // "5 + 10 = 15"
-     *      document.write("rgb({r}, {g}, {b})".format({             // "rgb(128, 0, 255)"
-     *          r: 128,
-     *          g: 0,
-     *          b: 255
-     *      }));
-     */
-    String.defineInstanceMethod("format", function(arg) {
-        // 置換ファンク
-        var rep_fn = undefined;
-        
-        // オブジェクトの場合
-        if (typeof arg == "object") {
-            /** @ignore */
-            rep_fn = function(m, k) {
-                if (arg[k] === undefined) {
-                    return '';
-                }
-                else {
-                    return arg[k];
-                }
-            }
-        }
-        // 複数引数だった場合
-        else {
-            var args = arguments;
-            /** @ignore */
-            rep_fn = function(m, k) { return args[ parseInt(k) ]; }
-        }
-        
-        return this.replace( /\{(\w+)\}/g, rep_fn );
-    });
-    
-    /**
-     * @method  trim
-     * トリム
-     * 
-     * <a href="http://jamesroberts.name/blog/2010/02/22/string-functions-for-javascript-trim-to-camel-case-to-dashed-and-to-underscore/">Reference</a>
-     * 
-     */
-    String.defineInstanceMethod("trim", function() {
-        return this.replace(/^\s+|\s+$/g, "");
-    });
-    
-    /**
-     * @method  capitalize
-     * キャピタライズ
-     * 
-     * ## Reference
-     * 
-     * - [キャピタライズ(単語の先頭の大文字化)を行う - oct inaodu](http://d.hatena.ne.jp/brazil/20051212/1134369083)
-     * - [デザインとプログラムの狭間で: javascriptでキャピタライズ（一文字目を大文字にする）](http://design-program.blogspot.com/2011/02/javascript.html)
-     * 
-     */
-    String.defineInstanceMethod("capitalize", function() {
-        return this.replace(/\w+/g, function(word){
-            return word.capitalizeFirstLetter();
-        });
-    });
-    
-    /**
-     * @method  capitalizeFirstLetter
-     * 先頭文字のみキャピタライズ
-     */
-    String.defineInstanceMethod("capitalizeFirstLetter", function() {
-        return this.charAt(0).toUpperCase() + this.substr(1).toLowerCase();
-    });
-    
-    /**
-     * @method  toDash
-     * ダッシュ
-     */
-    String.defineInstanceMethod("toDash", function() {
-        return this.replace(/([A-Z])/g, function(m){ return '-'+m.toLowerCase(); });
-    });
-    
-    
-    /**
-     * @method toHash
-     * ハッシュ値に変換
-     */
-    String.defineInstanceMethod("toHash", function() {
-        return this.toCRC32();
-    });
-    
-    /**
-     * @method  padding
-     * 左側に指定された文字を詰めて右寄せにする
-     */
-    String.defineInstanceMethod("padding", function(n, ch) {
-        var str = this.toString();
-        n  = n-str.length;
-        ch = ch || ' ';
-        
-        while(n-- > 0) { str = ch + str; }
-        
-        return str;
-    });
-    
-    /**
-     * @method  paddingLeft
-     * 左側に指定された文字を詰めて右寄せにする
-     */
-    String.defineInstanceMethod("paddingLeft", function(n, ch) {
-        var str = this.toString();
-        n  = n-str.length;
-        ch = ch || ' ';
-        
-        while(n-- > 0) { str = ch + str; }
-        
-        return str;
-    });
-    
-    /**
-     * @method  paddingRight
-     * 右側に指定された文字を詰めて左寄せにする
-     */
-    String.defineInstanceMethod("paddingRight", function(n, ch) {
-        var str = this.toString();
-        n  = n-str.length;
-        ch = ch || ' ';
-        
-        while(n-- > 0) { str = str + ch; }
-        
-        return str;
-    });
-    
-    /**
-     * @method  quotemeta
-     * メタ文字をクォート
-     */
-    String.defineInstanceMethod("quotemeta", function(n) {
-        return this.replace(/([^0-9A-Za-z_])/g, '\\$1');
-    });
-    
-    /**
-     * @method  repeat
-     * リピート
-     */
-    String.defineInstanceMethod("repeat", function(n) {
-        // TODO: 確認する
-        var arr = Array(n);
-        for (var i=0; i<n; ++i) arr[i] = this;
-        return arr.join('');
-    });
-    
-    /**
-     * @method  count
-     * リピート
-     */
-    String.defineInstanceMethod("count", function(str) {
-        var re = new RegExp(str, 'gm');
-        return this.match(re).length;
-    });
-    
-    /**
-     * @method  toString
-     * 配列に変換
-     */
-    String.defineInstanceMethod("toArray", function() {
-        var arr = [];
-        for (var i=0,len=this.length; i<len; ++i) {
-            arr.push(this[i]);
-        }
-        return arr;
-    });
-    
-    
-    var table = "00000000 77073096 EE0E612C 990951BA 076DC419 706AF48F E963A535 9E6495A3 0EDB8832 79DCB8A4 E0D5E91E 97D2D988 09B64C2B 7EB17CBD E7B82D07 90BF1D91 1DB71064 6AB020F2 F3B97148 84BE41DE 1ADAD47D 6DDDE4EB F4D4B551 83D385C7 136C9856 646BA8C0 FD62F97A 8A65C9EC 14015C4F 63066CD9 FA0F3D63 8D080DF5 3B6E20C8 4C69105E D56041E4 A2677172 3C03E4D1 4B04D447 D20D85FD A50AB56B 35B5A8FA 42B2986C DBBBC9D6 ACBCF940 32D86CE3 45DF5C75 DCD60DCF ABD13D59 26D930AC 51DE003A C8D75180 BFD06116 21B4F4B5 56B3C423 CFBA9599 B8BDA50F 2802B89E 5F058808 C60CD9B2 B10BE924 2F6F7C87 58684C11 C1611DAB B6662D3D 76DC4190 01DB7106 98D220BC EFD5102A 71B18589 06B6B51F 9FBFE4A5 E8B8D433 7807C9A2 0F00F934 9609A88E E10E9818 7F6A0DBB 086D3D2D 91646C97 E6635C01 6B6B51F4 1C6C6162 856530D8 F262004E 6C0695ED 1B01A57B 8208F4C1 F50FC457 65B0D9C6 12B7E950 8BBEB8EA FCB9887C 62DD1DDF 15DA2D49 8CD37CF3 FBD44C65 4DB26158 3AB551CE A3BC0074 D4BB30E2 4ADFA541 3DD895D7 A4D1C46D D3D6F4FB 4369E96A 346ED9FC AD678846 DA60B8D0 44042D73 33031DE5 AA0A4C5F DD0D7CC9 5005713C 270241AA BE0B1010 C90C2086 5768B525 206F85B3 B966D409 CE61E49F 5EDEF90E 29D9C998 B0D09822 C7D7A8B4 59B33D17 2EB40D81 B7BD5C3B C0BA6CAD EDB88320 9ABFB3B6 03B6E20C 74B1D29A EAD54739 9DD277AF 04DB2615 73DC1683 E3630B12 94643B84 0D6D6A3E 7A6A5AA8 E40ECF0B 9309FF9D 0A00AE27 7D079EB1 F00F9344 8708A3D2 1E01F268 6906C2FE F762575D 806567CB 196C3671 6E6B06E7 FED41B76 89D32BE0 10DA7A5A 67DD4ACC F9B9DF6F 8EBEEFF9 17B7BE43 60B08ED5 D6D6A3E8 A1D1937E 38D8C2C4 4FDFF252 D1BB67F1 A6BC5767 3FB506DD 48B2364B D80D2BDA AF0A1B4C 36034AF6 41047A60 DF60EFC3 A867DF55 316E8EEF 4669BE79 CB61B38C BC66831A 256FD2A0 5268E236 CC0C7795 BB0B4703 220216B9 5505262F C5BA3BBE B2BD0B28 2BB45A92 5CB36A04 C2D7FFA7 B5D0CF31 2CD99E8B 5BDEAE1D 9B64C2B0 EC63F226 756AA39C 026D930A 9C0906A9 EB0E363F 72076785 05005713 95BF4A82 E2B87A14 7BB12BAE 0CB61B38 92D28E9B E5D5BE0D 7CDCEFB7 0BDBDF21 86D3D2D4 F1D4E242 68DDB3F8 1FDA836E 81BE16CD F6B9265B 6FB077E1 18B74777 88085AE6 FF0F6A70 66063BCA 11010B5C 8F659EFF F862AE69 616BFFD3 166CCF45 A00AE278 D70DD2EE 4E048354 3903B3C2 A7672661 D06016F7 4969474D 3E6E77DB AED16A4A D9D65ADC 40DF0B66 37D83BF0 A9BCAE53 DEBB9EC5 47B2CF7F 30B5FFE9 BDBDF21C CABAC28A 53B39330 24B4A3A6 BAD03605 CDD70693 54DE5729 23D967BF B3667A2E C4614AB8 5D681B02 2A6F2B94 B40BBE37 C30C8EA1 5A05DF1B 2D02EF8D".split(' ');
-    
-    /**
-     * @method  toCRC32
-     * CRC32 変換
-     */
-    String.defineInstanceMethod("toCRC32", function() {
-        var crc = 0, x=0, y=0;
-        
-        crc = crc ^ (-1);
-        for (var i=0, iTop=this.length; i<iTop; ++i) {
-            y = (crc ^ this.charCodeAt(i)) & 0xff;
-            x = "0x" + table[y];
-            crc = (crc >>> 8) ^ x;
-        }
-        
-        return (crc ^ (-1)) >>> 0;
-    });
-    
-    
-})();
-
 /*
  * event/event.js
  */
@@ -5170,6 +4014,10 @@ tm.geom = tm.geom || {};
             return this;
         },
 
+        contains: function(x, y) {
+            return this.left <= x && x <= this.right && this.top <= y && y <= this.bottom;
+        },
+
         /**
          * クローン
          */
@@ -5332,6 +4180,17 @@ tm.geom = tm.geom || {};
         },
 
         /**
+         * 
+         */
+        contains: function(x, y) {
+            var lenX = this.x-x;
+            var lenY = this.y-y;
+            var lenSquared = (lenX*lenX)+(lenY*lenY);
+
+            return lenSquared <= this.radius*this.radius;
+        },
+
+        /**
          * クローン作成
          */
         clone: function() {
@@ -5413,7 +4272,7 @@ tm.collision = tm.collision || {};
     tm.collision.testCircleCircle = function(circle0, circle1) {
         var distanceSquared = tm.geom.Vector2.distanceSquared(circle0, circle1);
         return distanceSquared <= Math.pow(circle0.radius + circle1.radius, 2);
-    }
+    };
     
     /**
      * @method testRectRect
@@ -5422,9 +4281,66 @@ tm.collision = tm.collision || {};
     tm.collision.testRectRect = function(rect0, rect1) {
         return (rect0.left < rect1.right) && (rect0.right > rect1.left) &&
                (rect0.top < rect1.bottom) && (rect0.bottom > rect1.top);
-    }
+    };
+
+    tm.collision.testCircleRect = function(circle, rect) {
+        // まずは大きな矩形で判定(高速化)
+        var bigRect = tm.geom.Rect(rect.left-circle.radius, rect.top-circle.radius, rect.width+circle.radius*2, rect.height+circle.radius*2);
+        if (bigRect.contains(circle.x, circle.y) == false) {
+            return false;
+        }
+        
+        // 2種類の矩形と衝突判定
+        var r = tm.geom.Rect(rect.left-circle.radius, rect.top, rect.width+circle.radius*2, rect.height);
+        if (r.contains(circle.x, circle.y)) {
+            return true;
+        }
+        r.set(rect.left, rect.top-circle.radius, rect.width, rect.height+circle.radius*2);
+        if (r.contains(circle.x, circle.y)) {
+            return true;
+        }
+        
+        // 円と矩形の４点の判定
+        var c = tm.geom.Circle(circle.x, circle.y, circle.radius);
+        // left top
+        if (c.contains(rect.left, rect.top)) {
+            return true;
+        }
+        // right top
+        if (c.contains(rect.right, rect.top)) {
+            return true;
+        }
+        // right bottom
+        if (c.contains(rect.right, rect.bottom)) {
+            return true;
+        }
+        // left bottom
+        if (c.contains(rect.left, rect.bottom)) {
+            return true;
+        }
+        
+        return false;
+    };
+
+    tm.collision.testRectCircle = function(rect, circle) {
+        return this.testCircleRect(circle, rect);
+    };
  
 })();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /*
  * element.js
  */
@@ -11759,6 +10675,7 @@ tm.app = tm.app || {};
             // 
             var e = tm.event.Event("resume");
             e.app = this;
+            e.prevScene = scene;
             this.currentScene.dispatchEvent(e);
             
             return scene;
@@ -12888,6 +11805,12 @@ tm.app = tm.app || {};
      */
     tm.app.Scene = tm.createClass({
         superClass: tm.app.Object2D,
+
+        /** ManagerScene 経由で生成された際に次にどのシーンに遷移するかのラベル */
+        nextLabel: "",
+
+        /** ManagerScene 経由で生成された際に次のシーンに渡す引数 */
+        nextArguments: null,
 
         /**
          * @constructor
@@ -14360,184 +13283,72 @@ tm.display = tm.display || {};
         /** @property canvsa */
         /** @property width */
         /** @property height */
+        /** @property autoRender */
 
         /**
          * @constructor
          */
-        init: function(width, height) {
+        init: function(param) {
+            param = this._dirtyCheckParam.apply(this, arguments);
+            var param = {}.$safe(param, {
+                width: 64,
+                height: 64,
+                // bgColor: "#888",
+                bgColor: "transparent",
+
+                fillStyle: "red",
+                strokeStyle: "white",
+                lineWidth: "2",
+                shadowBlur: 0,
+                shadowColor: "red",
+            });
+            
             this.superInit();
-            
-            width = width   || 64;
-            height= height  || 64;
-            
+
+            // 
             this.canvas = tm.graphics.Canvas();
-            
-            this.width  = width;
-            this.height = height;
-            this.canvas.resize(width, height);
+            // 
+            this.$extend(param);
+            // 
+            this.render();
+            // 
+            this.autoRender = true;
         },
 
-        /**
-         * 円を描画
-         */
-        renderCircle: function(param) {
+        _prerender: function() {
             var c = this.canvas;
-            param = {}.$extend(tm.display.Shape.DEFAULT_SHAPE_PARAM_CIRCLE, param);
-            
+            c.resize(this.width, this.height);
+            c.clearColor(this.bgColor);
+
             c.save();
-            
+
             // パラメータセット
-            c.fillStyle = param.fillStyle;
-            c.strokeStyle = param.strokeStyle;
-            c.lineWidth = param.lineWidth;
-            
-            // 描画
-            c.fillCircle(this.width/2, this.height/2, this.radius);
-            c.strokeCircle(this.width/2, this.height/2, this.radius-Number(c.lineWidth)/2);
-            
-            c.restore();
+            c.fillStyle   = this.fillStyle;
+            c.strokeStyle = this.strokeStyle;
+            c.lineWidth   = this.lineWidth;
+            c.shadowBlur  = this.shadowBlur;
+            c.shadowColor  = this.shadowColor;
+
+            return this;
         },
 
-        /**
-         * 三角形描画
-         */
-        renderTriangle: function(param) {
+        _postrender: function() {
             var c = this.canvas;
-            param = {}.$extend(tm.display.Shape.DEFAULT_SHAPE_PARAM_TRIANGLE, param);
-            
-            c.save();
-            
-            // パラメータセット
-            c.fillStyle = param.fillStyle;
-            c.strokeStyle = param.strokeStyle;
-            c.lineWidth = param.lineWidth;
-            
-            // 描画
-            c.fillPolygon(this.width/2, this.height/2, this.radius, 3);
-            c.strokePolygon(this.width/2, this.height/2, this.radius-Number(c.lineWidth)/2, 3);
-            
             c.restore();
+
+            return this;
         },
 
-        /**
-         * 四角形描画
-         */
-        renderRectangle: function(param) {
-            var c = this.canvas;
-            param = {}.$extend(tm.display.Shape.DEFAULT_SHAPE_PARAM_RECTANGLE, param);
+        render: function() {
+            this._prerender();
 
-            c.save();
-            
-            // パラメータセット
-            c.fillStyle = param.fillStyle;
-            c.strokeStyle = param.strokeStyle;
-            c.lineWidth = param.lineWidth;
-            
-            // 描画
-            var lw      = Number(c.lineWidth);
-            var lw_half = lw/2;
-            c.fillRect(0, 0, this.width, this.height);
-            c.strokeRect(lw_half, lw_half, this.width-lw, this.height-lw);
-            
-            c.restore();
-        },
-        
-        /**
-         * 角丸四角形を描画
-         */
-        renderRoundRectangle: function(param) {
-            var c = this.canvas;
-            param = {}.$extend(tm.display.Shape.DEFAULT_SHAPE_PARAM_ROUND_RECTANGLE, param);
+            this._render();
 
-            c.save();
-            
-            // パラメータセット
-            c.fillStyle = param.fillStyle;
-            c.strokeStyle = param.strokeStyle;
-            c.lineWidth = param.lineWidth;
-            
-            // 描画
-            var lw      = Number(c.lineWidth);
-            var lw_half = lw/2;
-            c.fillRoundRect(0, 0, this.width, this.height, param.radius);
-            c.strokeRoundRect(lw_half, lw_half, this.width-lw, this.height-lw, param.radius);
-            
-            c.restore();
+            this._postrender();
         },
 
-        /**
-         * スター描画
-         */
-        renderStar: function(param) {
-            var c = this.canvas;
-            param = {}.$extend(tm.display.Shape.DEFAULT_SHAPE_PARAM_STAR, param);
-            
-            c.save();
-            
-            // パラメータセット
-            c.fillStyle = param.fillStyle;
-            c.strokeStyle = param.strokeStyle;
-            c.lineWidth = param.lineWidth;
+        _render: function() {
 
-            // 描画
-            var lw          = Number(c.lineWidth);
-            var lw_half     = lw/2;
-            var sides       = param.sides;
-            var sideIndent  = param.sideIndent;
-            var offsetAngle = param.offsetAngle;
-            c.fillStar(this.width/2, this.height/2, this.radius, sides, sideIndent, offsetAngle);
-            c.strokeStar(this.width/2, this.height/2, this.radius-Number(c.lineWidth)/2, sides, sideIndent, offsetAngle);
-            
-            c.restore();
-        },
-
-        /**
-         * ポリゴン描画
-         */
-        renderPolygon: function(param) {
-            var c = this.canvas;
-            param = {}.$extend(tm.display.Shape.DEFAULT_SHAPE_PARAM_POLYGON, param);
-            
-            c.save();
-            
-            // パラメータセット
-            c.fillStyle = param.fillStyle;
-            c.strokeStyle = param.strokeStyle;
-            c.lineWidth = param.lineWidth;
-            c.textAlign = "center";
-            c.textBaseline = "middle";
-            
-            // 描画
-            var lw          = Number(c.lineWidth);
-            var lw_half     = lw/2;
-            var sides       = param.sides;
-            var sideIndent  = param.sideIndent;
-            var offsetAngle = param.offsetAngle;
-            c.fillPolygon(this.width/2, this.height/2, this.radius, sides, offsetAngle);
-            c.strokePolygon(this.width/2, this.height/2, this.radius-Number(c.lineWidth)/2, sides, offsetAngle);
-            
-            c.restore();
-        },
-
-        /**
-         * ハート描画
-         */
-        renderHeart: function(param) {
-            var c = this.canvas;
-            param = {}.$extend(tm.display.Shape.DEFAULT_SHAPE_PARAM_HEART, param);
-
-            c.save();
-            
-            // パラメータセット
-            c.fillStyle     = param.fillStyle;
-            c.strokeStyle   = param.strokeStyle;
-            c.lineWidth     = param.lineWidth;
-            
-            // 描画
-            c.fillHeart(this.width/2, this.height/2, this.radius, param.angle);
-            c.strokeHeart(this.width/2, this.height/2, this.radius-Number(c.lineWidth)/2, param.angle);
-            
-            c.restore();
         },
 
         /**
@@ -14563,79 +13374,42 @@ tm.display = tm.display || {};
             
             c.restore();
         },
+
+
+        // TODO: old support(plan delete)
+        _dirtyCheckParam: function(param) {
+            var param = param;
+            if (arguments.length >= 2) {
+                var width = arguments[0];
+                var height= arguments[1];
+                var param = arguments[2] || {};
+                param.width = width;
+                param.height = height;
+
+                console.warn("tmlib.js warn: arguments of shape init is only param from version 0.4");
+            }
+
+            return param;
+        },
         
     });
 
-    /** @static @property  */
-    tm.display.Shape.DEFAULT_SHAPE_PARAM_CIRCLE = {
-        fillStyle: "red",
-        strokeStyle: "white",
-        lineWidth: "2",
-    };
+    ["width", "height", "bgColor", "strokeStyle", "fillStyle", "lineWidth", "shadowBlur", "shadowColor"].each(function(prop) {
+        var propName = '_' + prop;
 
-    /** @static @property  */
-    tm.display.Shape.DEFAULT_SHAPE_PARAM_TRIANGLE = {
-        fillStyle: "green",
-        strokeStyle: "white",
-        lineWidth: "2",
-    };
+        tm.display.Shape.prototype.accessor(prop, {
+            "get": function()   {
+                return this[propName];
+            },
+            "set": function(v)  {
+                this[propName] = v;
+                if (this.autoRender === true) {
+                    this.render();
+                }
+            }
+        });
+    });
 
-    /** @static @property  */
-    tm.display.Shape.DEFAULT_SHAPE_PARAM_RECTANGLE = {
-        fillStyle: "blue",
-        strokeStyle: "white",
-        lineWidth: "2",
-    };
-
-    /** @static @property  */
-    tm.display.Shape.DEFAULT_SHAPE_PARAM_ROUND_RECTANGLE = {
-        fillStyle: "blue",
-        strokeStyle: "white",
-        lineWidth: "2",
-        radius: 10,
-    };
-
-    /** @static @property  */
-    tm.display.Shape.DEFAULT_SHAPE_PARAM_STAR = {
-        fillStyle: "yellow",
-        strokeStyle: "white",
-        lineWidth: "2",
-        
-        sides: 5,
-        sideIndent: undefined,
-        offsetAngle: undefined,
-    };
-
-    /** @static @property  */
-    tm.display.Shape.DEFAULT_SHAPE_PARAM_POLYGON = {
-        fillStyle: "cyan",
-        strokeStyle: "white",
-        lineWidth: "2",
-        
-        sides: 5,
-        offsetAngle: undefined,
-    };
-
-    /** @static @property  */
-    tm.display.Shape.DEFAULT_SHAPE_PARAM_HEART = {
-        fillStyle: "pink",
-        strokeStyle: "white",
-        lineWidth: "2",
-        
-        angle: 45,
-    };
-
-    /** @static @property  */
-    tm.display.Shape.DEFAULT_SHAPE_PARAM_TEXT = {
-        text: "hello, world",
-        fillStyle: "pink",
-        strokeStyle: "white",
-        lineWidth: "1",
-        textAlign: "center",
-        textBaseline: "middle",
-        font: "24px 'Consolas', 'Monaco', 'ＭＳ ゴシック'",
-    };
-    
 })();
 
 
@@ -14650,17 +13424,25 @@ tm.display = tm.display || {};
      *      var shape = tm.display.CircleShape().addChildTo(this);
      *      shape.setPosition(50, 50);
      */
-    tm.display.CircleShape = tm.createClass({
-        
+    tm.define("tm.display.CircleShape", {
         superClass: tm.display.Shape,
         
         /**
          * @constructor
          */
-        init: function(width, height, param) {
-            this.superInit(width, height);
+        init: function(param) {
+            param = this._dirtyCheckParam.apply(this, arguments);
+            this.superInit(param);
+
+            this.render();
+        },
+
+        _render: function() {
+            var c = this.canvas;
             // 描画
-            this.renderCircle(param);
+            var radius = Math.min(this.width, this.height)/2;
+            c.fillCircle(this.width/2, this.height/2, radius);
+            c.strokeCircle(this.width/2, this.height/2, radius-Number(c.lineWidth)/2);
         },
     });
     
@@ -14676,19 +13458,33 @@ tm.display = tm.display || {};
      * 簡単に三角形を描画できるクラス
      * @extends tm.display.Shape
      */
-    tm.display.TriangleShape = tm.createClass({
-        
+    tm.define("tm.display.TriangleShape", {
         superClass: tm.display.Shape,
         
         /**
          * @constructor
          */
-        init: function(width, height, param) {
-            this.superInit(width, height);
-            // 描画
-            this.renderTriangle(param);
+        init: function(param) {
+            param = this._dirtyCheckParam.apply(this, arguments);
+            param = {}.$safe(param, {
+                fillStyle: "green",
+            });
+            this.superInit(param);
+
+            this.render();
         },
-        
+
+        _render: function() {
+            var c = this.canvas;
+
+            // 描画
+            var x = this.width/2;
+            var y = this.height/2;
+            var radius = Math.min(this.width, this.height)/2;
+            var offsetLine = Number(c.lineWidth)*1;
+            c.fillPolygon(x, y, radius, 3);
+            c.strokePolygon(x, y, radius-offsetLine, 3);
+        },
     });
     
 })();
@@ -14703,19 +13499,30 @@ tm.display = tm.display || {};
      * 簡単に矩形を描画できるクラス
      * @extends tm.display.Shape
      */
-    tm.display.RectangleShape = tm.createClass({
-        
+    tm.define("tm.display.RectangleShape", {
         superClass: tm.display.Shape,
         
         /**
          * @constructor
          */
-        init: function(width, height, param) {
-            this.superInit(width, height);
-            // 描画
-            this.renderRectangle(param);
+        init: function(param) {
+            param = this._dirtyCheckParam.apply(this, arguments);
+            param = {}.$safe(param, {
+                fillStyle: "blue",
+            });
+            this.superInit(param);
+
+            this.render();
         },
-        
+
+        _render: function() {
+            var c = this.canvas;
+            // 描画
+            var lw = this.lineWidth;
+            var lw_half = lw/2;
+            c.fillRect(0, 0, this.width, this.height);
+            c.strokeRect(lw_half, lw_half, this.width-lw, this.height-lw);
+        },
     });
     
 })();
@@ -14730,21 +13537,48 @@ tm.display = tm.display || {};
      * 簡単に矩形を描画できるクラス
      * @extends tm.display.Shape
      */
-    tm.display.RoundRectangleShape = tm.createClass({
-        
+    tm.define("tm.display.RoundRectangleShape", {
         superClass: tm.display.Shape,
         
         /**
          * @constructor
          */
-        init: function(width, height, param) {
-            this.superInit(width, height);
-            // 描画
-            this.renderRoundRectangle(param);
+        init: function(param) {
+            param = this._dirtyCheckParam.apply(this, arguments);
+            param = {}.$safe(param, {
+                fillStyle: "blue",
+                cornerRadius: 8,
+            });
+            this.superInit(param);
+
+            this.render();
         },
-        
+
+        _render: function() {
+            var c = this.canvas;
+            // 描画
+            var lw = this.lineWidth;
+            var lw_half = lw/2;
+
+            c.fillRoundRect(lw_half, lw_half, this.width-lw, this.height-lw, this.cornerRadius);
+            c.strokeRoundRect(lw_half, lw_half, this.width-lw, this.height-lw, this.cornerRadius);
+        },
     });
-    
+
+    ["cornerRadius"].each(function(prop) {
+        var propName = '_' + prop;
+
+        tm.display.RoundRectangleShape.prototype.accessor(prop, {
+            "get": function()   {
+                return this[propName];
+            },
+            "set": function(v)  {
+                this[propName] = v;
+                if (this.autoRender === true) { this.render(); }
+            }
+        });
+    });
+
 })();
 
 
@@ -14755,19 +13589,56 @@ tm.display = tm.display || {};
      * 簡単に星形を描画できるクラス
      * @extends tm.display.Shape
      */
-    tm.display.StarShape = tm.createClass({
-        
+    tm.define("tm.display.StarShape", {
         superClass: tm.display.Shape,
         
         /**
          * @constructor
          */
-        init: function(width, height, param) {
-            this.superInit(width, height);
-            // 描画
-            this.renderStar(param);
+        init: function(param) {
+            param = this._dirtyCheckParam.apply(this, arguments);
+            param = {}.$safe(param, {
+                fillStyle: "yellow",
+                sides: 5,
+                sideIndent: 0.38,
+                offsetAngle: -90,
+            });
+            this.superInit(param);
+
+            this.render();
         },
-        
+
+        _render: function() {
+            var c = this.canvas;
+
+            var sides       = this.sides;
+            var sideIndent  = this.sideIndent;
+            var offsetAngle = this.offsetAngle;
+            
+            // 描画
+            var x = this.width/2;
+            var y = this.height/2;
+            var radius = Math.min(this.width, this.height)/2;
+            var offsetLine = Number(c.lineWidth)*1.5;
+            c.fillStar(x, y, radius, sides, sideIndent, offsetAngle);
+            c.strokeStar(x, y, radius-offsetLine, sides, sideIndent, offsetAngle);
+        },
+    });
+
+    ["sides", "sideIndent", "offsetAngle"].each(function(prop) {
+        var propName = '_' + prop;
+
+        tm.display.StarShape.prototype.accessor(prop, {
+            "get": function()   {
+                return this[propName];
+            },
+            "set": function(v)  {
+                this[propName] = v;
+                if (this.autoRender === true) {
+                    this.render();
+                }
+            }
+        });
     });
     
 })();
@@ -14781,19 +13652,55 @@ tm.display = tm.display || {};
      * @extends tm.display.Shape
      * ポリゴン描画クラス
      */
-    tm.display.PolygonShape = tm.createClass({
-        
+    tm.define("tm.display.PolygonShape", {
         superClass: tm.display.Shape,
         
         /**
          * @constructor
          */
-        init: function(width, height, param) {
-            this.superInit(width, height);
-            // 描画
-            this.renderPolygon(param);
+        init: function(param) {
+            param = this._dirtyCheckParam.apply(this, arguments);
+            param = {}.$safe(param, {
+                fillStyle: "cyan",
+                sides: 5,
+                sideIndent: 0.38,
+                offsetAngle: -90,
+            });
+            this.superInit(param);
+
+            this.render();
         },
-        
+
+        _render: function() {
+            var c = this.canvas;
+
+            var sides       = this.sides;
+            var offsetAngle = this.offsetAngle;
+            
+            // 描画
+            var x = this.width/2;
+            var y = this.height/2;
+            var radius = Math.min(this.width, this.height)/2;
+            var offsetLine = Number(c.lineWidth)*0.6;
+            c.fillPolygon(x, y, radius, sides, offsetAngle);
+            c.strokePolygon(x, y, radius-offsetLine, sides, offsetAngle);
+        },
+    });
+
+    ["sides", "offsetAngle"].each(function(prop) {
+        var propName = '_' + prop;
+
+        tm.display.PolygonShape.prototype.accessor(prop, {
+            "get": function()   {
+                return this[propName];
+            },
+            "set": function(v)  {
+                this[propName] = v;
+                if (this.autoRender === true) {
+                    this.render();
+                }
+            }
+        });
     });
     
 })();
@@ -14808,27 +13715,56 @@ tm.display = tm.display || {};
      * 簡単にハートを描画できるクラス
      * @extends tm.display.Shape
      */
-    tm.display.HeartShape = tm.createClass({
-        
+    tm.define("tm.display.HeartShape", {
         superClass: tm.display.Shape,
         
         /**
          * @constructor
          */
-        init: function(width, height, param) {
-            this.superInit(width, height);
-            // 描画
-            this.renderHeart(param);
+        init: function(param) {
+            param = this._dirtyCheckParam.apply(this, arguments);
+            param = {}.$safe(param, {
+                fillStyle: "pink",
+                cornerAngle: 45,
+            });
+            this.superInit(param);
+
+            this.render();
         },
-        
+
+        _render: function() {
+            var c = this.canvas;
+            // 描画
+            var x = this.width/2;
+            var y = this.height/2;
+            var radius = Math.min(this.width, this.height)/2;
+            c.fillHeart(x, y, radius, this.cornerAngle);
+            c.strokeHeart(x, y, radius-Number(c.lineWidth)/2, this.cornerAngle);
+        },
     });
-    
+
+    ["cornerAngle"].each(function(prop) {
+        var propName = '_' + prop;
+
+        tm.display.HeartShape.prototype.accessor(prop, {
+            "get": function()   {
+                return this[propName];
+            },
+            "set": function(v)  {
+                this[propName] = v;
+                if (this.autoRender === true) { this.render(); }
+            }
+        });
+    });
+
 })();
 
 
 
 
 (function() {
+
+    var dummyCanvas = null;
     
     /**
      * @class tm.display.TextShape
@@ -14843,11 +13779,66 @@ tm.display = tm.display || {};
          * @constructor
          */
         init: function(width, height, param) {
-            this.superInit(width, height);
-            // 描画
-            this.renderText(param);
+            param = this._dirtyCheckParam.apply(this, arguments);
+            param = {}.$safe(param, {
+                fillStyle: "black",
+                lineWidth: 4,
+                text: "hello, world!",
+                fontSize: 64,
+                fontWeight: "",
+                fontFamily: "'HiraKakuProN-W3'",
+            });
+            this.superInit(param);
+
+            this.fit();
+
+            this.render();
         },
+
+        fit: function() {
+            if (!dummyCanvas) {
+                dummyCanvas = tm.graphics.Canvas();
+            }
+            dummyCanvas.font = "{fontWeight} {fontSize}px {fontFamily}".format(this);
+            var textWidth = dummyCanvas.context.measureText(this.text).width + (10);
+            var textHeight = dummyCanvas.context.measureText('あ').width*1.5;
+            this.width = textWidth;
+            this.height = textHeight;
+        },
+
+        _render: function() {
+            var c = this.canvas;
+
+            c.fillStyle = this.fillStyle;
+            c.strokeStyle = this.strokeStyle;
+            c.font = "{fontWeight} {fontSize}px {fontFamily}".format(this);
+            c.textAlign = "center";
+            c.textBaseline = "middle";
+
+            var textWidth = c.context.measureText(this.text).width;
+
+            var hw = this.width/2;
+            var hh = this.height/2
+            c.strokeText(this.text, hw, hh);
+            c.fillText(this.text, hw, hh);
+        },
+
     });
+
+    ['text', "fontWeight", "fontSize", "fontFamily"].each(function(prop) {
+        var propName = '_' + prop;
+
+        tm.display.TextShape.prototype.accessor(prop, {
+            "get": function()   {
+                return this[propName];
+            },
+            "set": function(v)  {
+                this[propName] = v;
+                if (this.autoRender === true) { this.render(); }
+            }
+        });
+    });
+
     
 })();
 
@@ -15982,7 +14973,10 @@ tm.ui = tm.ui || {};
                 fontFamily: "'ヒラギノ角ゴ Pro W3', 'Hiragino Kaku Gothic Pro', 'メイリオ', 'Meiryo', 'ＭＳ Ｐゴシック', 'MS PGothic', sans-serif",
             });
 
-            this.superInit(param.width, param.height);
+            this.superInit({
+                width: param.width,
+                height: param.height,
+            });
 
             this.canvas.clearColor(param.bgColor);
 
@@ -16249,11 +15243,13 @@ tm.ui = tm.ui || {};
         /**
          * @constructor
          */
-        init: function(width, height, param) {
-            this.superInit(width, height);
-            
-            param = param || {};
+        init: function(param) {
+            param = this._dirtyCheckParam.apply(this, arguments);
             param.$safe(DEFAULT_PARAM);
+            this.superInit(param);
+            
+            this.autoRender = false;
+            
             this._setup(param);
         },
         
@@ -16842,201 +15838,10 @@ tm.ui = tm.ui || {};
 })();
 
 /*
- * loadingscene.js
- */
-
-
-;(function() {
-    
-    var DEFAULT_PARAM = {
-        width: 465,
-        height: 465,
-        bgColor: "transparent",
-    };
-    
-    tm.define("tm.ui.LoadingScene", {
-        superClass: "tm.app.Scene",
-        
-        init: function(param) {
-            this.superInit();
-            
-            this.param = param = {}.$extend(DEFAULT_PARAM, param);
-
-            this.fromJSON({
-                children: {
-                    stage: {
-                        type: "tm.display.CanvasElement",
-                    },
-                }
-            });
-
-            this.stage.fromJSON({
-                children: {
-                    bg: {
-                        type: "tm.display.Shape",
-                        init: [param.width, param.height],
-                        originX: 0,
-                        originY: 0,
-                    },
-                    piyoLayer: {
-                        type: "tm.display.CanvasElement",
-                    },
-                    label: {
-                        type: "tm.display.Label",
-                        text: "LOADING",
-                        x: param.width/2,
-                        y: param.height/2-20,
-                        align: "center",
-                        baseline: "middle",
-                        fontSize: 46,
-                        shadowBlur: 4,
-                        shadowColor: "hsl(190, 100%, 50%)",
-                    },
-                    // piyo: {
-                    //     type: "tm.display.Shape",
-                    //     init: [84, 84],
-                    // },
-                    bar: {
-                        type: "tm.ui.Gauge",
-                        init: [{
-                            width: param.width,
-                            height: 10,
-                            color: "hsl(200, 100%, 80%)",
-                            bgColor: "transparent",
-                            borderColor: "transparent",
-                            borderWidth: 0,
-                        }],
-                        x: 0,
-                        y: 0,
-                    },
-                }
-            });
-            
-            // bg
-            var bg = this.stage.bg;
-            bg.canvas.clearColor(param.bgColor);
-
-            // label
-            var label = this.stage.label;
-            label.tweener
-                .to({alpha:1}, 1000)
-                .to({alpha:0.5}, 1000)
-                .setLoop(true)
-
-            // bar
-            var bar = this.stage.bar;
-            bar.animationFlag = false;
-            bar.value = 0;
-            bar.animationFlag = true;
-            bar.animationTime = 100;
-            
-            // ひよこさん
-            this._createHiyoko(param).addChildTo(this.stage.piyoLayer);
-
-            // load
-            var stage = this.stage;
-            stage.alpha = 0.0;
-            stage.tweener.clear().fadeIn(100).call(function() {
-                if (param.assets) {
-                    var loader = tm.asset.Loader();
-                    loader.onload = function() {
-                        stage.tweener.clear().wait(200).fadeOut(200).call(function() {
-                            if (param.nextScene) {
-                                this.app.replaceScene(param.nextScene());
-                            }
-                            var e = tm.event.Event("load");
-                            this.fire(e);
-                        }.bind(this));
-                    }.bind(this);
-                    
-                    loader.onprogress = function(e) {
-                        // update bar
-                        bar.value = e.progress*100;
-
-                        // dispatch event
-                        var event = tm.event.Event("progress");
-                        event.progress = e.progress;
-                        this.fire(event);
-                    }.bind(this);
-                    
-                    loader.load(param.assets);
-                }
-            }.bind(this));
-        },
-
-        onpointingstart: function(app) {
-            // ひよこさん生成
-            var p = app.pointing;
-            var piyo = this._createHiyoko(this.param).addChildTo(this.stage.piyoLayer);
-            piyo.x = p.x;
-            piyo.y = p.y;
-        },
-
-        _createHiyoko: function(param) {
-            // ひよこさん
-            var piyo = tm.display.Shape(84, 84);
-            piyo.x = tm.util.Random.randint(0, param.width);
-            piyo.y = tm.util.Random.randint(0, param.height);
-            piyo.canvas.setColorStyle("white", "yellow").fillCircle(42, 42, 32);
-            piyo.canvas.setColorStyle("white", "black").fillCircle(27, 27, 2);
-            piyo.canvas.setColorStyle("white", "brown").fillRect(40, 70, 4, 15).fillTriangle(0, 40, 11, 35, 11, 45);
-            piyo.dir = tm.geom.Vector2.random(0, 360, 4);
-            var rect = tm.geom.Rect(0, 0, param.width, param.height);
-            rect.padding(42);
-            piyo.update = function(app) {
-                this.position.add(this.dir);
-
-                if (this.x < rect.left) {
-                    this.x = rect.left;
-                    this.dir.x*=-1;
-                }
-                else if (this.x > rect.right) {
-                    this.x = rect.right;
-                    this.dir.x*=-1;
-                }
-                if (this.y < rect.top) {
-                    this.y = rect.top;
-                    this.dir.y*=-1;
-                }
-                else if (this.y > rect.bottom) {
-                    this.y = rect.bottom;
-                    this.dir.y*=-1;
-                }
-
-                if (this.dir.x<0) {
-                    this.rotation -= 7;
-                    this.scaleX = 1;
-                }
-                else {
-                    this.rotation += 7;
-                    this.scaleX = -1;
-                }
-
-                // // 向き更新
-                // if (app.pointing.getPointingStart()) {
-                //     var p = app.pointing.position;
-                //     var v = tm.geom.Vector2.sub(p, this.position);
-                //     this.dir = v.normalize().mul(4);
-                // }
-
-            };
-
-            return piyo;
-        },
-    });
-    
-})();
-
-
-
-
-
-
-/*
  * TitleScene
  */
 
-    
+
 (function() {
 
     tm.define("tm.scene.TitleScene", {
@@ -17046,15 +15851,18 @@ tm.ui = tm.ui || {};
             this.superInit();
 
             param = {}.$extend(tm.scene.TitleScene["default"], param);
+            this.param = param;
 
             this.fromJSON({
                 children: {
                     bg: {
                         type: "tm.display.RectangleShape",
-                        init: [param.width, param.height, {
+                        init: {
+                            width: param.width,
+                            height: param.height,
                             fillStyle: param.bgColor,
                             strokeStyle: "transparent",
-                        }],
+                        },
                         originX: 0,
                         originY: 0,
                     }
@@ -17079,8 +15887,8 @@ tm.ui = tm.ui || {};
                     titleLabel: {
                         type: "Label", name: "titleLabel",
                         text: param.title,
-                        x: param.width/2,
-                        y: param.height/10*2,
+                        x: this._toGridX(6),
+                        y: this._toGridY(3),
                         fillStyle: param.fontColor,
                         fontSize: param.fontSize,
                         fontFamily: "'Helvetica-Light' 'Meiryo' sans-serif",
@@ -17090,8 +15898,8 @@ tm.ui = tm.ui || {};
                     touchLabel: {
                         type: "Label", name: "nextLabel",
                         text: "TOUCH START",
-                        x: param.width/2,
-                        y: param.height/10*8,
+                        x: this._toGridX(6),
+                        y: this._toGridY(9),
                         fillStyle: param.fontColor,
                         fontSize: param.fontSize*0.4,
                         fontFamily: "'Helvetica-Light' 'Meiryo' sans-serif",
@@ -17100,13 +15908,21 @@ tm.ui = tm.ui || {};
                     }
                 }
             });
-            
+
             this.touchLabel.tweener
                 .fadeOut(500)
                 .fadeIn(1000)
                 .setLoop(true);
 
             this.autopop = param.autopop;
+        },
+
+        _toGridX: function(index) {
+            return this.param.width/12*index;
+        },
+
+        _toGridY: function(index) {
+            return this.param.height/12*index;
         },
 
         onpointingstart: function() {
@@ -17136,7 +15952,7 @@ tm.ui = tm.ui || {};
  * ResultScene
  */
 
-    
+
 (function() {
 
     tm.define("tm.scene.ResultScene", {
@@ -17146,15 +15962,29 @@ tm.ui = tm.ui || {};
             this.superInit();
 
             param = {}.$extend(tm.scene.ResultScene["default"], param);
+            this.param = param;
+
+            var userData = this._getUserData();
+            var bestScore = (userData.bestScore) ? userData.bestScore : 0;
+            var highScoreFlag = (param.score > bestScore);
+
+            if (param.record) {
+                if (highScoreFlag) {
+                    userData.bestScore = param.score;
+                    this._record(userData);
+                }
+            }
 
             this.fromJSON({
                 children: {
                     bg: {
                         type: "tm.display.RectangleShape",
-                        init: [param.width, param.height, {
+                        init: {
+                            width: param.width,
+                            height: param.height,
                             fillStyle: param.bgColor,
                             strokeStyle: "transparent",
-                        }],
+                        },
                         originX: 0,
                         originY: 0,
                     }
@@ -17174,53 +16004,78 @@ tm.ui = tm.ui || {};
                 });
             }
 
+            var baseLabelParam = {
+                type: "Label",
+                fillStyle: param.fontColor,
+                fontFamily: "'Helvetica-Light' 'Meiryo' sans-serif",
+            };
+
             this.fromJSON({
                 children: {
-                    scoreText: {
-                        type: "Label",
+                    scoreText: baseLabelParam.$extend({
                         text: "score",
-                        x: param.width/2,
-                        y: param.height/10*2,
-                        fillStyle: param.fontColor,
+                        x: this._toGridX(4),
+                        y: this._toGridY(3),
                         fontSize: param.fontSize*0.5,
-                        fontFamily: "'Helvetica-Light' 'Meiryo' sans-serif",
-                        align: "center",
-                        baseline: "middle",
-                    },
+                    }),
                     scoreLabel: {
                         type: "Label",
                         text: param.score,
-                        x: param.width/2,
-                        y: param.height/10*3,
+                        x: this._toGridX(4),
+                        y: this._toGridY(4),
                         fillStyle: param.fontColor,
                         fontSize: param.fontSize,
                         fontFamily: "'Helvetica-Light' 'Meiryo' sans-serif",
-                        align: "center",
-                        baseline: "middle",
                     },
+                    bestText: {
+                        type: "Label",
+                        text: "best",
+                        x: this._toGridX(8),
+                        y: this._toGridY(3),
+                        fillStyle: param.fontColor,
+                        fontSize: param.fontSize*0.5,
+                        fontFamily: "'Helvetica-Light' 'Meiryo' sans-serif",
+                    },
+                    bestLabel: {
+                        type: "Label",
+                        text: bestScore,
+                        x: this._toGridX(8),
+                        y: this._toGridY(4),
+                        fillStyle: param.fontColor,
+                        fontSize: param.fontSize,
+                        fontFamily: "'Helvetica-Light' 'Meiryo' sans-serif",
+                    },
+
+                    newRecordText: {
+                        type: "Label",
+                        text: "new record!",
+                        x: this._toGridX(6),
+                        y: this._toGridY(6),
+                        fillStyle: param.fontColor,
+                        fontSize: param.fontSize*0.5,
+                        fontFamily: "'Helvetica-Light' 'Meiryo' sans-serif",
+                        visible: false,
+                    },
+
                     shareButton: {
                         type: "FlatButton",
-                        init: [
-                            {
-                                text: "Share",
-                                width: 200,
-                                bgColor: "hsl(240, 80%, 70%)",
-                            }
-                        ],
-                        x: param.width/10*3,
-                        y: param.height/10*7,
+                        init: {
+                            text: "Share",
+                            width: 200,
+                            bgColor: "hsl(240, 100%, 64%)",
+                        },
+                        x: this._toGridX(4),
+                        y: this._toGridY(9),
                     },
                     backButton: {
                         type: "FlatButton",
-                        init: [
-                            {
-                                text: "Back",
-                                width: 200,
-                                bgColor: "hsl(240, 80%, 0%)",
-                            }
-                        ],
-                        x: param.width/10*7,
-                        y: param.height/10*7,
+                        init: {
+                            text: "Back",
+                            width: 200,
+                            bgColor: "hsl(240, 80%, 0%)",
+                        },
+                        x: this._toGridX(8),
+                        y: this._toGridY(9),
                     }
                 }
             });
@@ -17237,10 +16092,40 @@ tm.ui = tm.ui || {};
                 window.open(twitterURL, 'share window', 'width=400, height=300');
             };
 
-            // back
+            // setup back
             this.backButton.onpointingstart = this._back.bind(this);
-
             this.autopop = param.autopop;
+
+            // setup record
+            if (highScoreFlag) {
+                this.newRecordText.show();
+                this.newRecordText.tweener
+                    .set({alpha:0.0})
+                    .fadeIn(2000)
+                    .setLoop(true)
+                    ;
+            }
+        },
+
+        _getUserData: function() {
+            var key = location.pathname.toCRC32();
+            var data = localStorage.getItem(key);
+            return (data) ? JSON.parse(data) : {};
+        },
+
+        _record: function(data) {
+            var key = location.pathname.toCRC32();
+            var dataString = JSON.stringify(data);
+            localStorage.setItem(key, dataString);
+            return this;
+        },
+
+        _toGridX: function(index) {
+            return this.param.width/12*index;
+        },
+
+        _toGridY: function(index) {
+            return this.param.height/12*index;
         },
 
         _back: function() {
@@ -17263,8 +16148,9 @@ tm.ui = tm.ui || {};
         height: 960,
         fontColor: "#444",
         fontSize: 90,
-        bgColor: "rgb(240,240,240)",
+        bgColor: "rgba(255,255,255, 0.9)",
         bgImage: null,
+        record: true,
         autopop: true,
     };
 
@@ -17304,7 +16190,10 @@ tm.ui = tm.ui || {};
                 children: {
                     bg: {
                         type: "tm.display.Shape",
-                        init: [param.width, param.height],
+                        init: {
+                            width: param.width,
+                            height: param.height,
+                        },
                         originX: 0,
                         originY: 0,
                     },
@@ -17408,7 +16297,10 @@ tm.ui = tm.ui || {};
 
         _createHiyoko: function(param) {
             // ひよこさん
-            var piyo = tm.display.Shape(84, 84);
+            var piyo = tm.display.Shape({
+                width: 84,
+                height: 84,
+            });
             piyo.x = tm.util.Random.randint(0, param.width);
             piyo.y = tm.util.Random.randint(0, param.height);
             piyo.canvas.setColorStyle("white", "yellow").fillCircle(42, 42, 32);
@@ -17491,15 +16383,10 @@ tm.ui = tm.ui || {};
             this.setScenes(param.scenes);
 
             this.on("enter", function() {
-                var e = tm.event.Event("start");
-                this.fire(e);
+                this.gotoScene(param.startLabel || 0);
             }.bind(this));
 
-            this.on("resume", function() {
-                var e = tm.event.Event("next");
-                this.fire(e);
-            }.bind(this));
-
+            this.on("resume", this.onnext.bind(this));
 
             this.commonArguments = {};
         },
@@ -17514,34 +16401,27 @@ tm.ui = tm.ui || {};
             return this;
         },
 
-        getScene: function(index) {
-            index = (typeof index == 'string') ? this.labelToIndex(index) : index||0;
-            return this.scenes[index];
-        },
-
-        setSceneArguments: function(label, param) {
-            this.getScene(label).arguments.$extend(param);
-            return this;
-        },
-
         /**
          * index(or label) のシーンへ飛ぶ
          */
-        gotoScene: function(index) {
+        gotoScene: function(index, args) {
             index = (typeof index == 'string') ? this.labelToIndex(index) : index||0;
 
             // イベント発火
             var e = tm.event.Event("prepare");
             this.fire(e);
 
-
             var data = this.scenes[index];
             var klass = tm.using(data.className);
-            var arguments = data.arguments;
-
-            if (!tm.util.Type.isArray(arguments)) arguments = [arguments];
-
-            var scene = klass.apply(null, arguments);
+            var initArguments = data.arguments;
+            var initArguments = {}.$extend(initArguments, args);
+            var scene = klass.call(null, initArguments);
+            if (!scene.nextLabel) {
+                scene.nextLabel = data.nextLabel;
+            }
+            if (!scene.nextArguments) {
+                scene.nextArguments = data.nextArguments;
+            }
             this.app.pushScene(scene);
 
             this.sceneIndex = index;
@@ -17558,7 +16438,7 @@ tm.ui = tm.ui || {};
         /**
          * 次のシーンへ飛ぶ
          */
-        gotoNext: function() {
+        gotoNext: function(args) {
             var data = this.scenes[this.sceneIndex];
             var nextIndex = null;
 
@@ -17572,7 +16452,7 @@ tm.ui = tm.ui || {};
             }
 
             if (nextIndex !== null) {
-                this.gotoScene(nextIndex);
+                this.gotoScene(nextIndex, args);
             }
             else {
                 this.fire(tm.event.Event("finish"));
@@ -17613,12 +16493,15 @@ tm.ui = tm.ui || {};
             return this.scenes[index].label;
         },
 
-        onstart: function() {
-            this.gotoScene(0);
-        },
-
-        onnext: function() {
-            this.gotoNext();
+        onnext: function(e) {
+            var nextLabel = e.prevScene.nextLabel;
+            var nextArguments = e.prevScene.nextArguments;
+            if (nextLabel) {
+                this.gotoScene(nextLabel, nextArguments);
+            }
+            else {
+                this.gotoNext(nextArguments);
+            }
         },
     });
 
@@ -19271,5 +18154,6 @@ tm.google = tm.google || {};
     }
     
     tm.asset.AssetManager = tm.asset.Manager;
+    tm.ui.LoadingScene = tm.scene.LoadingScene;
 
 })();
