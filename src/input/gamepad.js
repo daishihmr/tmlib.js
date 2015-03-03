@@ -88,6 +88,7 @@ tm.input = tm.input || {};
                 }
 
                 if (gamepad.timestamp && (gamepad.timestamp === this._prevTimestamps[i])) {
+                    this.instances[gamepadIndex]._updateStateEmpty();
                     continue;
                 }
 
@@ -121,7 +122,7 @@ tm.input = tm.input || {};
                 this.created.push(gamepadIndex);
                 this.instances[gamepadIndex] = tm.input.Gamepad(gamepadIndex);
             }
-            
+
             return this.instances[gamepadIndex];
         },
 
@@ -337,6 +338,16 @@ tm.input = tm.input || {};
             for (var j = 0, jend = gamepad.axes.length; j < jend; j += 2) {
                 this._updateStick(gamepad.axes[j + 0], j / 2, "x");
                 this._updateStick(gamepad.axes[j + 1], j / 2, "y");
+            }
+        },
+
+        /**
+         * @private
+         */
+        _updateStateEmpty: function() {
+            for (var i = 0, iend = this.buttons.length; i < iend; i++) {
+                this.buttons[i].down = false;
+                this.buttons[i].up = false;
             }
         },
 
