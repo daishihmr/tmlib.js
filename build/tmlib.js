@@ -12361,7 +12361,7 @@ tm.app = tm.app || {};
             if (this.parent) {
                 matrix.multiply(this.parent.getFinalMatrix());
             }
-            matrix.translate(this.centerX, this.centerY);
+            matrix.translate(this.x, this.y);
             matrix.rotateZ(this.rotation*Math.DEG_TO_RAD);
             matrix.scale(this.scaleX, this.scaleY);
  
@@ -15574,8 +15574,8 @@ tm.display = tm.display || {};
             var self = this;
 
             var group = tm.display.CanvasElement().addChildTo(self);
-            group.width = layer.width;
-            group.height = layer.height;
+            group.width = self.width;
+            group.height = self.height;
 
             layer.objects.forEach(function(obj) {
                 var _class = tm.using(obj.type);
@@ -18789,12 +18789,13 @@ tm.sound = tm.sound || {};
         _setup: function() {
             this.source     = this.context.createBufferSource();
             this.gainNode   = this.context.createGain();
-            this.panner     = this.context.createPanner();
+            // this.panner     = this.context.createPanner();
             this.analyser   = this.context.createAnalyser();
 
             this.source.connect(this.gainNode);
-            this.gainNode.connect(this.panner);
-            this.panner.connect(this.analyser);
+            // this.gainNode.connect(this.panner);
+            // this.panner.connect(this.analyser);
+            this.gainNode.connect(this.analyser);
             this.analyser.connect(this.context.destination);
 
             // TODO 暫定的対応
