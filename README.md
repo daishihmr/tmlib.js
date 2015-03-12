@@ -1,5 +1,7 @@
 # [tmlib.js](http://phi-jp.github.com/tmlib.js)
 
+[![Join the chat at https://gitter.im/phi-jp/tmlib.js](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/phi-jp/tmlib.js?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 <img src="https://qiita-image-store.s3.amazonaws.com/0/7756/7aa8af56-c678-0146-d101-3064923f95b9.png" width=400 style="text-align: center;">
 
 『**JavaScript をより使いやすく, より便利に, そしてより豊かに**』を  
@@ -8,6 +10,8 @@
 簡単にゲームを作ったりリッチなwebページを作ることができます.
 公式ページは[こちら](http://phi-jp.github.io/tmlib.js/).
 
+
+[Gitter](https://gitter.im/phi-jp/tmlib.js#)
 
 ## Usage
 
@@ -60,11 +64,15 @@ tmlib.js に関する最新の情報やチュートリアルなどはこちら�
 
 ### 0.5
 
+- scene namespace を game namespace に変更
+- tm.game.CountScene を作成
+- tm.game.ResultScene のデザインを変更
 - pointing の機能を強化( startPosition 保持したり, 数フレーム分の移動値をキャッシュしたり )
-- checkHierarchy のデフォルト値を true に変更 ... done
 - CircleShape がサイズによって切れる問題を修正
 - テスト改修
 - リファクタリング
+- getFinalMatrix の位置が origin によってズレるバグを修正 ... done
+- checkHierarchy のデフォルト値を true に変更 ... done
 
 
 
