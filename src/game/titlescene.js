@@ -11,7 +11,7 @@
         init: function(param) {
             this.superInit();
 
-            param = {}.$extend(tm.scene.TitleScene["default"], param);
+            param = {}.$extend(tm.game.TitleScene["default"], param);
             this.param = param;
 
             this.fromJSON({
@@ -106,7 +106,7 @@
         },
     });
 
-    tm.scene.TitleScene["default"] = {
+    tm.game.TitleScene["default"] = {
         title: "Time is money",
         message: "",
         fontSize: 72,

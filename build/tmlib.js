@@ -17363,7 +17363,7 @@ tm.ui = tm.ui || {};
         init: function(param) {
             this.superInit();
 
-            param = {}.$extend(tm.scene.TitleScene["default"], param);
+            param = {}.$extend(tm.game.TitleScene["default"], param);
             this.param = param;
 
             this.fromJSON({
@@ -17458,7 +17458,7 @@ tm.ui = tm.ui || {};
         },
     });
 
-    tm.scene.TitleScene["default"] = {
+    tm.game.TitleScene["default"] = {
         title: "Time is money",
         message: "",
         fontSize: 72,
@@ -17486,7 +17486,7 @@ tm.ui = tm.ui || {};
         init: function(param) {
             this.superInit();
 
-            param = {}.$extend(tm.scene.ResultScene["default"], param);
+            param = {}.$extend(tm.game.ResultScene["default"], param);
             this.param = param;
 
             var userData = this._getUserData();
@@ -17672,7 +17672,7 @@ tm.ui = tm.ui || {};
         },
     });
 
-    tm.scene.ResultScene["default"] = {
+    tm.game.ResultScene["default"] = {
         score: 256,
         message: "this is tmlib.js project.",
         hashtags: "tmlibjs,game",
