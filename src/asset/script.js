@@ -96,7 +96,7 @@ tm.util = tm.util || {};
      * @method
      * Three.js を動的ロード
      */
-    tm.util.Script.loadThree = function(version) {
+    tm.asset.Script.loadThree = function(version) {
         var THREE_JS_URL = "http://cdn.rawgit.com/mrdoob/three.js/{version}/build/three.js";
 //        var THREE_JS_URL = "https://raw.github.com/mrdoob/three.js/{version}/build/three.min.js";
         version = version || "r55";
@@ -111,7 +111,7 @@ tm.util = tm.util || {};
      * @method
      * BulletML.js を動的ロード
      */
-    tm.util.Script.loadBulletML = function(version) {
+    tm.asset.Script.loadBulletML = function(version) {
         var BULLETML_FOR_TMLIB_JS_URL   = "http://cdn.rawgit.com/daishihmr/bulletml.js/{version}/target/bulletml.for.tmlib.js";
         version = version || "v0.4.2";
         var path = BULLETML_FOR_TMLIB_JS_URL.format({version: version});        
