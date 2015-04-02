@@ -8,11 +8,11 @@ tm.util = tm.util || {};
 (function() {
     
     /**
-     * @class tm.util.Script
+     * @class tm.asset.Script
      * スクリプトクラス
      */
 
-    tm.define("tm.util.Script", {
+    tm.define("tm.asset.Script", {
 
         superClass: "tm.event.EventDispatcher",
 
@@ -51,8 +51,8 @@ tm.util = tm.util || {};
         
     });
 
-    tm.util.Script.load = function(src) {
-        var script = tm.util.Script(src);
+    tm.asset.Script.load = function(src) {
+        var script = tm.asset.Script(src);
 
         return script;
     };
@@ -62,7 +62,7 @@ tm.util = tm.util || {};
      * @method
      * Stats を動的ロード
      */
-    tm.util.Script.loadStats = function(version) {
+    tm.asset.Script.loadStats = function(version) {
         version = version || "r11";
         var path = null;
         if (["r6", "r7", "r8", "r9", "10"].indexOf(version) != -1) {
@@ -80,7 +80,7 @@ tm.util = tm.util || {};
      * @method
      * datGUI を動的ロード
      */
-    tm.util.Script.loadDatGUI = function(version) {
+    tm.asset.Script.loadDatGUI = function(version) {
         // http://dat-gui.googlecode.com/git/build/dat.gui.min.js
         // https://dat-gui.googlecode.com/git-history/0.5/build/dat.gui.min.js
 

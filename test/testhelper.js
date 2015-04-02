@@ -20,10 +20,10 @@
             "src/util/file.js",
             "src/util/timeline.js",
             "src/util/data.js",
-            "src/util/script.js",
             "src/util/querystring.js",
             "src/util/type.js",
             "src/util/flow.js",
+            "src/util/gridsystem.js",
         ],
         "geom": [
             "src/geom/vector2.js",
@@ -52,6 +52,7 @@
             "src/asset/spritesheet.js",
             "src/asset/mapsheet.js",
             "src/asset/font.js",
+            "src/asset/script.js",
         ],
         "input": [
             "src/input/keyboard.js",
@@ -75,6 +76,7 @@
             "src/app/updater.js",
             "src/app/baseapp.js",
             "src/app/object2d.js",
+            "src/app/grid.js",
             "src/app/scene.js",
             "src/app/collision.js",
             "src/app/tweener.js",
@@ -100,14 +102,15 @@
             "src/ui/labelarea.js",
             "src/ui/loadingscene.js",
         ],
-        "scene": [
-            "src/scene/titlescene.js",
-            "src/scene/resultscene.js",
-            "src/scene/loadingscene.js",
-            "src/scene/countdownscene.js",
-            "src/scene/splashscene.js",
-            "src/scene/managerscene.js",
-            "src/scene/numericalinputscene.js",
+        "game": [
+            "src/game/game.js",
+            "src/game/titlescene.js",
+            "src/game/resultscene.js",
+            "src/game/loadingscene.js",
+            "src/game/splashscene.js",
+            "src/game/managerscene.js",
+            "src/game/numericalinputscene.js",
+            "src/game/countscene.js",
         ],
         "three": [
             "src/three/three.js",
@@ -116,6 +119,7 @@
 
             "src/sound/sound.js",
             "src/sound/webaudio.js",
+            "src/sound/soundmanager.js",
         ],
         "twitter": [
 
@@ -126,9 +130,9 @@
         "google": [
             "src/google/chart.js",
         ],
-        // "dirty": [
-        //     "src/dirty.js",
-        // ],
+        "dirty": [
+            "src/dirty.js",
+        ],
     };
 
     global.testhelper.testScripts = [

@@ -5,7 +5,7 @@
 
 (function() {
 
-    tm.define("tm.scene.ResultScene", {
+    tm.define("tm.game.ResultScene", {
         superClass: "tm.app.Scene",
 
         init: function(param) {

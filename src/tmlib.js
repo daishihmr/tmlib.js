@@ -223,8 +223,36 @@ if (typeof module !== 'undefined' && module.exports) {
     };
     
     tm.globalize = function(obj) {
-        tm.global.$strict(obj);
-        
+        tm.$forIn(function(key, value) {
+            if (typeof value !== 'object') {
+                return ;
+            }
+            else if (key === "classes") {
+                return ;
+            }
+            else if (key === "global") {
+                return ;
+            }
+            else if (key === "event") {
+                return ;
+            }
+            else if (key === "dom") {
+                return ;
+            }
+
+            // console.log("#### " + key + " ###########");
+            value.$forIn(function(key, value) {
+                if (!window[key]) {
+                    // console.log(key);
+                    window[key] = value;
+                }
+                else {
+                    // TODO: 名前を考えなおす
+                    // console.log(key);
+                }
+            });
+        });
+
         return this;
     };
     
@@ -336,9 +364,17 @@ if (typeof module !== 'undefined' && module.exports) {
 
     _preloadListners = [];
     _mainListners = [];
+    var loadedFlag = false;
 
     tm.preload = function(fn) { _preloadListners.push(fn); };
-    tm.main    = function(fn) { _mainListners.push(fn); };
+    tm.main    = function(fn) {
+        if (loadedFlag === false) {
+            _mainListners.push(fn);
+        }
+        else {
+            fn();
+        }
+    };
 
     var _preload = function() {
 
@@ -369,6 +405,8 @@ if (typeof module !== 'undefined' && module.exports) {
         _preload();
 
         _main();
+
+        loadedFlag = true;
 
     }, false);
 
