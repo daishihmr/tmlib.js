@@ -12,6 +12,9 @@
             width: 640,
             height: 960,
             startLabel: 'title',
+            fitting: true,
+            fps: 30,
+            assets: window.ASSETS || null,
         });
 
         tm.globalize();
@@ -56,14 +59,15 @@
         ];
 
         tm.main(function() {
-            var app = tm.app.CanvasApp(param.query);       // 生成
+            var app = tm.app.CanvasApp(param.query);    // 生成
             app.resize(SCREEN_WIDTH, SCREEN_HEIGHT);    // サイズ(解像度)設定
-            app.fitWindow();                            // 自動フィッティング有効
-            app.background = param.background;// 背景色
+            if (param.fitting) { app.fitWindow(); }     // 自動フィッティング有効
+            app.background = param.background;          // 背景色
+            app.fps = param.fps;                        // fps
 
-            if (window.ASSETS) {
+            if (param.assets) {
                 var loading = tm.game.LoadingScene({
-                    assets: ASSETS,
+                    assets: param.assets,
                     width: SCREEN_WIDTH,
                     height: SCREEN_HEIGHT,
                 });
@@ -83,6 +87,8 @@
             }
 
             app.run();
+
+            tm.game.app = app;
         });
     };
 
