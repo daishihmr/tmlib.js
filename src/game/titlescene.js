@@ -2,7 +2,7 @@
  * TitleScene
  */
 
-    
+
 (function() {
 
     tm.define("tm.game.TitleScene", {
@@ -11,7 +11,7 @@
         init: function(param) {
             this.superInit();
 
-            param = {}.$extend(tm.game.TitleScene.default, param);
+            param = {}.$extend(tm.game.TitleScene["default"], param);
             this.param = param;
 
             this.fromJSON({
@@ -80,7 +80,7 @@
                     }
                 }
             });
-            
+
             this.touchLabel.tweener
                 .fadeOut(500)
                 .fadeIn(1000)
@@ -106,7 +106,7 @@
         },
     });
 
-    tm.game.TitleScene.default = {
+    tm.game.TitleScene["default"] = {
         title: "Time is money",
         message: "",
         fontSize: 72,

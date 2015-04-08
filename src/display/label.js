@@ -6,7 +6,7 @@ tm.display = tm.display || {};
 
 
 (function() {
-    
+
     var dummyCanvas  = null;
     var dummyContext = null;
 
@@ -16,9 +16,9 @@ tm.display = tm.display || {};
      * @extends tm.display.CanvasElement
      */
     tm.display.Label = tm.createClass({
-        
+
         superClass: tm.display.CanvasElement,
-        
+
         /** 塗りつぶしフラグ */
         fill: true,
         /** ストロークフラグ */
@@ -39,21 +39,21 @@ tm.display = tm.display || {};
          */
         init: function(text, size) {
             this.superInit();
-            
+
             this.text       = text || "";
-            
+
             this._fontSize   = size || 24;
-            this._fontFamily = tm.display.Label.default.fontFamily;
+            this._fontFamily = tm.display.Label["default"].fontFamily;
             this._fontWeight = "";
             this._lineHeight = 1.2;
             this._updateFont();
-            
-            this.align = tm.display.Label.default.align;
-            this.baseline = tm.display.Label.default.baseline;
+
+            this.align = tm.display.Label["default"].align;
+            this.baseline = tm.display.Label["default"].baseline;
 
             this.maxWidth   = null;
         },
-        
+
         /**
          * アラインをセット
          */
@@ -61,7 +61,7 @@ tm.display = tm.display || {};
             this.align = align;
             return this;
         },
-        
+
         /**
          * ベースラインをセット
          */
@@ -69,7 +69,7 @@ tm.display = tm.display || {};
             this.baseline = baseline;
             return this;
         },
-        
+
         /**
          * フォントサイズをセット
          */
@@ -77,7 +77,7 @@ tm.display = tm.display || {};
             this.fontSize = size;
             return this;
         },
-        
+
         /**
          * フォントファミリーをセット
          */
@@ -113,9 +113,9 @@ tm.display = tm.display || {};
         _updateLines: function() {
             this._lines = (this._text+'').split('\n');
         },
-        
+
     });
-    
+
     /**
      * @property    text
      * 文字
@@ -132,7 +132,7 @@ tm.display = tm.display || {};
             this._updateLines();
         }
     });
-    
+
     /**
      * @property    fontSize
      * フォントサイズ
@@ -141,7 +141,7 @@ tm.display = tm.display || {};
         "get": function() { return this._fontSize; },
         "set": function(v){ this._fontSize = v; this._updateFont(); }
     });
-    
+
     /**
      * @property    fontFamily
      * フォント
@@ -150,7 +150,7 @@ tm.display = tm.display || {};
         "get": function() { return this._fontFamily; },
         "set": function(v){ this._fontFamily = v; this._updateFont(); }
     });
-    
+
     /**
      * @property    fontWeight
      */
@@ -160,7 +160,7 @@ tm.display = tm.display || {};
             this._fontWeight = v; this._updateFont();
         },
     });
-    
+
     /**
      * @property lineHeight
      */
@@ -170,8 +170,8 @@ tm.display = tm.display || {};
             this._lineHeight = v; this._updateFont();
         },
     });
-    
-    tm.display.Label.default = {
+
+    tm.display.Label["default"] = {
         align: "center",
         baseline: "middle",
         fontFamily: "'HiraKakuProN-W3'", // Hiragino or Helvetica
@@ -179,6 +179,6 @@ tm.display = tm.display || {};
         // baseline: "alphabetic",
     };
 
-    
+
 })();
 

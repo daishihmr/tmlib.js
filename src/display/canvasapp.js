@@ -21,7 +21,7 @@ tm.display = tm.display || {};
         /** @property _scenes */
         /** @property mouse */
         /** @property touch */
-        
+
         /**
          * @constructor
          */
@@ -42,10 +42,10 @@ tm.display = tm.display || {};
             // グラフィックスを生成
             this.canvas = tm.graphics.Canvas(this.element);
             this.renderer = tm.display.CanvasRenderer(this.canvas);
-            
+
             // カラー
             this.background = "black";
-            
+
             // シーン周り
             this._scenes = [ tm.app.Scene() ];
 
@@ -71,14 +71,14 @@ tm.display = tm.display || {};
                 this._canvasCacheCache.push(canvas);
             });
         },
-        
+
         /**
          * リサイズ
          */
         resize: function(width, height) {
             this.width = width;
             this.height= height;
-            
+
             return this;
         },
 
@@ -88,17 +88,17 @@ tm.display = tm.display || {};
         resizeWindow: function() {
             this.width = innerWidth;
             this.height= innerHeight;
-            
+
             return this;
         },
-        
+
         /**
          * 画面にフィットさせる
          */
         fitWindow: function(everFlag) {
             // 画面にフィット
             this.canvas.fitWindow(everFlag);
-            
+
             // マウスとタッチの座標更新関数をパワーアップ
             this.mouse._mousemove = this.mouse._mousemoveScale;
             this.touch._touchmove = this.touch._touchmoveScale;
@@ -111,7 +111,7 @@ tm.display = tm.display || {};
          */
         _draw: function() {
             this.canvas.clear();
-            
+
             this.canvas.fillStyle   = "white";
             this.canvas.strokeStyle = "white";
             this.canvas.context.lineJoin = "round";
@@ -120,12 +120,12 @@ tm.display = tm.display || {};
             // スタックしたキャンバスを描画
             if (this._canvasCache.last)
                 this.canvas.drawTexture(this._canvasCache.last, 0, 0);
-            
+
             // this._canvasCache.each(function(bitmap, index) {
             //     this.canvas.drawBitmap(bitmap, 0, 0);
             // }, this);
 
-            
+
             // 描画は全てのシーン行う
             this.canvas.save();
 
@@ -133,10 +133,18 @@ tm.display = tm.display || {};
 
             this.canvas.restore();
         },
-        
+
+        /**
+         * 背景色をセット
+         */
+        setBackground: function(background) {
+            this.background = background;
+            return this;
+        }
+
     });
-    
-    
+
+
     /**
      * @property    width
      * 幅
@@ -145,7 +153,7 @@ tm.display = tm.display || {};
         "get": function()   { return this.canvas.width; },
         "set": function(v)  { this.canvas.width = v; }
     });
-    
+
     /**
      * @property    height
      * 高さ
@@ -154,7 +162,7 @@ tm.display = tm.display || {};
         "get": function()   { return this.canvas.height; },
         "set": function(v)  { this.canvas.height = v; }
     });
-    
+
     /**
      * @property    height
      * 高さ

@@ -6,7 +6,7 @@ tm.app = tm.app || {};
 
 
 (function() {
-    
+
     /**
      * @class tm.app.BaseApp
      * ベースアプリケーション
@@ -14,7 +14,7 @@ tm.app = tm.app || {};
     tm.app.BaseApp = tm.createClass({
 
         superClass: tm.event.EventDispatcher,
-        
+
         /** エレメント */
         element       : null,
         /** マウスクラス */
@@ -58,7 +58,7 @@ tm.app = tm.app || {};
             this.touch      = tm.input.Touch(this.element, 0);
             // キーボードを生成
             this.keyboard   = tm.input.Keyboard();
-            
+
             // ポインティングをセット(PC では Mouse, Mobile では Touch)
             this.pointing   = (tm.isMobile) ? this.touch : this.mouse;
             this.element.addEventListener("touchstart", function () {
@@ -67,23 +67,23 @@ tm.app = tm.app || {};
             this.element.addEventListener("mousedown", function () {
                 this.pointing = this.mouse;
             }.bind(this));
-            
+
             // 加速度センサーを生成
             this.accelerometer = tm.input.Accelerometer();
 
             this.updater = tm.app.Updater(this);
-            
+
             // 再生フラグ
             this.awake = true;
-            
+
             // シーン周り
             this._scenes = [ tm.app.Scene() ];
             this._sceneIndex = 0;
-            
+
             // 決定時の処理をオフにする(iPhone 時のちらつき対策)
             this.element.addEventListener("touchstart", function(e) { e.stop(); });
             this.element.addEventListener("touchmove", function(e) { e.stop(); });
-            
+
             // ウィンドウフォーカス時イベントリスナを登録
             window.addEventListener("focus", function() {
                 this.fire(tm.event.Event("focus"));
@@ -97,7 +97,7 @@ tm.app = tm.app || {};
             // クリック
             this.element.addEventListener((tm.isMobile) ? "touchend" : "mouseup", this._onclick.bind(this));
         },
-        
+
         /**
          * 実行
          */
@@ -128,7 +128,7 @@ tm.app = tm.app || {};
 
             return this;
         },
-        
+
         /*
          * ループ処理
          * @private
@@ -137,7 +137,7 @@ tm.app = tm.app || {};
             // update
             if (this.update) this.update();
             this._update();
-            
+
             // draw
             if (this.draw) this.draw();
             this._draw();
@@ -145,11 +145,11 @@ tm.app = tm.app || {};
             var now = new Date();
             this.deltaTime = now - this.prevTime;
             this.prevTime = now;
-            
+
             // stats update
             if (this.stats) this.stats.update();
         },
-        
+
         /**
          * シーンを切り替える
          * @param {Object} scene
@@ -172,7 +172,7 @@ tm.app = tm.app || {};
 
             return this;
         },
-        
+
         /**
          * シーンをプッシュする(ポーズやオブション画面などで使用)
          * @param {Object} scene
@@ -183,10 +183,10 @@ tm.app = tm.app || {};
             var e = tm.event.Event("pause");
             e.app = this;
             this.currentScene.dispatchEvent(e);
-            
+
             this._scenes.push(scene);
             ++this._sceneIndex;
-            
+
             this.fire(tm.event.Event("pushed"));
 
             var e = tm.event.Event("enter");
@@ -197,32 +197,32 @@ tm.app = tm.app || {};
 
             return this;
         },
-        
+
         /**
          * シーンをポップする(ポーズやオブション画面などで使用)
          */
         popScene: function() {
             this.fire(tm.event.Event("pop"));
-            
+
             var scene = this._scenes.pop();
             --this._sceneIndex;
-            
+
             var e = tm.event.Event("exit");
             e.app = this;
             scene.dispatchEvent(e);
             scene.app = null;
 
             this.fire(tm.event.Event("poped"));
-            
-            // 
+
+            //
             var e = tm.event.Event("resume");
             e.app = this;
             e.prevScene = scene;
             this.currentScene.dispatchEvent(e);
-            
+
             return scene;
         },
-        
+
         /**
          * 外部のFPS表示ライブラリ Stats を生成、配置する
          * ## Reference
@@ -244,18 +244,18 @@ tm.app = tm.app || {};
 
             return this;
         },
-        
+
         /**
          * dat gui を有効化
          */
         enableDatGUI: function() {
             if (window.dat) {
                 var gui = new dat.GUI();
-                
+
                 return gui;
             }
         },
-        
+
         /**
          * シーンのupdateを実行するようにする
          */
@@ -264,7 +264,7 @@ tm.app = tm.app || {};
 
             return this;
         },
-        
+
         /**
          * シーンのupdateを実行しないようにする
          */
@@ -273,7 +273,7 @@ tm.app = tm.app || {};
 
             return this;
         },
-        
+
         /**
          * デバイスやシーンのアップデート呼び出し処理
          * @private
@@ -284,19 +284,19 @@ tm.app = tm.app || {};
             this.keyboard._update();
             this.touch.update();
             // this.touches.update();
-            
+
             if (this.awake) {
                 this.updater.update(this.currentScene);
                 this.timer.update();
             }
         },
-        
+
         /**
          * 描画用仮想関数
          * @private
          */
         _draw: function() {},
-        
+
         /**
          * elementの取得
          */
@@ -321,8 +321,16 @@ tm.app = tm.app || {};
             };
             _fn(this.currentScene);
         },
+
+        /**
+         * FPSをセット
+         */
+        setFps: function(fps) {
+            this.fps = fps;
+            return this;
+        }
     });
-    
+
     /**
      * @property currentScene
      * カレントシーン
@@ -331,7 +339,7 @@ tm.app = tm.app || {};
         "get": function() { return this._scenes[this._sceneIndex]; },
         "set": function(v){ this._scenes[this._sceneIndex] = v; }
     });
-    
+
     /**
      * @property frame
      * フレーム
@@ -344,7 +352,7 @@ tm.app = tm.app || {};
             this.timer.frame = v;
         }
     });
-    
+
     /**
      * @property fps
      * fps
@@ -357,7 +365,7 @@ tm.app = tm.app || {};
             this.timer.fps = v;
         }
     });
-    
+
 })();
 
 

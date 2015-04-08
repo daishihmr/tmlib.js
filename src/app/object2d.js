@@ -3,7 +3,7 @@
  */
 
 (function() {
-    
+
     /**
      * @class tm.app.Object2D
      * Object2D
@@ -11,7 +11,7 @@
      */
     tm.define("tm.app.Object2D", {
         superClass: "tm.app.Element",
-        
+
         /** 位置 */
         position: null,
         /** スケール */
@@ -31,7 +31,7 @@
         /** @property downFlags     ダウンフラグ */
         /** @property _worldMatrix  グローバル行列 */
         /** @property _worldAlpha   グローバルのα値 */
-        
+
         /**
          * @constructor
          * @param {Object} elm
@@ -44,7 +44,7 @@
             this.origin   = tm.geom.Vector2(0.5, 0.5);
             this._matrix  = tm.geom.Matrix33();
             this._matrix.identity();
-            
+
             this.boundingType = "circle";
             this.checkHierarchy = true;
             this.interactive = false;
@@ -55,23 +55,23 @@
             this._worldMatrix = tm.geom.Matrix33().identity();
             this._worldAlpha = 1.0;
         },
-        
+
         /**
          * 最終的な行列をゲット
          */
         getFinalMatrix: function() {
             var matrix = tm.geom.Matrix33();
- 
+
             if (this.parent) {
                 matrix.multiply(this.parent.getFinalMatrix());
             }
             matrix.translate(this.x, this.y);
             matrix.rotateZ(this.rotation*Math.DEG_TO_RAD);
             matrix.scale(this.scaleX, this.scaleY);
- 
+
             return matrix;
         },
-        
+
         /**
          * 点と衝突しているかを判定
          * @param {Number} x
@@ -82,13 +82,13 @@
             var p = this.globalToLocal(tm.geom.Vector2(x, y));
             this.pointing.x = p.x;
             this.pointing.y = p.y;
-            
+
             if (((p.x)*(p.x)+(p.y)*(p.y)) < (this.radius*this.radius)) {
                 return true;
             }
             return false;
         },
- 
+
         /**
          * 円として点と衝突判定
          * @param {Number} x
@@ -102,7 +102,7 @@
             }
             return false;
         },
- 
+
         /**
          * 矩形として点と衝突判定
          * @param {Number} x
@@ -110,17 +110,17 @@
          */
         isHitPointRect: function(x, y) {
             // ここから下のバージョンは四角形
-            
+
             var left   = this.x - this.width*this.originX;
             var right  = this.x + this.width*(1-this.originX);
             var top    = this.y - this.height*this.originY;
             var bottom = this.y + this.height*(1-this.originY);
-            
+
             if ( left < x && x < right && top  < y && y < bottom ) { return true; }
-            
+
             return false;
         },
-        
+
         /**
          * 階層を考慮した円衝突判定
          * @param {Number} x
@@ -131,13 +131,13 @@
             var p = this.globalToLocal(tm.geom.Vector2(x, y));
             this.pointing.x = p.x;
             this.pointing.y = p.y;
-            
+
             if (((p.x)*(p.x)+(p.y)*(p.y)) < (this.radius*this.radius)) {
                 return true;
             }
             return false;
         },
-        
+
         /**
          * 階層を考慮した矩形衝突判定
          * @param {Number} x
@@ -147,17 +147,17 @@
             var p = this.globalToLocal(tm.geom.Vector2(x, y));
             this.pointing.x = p.x;
             this.pointing.y = p.y;
-            
+
             var left   = -this.width*this.originX;
             var right  = +this.width*(1-this.originX);
             var top    = -this.height*this.originY;
             var bottom = +this.height*(1-this.originY);
-            
+
             if ( left < p.x && p.x < right && top  < p.y && p.y < bottom ) { return true; }
-            
+
             return false;
         },
-        
+
         /**
          * 要素と衝突しているかを判定
          * @param {Object} elm
@@ -169,7 +169,7 @@
             }
             return false;
         },
- 
+
         /**
          * 円同士の衝突判定
          * @param {Object} elm
@@ -177,15 +177,15 @@
         isHitElementCircle: function(elm) {
             return tm.collision.testCircleCircle(this.getBoundingCircle(), elm.getBoundingCircle());
         },
- 
+
         /**
          * 円同士の衝突判定
          * @param {Object} elm
          */
         isHitElementRect: function(elm) {
-            return tm.collision.testRectRect(this.getBoundingRect(), elm.getBoundingRect());    
+            return tm.collision.testRectRect(this.getBoundingRect(), elm.getBoundingRect());
         },
- 
+
         /**
          * バウンディングサークル
          * @param {Object} elm
@@ -193,7 +193,7 @@
         getBoundingCircle: function() {
             return tm.geom.Circle(this.centerX, this.centerY, this.radius);
         },
- 
+
         /**
          * バウンディングレクト
          * @param {Object} elm
@@ -201,7 +201,7 @@
         getBoundingRect: function() {
             return tm.geom.Rect(this.left, this.top, this.width, this.height);
         },
- 
+
         /**
          * ローカル座標をグローバル座標に変換
          * @param {Object} elm
@@ -209,7 +209,7 @@
         localToGlobal: function(p) {
             return this.getFinalMatrix().multiplyVector2(p);
         },
-        
+
         /**
          * グローバル座標をローカル座標に変換
          * @param {Object} elm
@@ -221,7 +221,7 @@
 
             return matrix.multiplyVector2(p);
         },
-        
+
         /**
          * X 座標値をセット
          * @param {Number} x
@@ -230,7 +230,7 @@
             this.position.x = x;
             return this;
         },
-        
+
         /**
          * Y 座標値をセット
          * @param {Number} y
@@ -239,7 +239,7 @@
             this.position.y = y;
             return this;
         },
-        
+
         /**
          * XY 座標をセット
          * @param {Number} x
@@ -274,7 +274,7 @@
             }
             return this;
         },
-        
+
         /**
          * 基準点をセット
          * @param {Number} x
@@ -285,7 +285,7 @@
             this.origin.y = y;
             return this;
         },
-        
+
         /**
          * 幅をセット
          * @param {Number} width
@@ -294,7 +294,7 @@
             this.width = width;
             return this;
         },
-        
+
         /**
          * 高さをセット
          * @param {Number} height
@@ -303,7 +303,7 @@
             this.height = height;
             return this;
         },
-        
+
         /**
          * サイズ(幅, 高さ)をセット
          * @param {Number} width
@@ -314,7 +314,7 @@
             this.height = height;
             return this;
         },
-        
+
         /**
          * 起動
          */
@@ -322,7 +322,7 @@
             this.awake = true;
             return this;
         },
-        
+
         /**
          * 停止
          */
@@ -330,7 +330,7 @@
             this.awake = false;
             return this;
         },
-        
+
         /**
          * タッチ判定の有効/無効をセット
          * @param {Boolean} flag
@@ -344,7 +344,7 @@
 
             return this;
         },
-        
+
         /**
          * バウンディングタイプをセット("circle" or "rect")
          * @param {Object} type
@@ -353,7 +353,7 @@
             this.boundingType = type;
             return this;
         },
-        
+
         /**
          * ポインティングをチェック
          * @private
@@ -362,7 +362,7 @@
         _checkPointing: function(app) {
             console.assert(false);
         },
-        
+
         /**
          * マウスチェック
          * @private
@@ -384,7 +384,7 @@
             //     self.__checkPointing(app, touch, i);
             // });
         },
-        
+
         /**
          * チェックポインンティング
          * @private
@@ -394,18 +394,18 @@
          */
         __checkPointing: function(app, p, index) {
             var elm = this.element;
-            
+
             var prevHitFlag = this.hitFlags[index];
             this.hitFlags[index]    = this.isHitPoint(p.x, p.y);
 
             if (!prevHitFlag && this.hitFlags[index]) {
                 this._dispatchPointingEvent("mouseover", "touchover", "pointingover", app, p);
             }
-            
+
             if (prevHitFlag && !this.hitFlags[index]) {
                 this._dispatchPointingEvent("mouseout", "touchout", "pointingout", app, p);
             }
-            
+
             if (this.hitFlags[index]) {
                 if (p.getPointingStart()) {
                     this._dispatchPointingEvent("mousedown", "touchstart", "pointingstart", app, p);
@@ -413,17 +413,17 @@
                     this._clickFlag = true;
                 }
             }
-            
+
             if (this.downFlags[index]) {
                 this._dispatchPointingEvent("mousemove", "touchmove", "pointingmove", app, p);
             }
-            
+
             if (this.downFlags[index]==true && p.getPointingEnd()) {
                 this._dispatchPointingEvent("mouseup", "touchend", "pointingend", app, p);
                 this.downFlags[index] = false;
             }
         },
-        
+
         /**
          * ポイントイベントを発火する
          * @private
@@ -438,7 +438,7 @@
             this.dispatchEvent( tm.event.TouchEvent(touch, app, p) );
             this.dispatchEvent( tm.event.PointingEvent(pointing, app, p) );
         },
-        
+
         /**
          * ワールドマトリックスを計算
          * @private
@@ -465,7 +465,7 @@
             localTransform[3] = this._sr * this.scale.x;
             localTransform[4] = this._cr * this.scale.y;
 
-            // 
+            //
             localTransform[2] = this.position.x;
             localTransform[5] = this.position.y;
 
@@ -484,7 +484,7 @@
             worldTransform[4] = b10 * a01 + b11 * a11;
             worldTransform[5] = b10 * a02 + b11 * a12 + b12;
         },
-        
+
         /**
          * dirty method
          * @private
@@ -492,8 +492,16 @@
         _dirtyCalc: function() {
             this._calcWorldMatrix();
         },
+
+        /**
+         * checkHierarchyをセット
+         */
+        setCheckHierarchy: function(checkHierarchy) {
+            this.checkHierarchy = checkHierarchy;
+            return this;
+        }
     });
- 
+
     /**
      * @property    x
      * x座標値
@@ -502,7 +510,7 @@
         "get": function()   { return this.position.x; },
         "set": function(v)  { this.position.x = v; }
     });
-    
+
     /**
      * @property    y
      * y座標値
@@ -511,7 +519,7 @@
         "get": function()   { return this.position.y; },
         "set": function(v)  { this.position.y = v; }
     });
- 
+
     /**
      * @property    originX
      * x座標値
@@ -520,7 +528,7 @@
         "get": function()   { return this.origin.x; },
         "set": function(v)  { this.origin.x = v; }
     });
-    
+
     /**
      * @property    originY
      * y座標値
@@ -529,7 +537,7 @@
         "get": function()   { return this.origin.y; },
         "set": function(v)  { this.origin.y = v; }
     });
-    
+
     /**
      * @property    scaleX
      * スケールX値
@@ -538,7 +546,7 @@
         "get": function()   { return this.scale.x; },
         "set": function(v)  { this.scale.x = v; }
     });
-    
+
     /**
      * @property    scaleY
      * スケールY値
@@ -547,9 +555,9 @@
         "get": function()   { return this.scale.y; },
         "set": function(v)  { this.scale.y = v; }
     });
-    
-    
-    
+
+
+
     /**
      * @property    width
      * width
@@ -558,8 +566,8 @@
         "get": function()   { return this._width; },
         "set": function(v)  { this._width = v; }
     });
-    
-    
+
+
     /**
      * @property    height
      * height
@@ -568,7 +576,7 @@
         "get": function()   { return this._height; },
         "set": function(v)  { this._height = v; }
     });
-    
+
     /**
      * @property    radius
      * 半径
@@ -579,7 +587,7 @@
         },
         "set": function(v)  { this._radius = v; }
     });
-    
+
     /**
      * @property    top
      * 左
@@ -588,7 +596,7 @@
         "get": function()   { return this.y - this.height*this.originY; },
         "set": function(v)  { this.y = v + this.height*this.originY; },
     });
- 
+
     /**
      * @property    right
      * 左
@@ -597,7 +605,7 @@
         "get": function()   { return this.x + this.width*(1-this.originX); },
         "set": function(v)  { this.x = v - this.width*(1-this.originX); },
     });
- 
+
     /**
      * @property    bottom
      * 左
@@ -606,7 +614,7 @@
         "get": function()   { return this.y + this.height*(1-this.originY); },
         "set": function(v)  { this.y = v - this.height*(1-this.originY); },
     });
- 
+
     /**
      * @property    left
      * 左
@@ -626,7 +634,7 @@
             // TODO: どうしようかな??
         }
     });
- 
+
     /**
      * @property    centerY
      * centerY
@@ -637,7 +645,7 @@
             // TODO: どうしようかな??
         }
     });
- 
+
     /**
      * @property    boundingType
      * boundingType
@@ -651,7 +659,7 @@
             this._setIsHitFunc();
         },
     });
- 
+
     /**
      * @property    checkHierarchy
      * checkHierarchy
@@ -663,29 +671,66 @@
             this._setIsHitFunc();
         }
     });
- 
- 
+
+    /**
+     * @property    globalPosition
+     * globalPosition
+     */
+    tm.app.Object2D.prototype.accessor("globalPosition", {
+        "get": function()   { return this.parent.localToGlobal(this.position); },
+        "set": function(v)  {
+            this.position = this.parent.globalToLocal(v);
+        }
+    });
+
+    /**
+     * @property    globalX
+     * globalX
+     */
+    tm.app.Object2D.prototype.accessor("globalX", {
+        "get": function()   { return this.globalPosition.x; },
+        "set": function(x)  {
+            var current = this.globalPosition;
+            current.x = x;
+            this.globalPosition = current;
+        }
+    });
+
+    /**
+     * @property    globalY
+     * globalY
+     */
+    tm.app.Object2D.prototype.accessor("globalY", {
+        "get": function()   { return this.globalPosition.y; },
+        "set": function(y)  {
+            var current = this.globalPosition;
+            current.y = y;
+            this.globalPosition = current;
+        }
+    });
+
+
     var _isHitFuncMap = {
         "rect": tm.app.Object2D.prototype.isHitPointRect,
         "circle": tm.app.Object2D.prototype.isHitPointCircle,
         "true": function() { return true; },
         "false": function() { return false; },
     };
- 
+
     var _isHitFuncMapHierarchy = {
         "rect": tm.app.Object2D.prototype.isHitPointRectHierarchy,
         "circle": tm.app.Object2D.prototype.isHitPointCircleHierarchy,
         "true": function() { return true; },
         "false": function() { return false; },
     };
- 
+
     var _isHitElementMap = {
         "rect": tm.app.Object2D.prototype.isHitElementRect,
         "circle": tm.app.Object2D.prototype.isHitElementCircle,
         "true": function() { return true; },
         "false": function() { return false; },
     };
- 
+
     /**
      * @member      tm.app.Object2D
      * @property    _setIsHitFunc
@@ -695,11 +740,11 @@
         var isHitFuncMap = (this.checkHierarchy) ? _isHitFuncMapHierarchy : _isHitFuncMap;
         var boundingType = this.boundingType;
         var isHitFunc = (isHitFuncMap[boundingType]) ? (isHitFuncMap[boundingType]) : (isHitFuncMap["true"]);
- 
+
         this.isHitPoint   = (isHitFuncMap[boundingType]) ? (isHitFuncMap[boundingType]) : (isHitFuncMap["true"]);
         this.isHitElement = (_isHitElementMap[boundingType]) ? (_isHitElementMap[boundingType]) : (_isHitElementMap["true"]);
     };
-    
+
     /**
      * @member      tm.app.Object2D
      * @property    _checkPointing
@@ -710,5 +755,5 @@
     tm.app.Object2D.prototype._checkPointing = (tm.isMobile) ?
         tm.app.Object2D.prototype._checkTouch : tm.app.Object2D.prototype._checkMouse;
 
-    
+
 })();

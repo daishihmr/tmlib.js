@@ -2,7 +2,7 @@
  * ResultScene
  */
 
-    
+
 (function() {
 
     tm.define("tm.game.ResultScene", {
@@ -11,7 +11,7 @@
         init: function(param) {
             this.superInit();
 
-            param = {}.$extend(tm.game.ResultScene.default, param);
+            param = {}.$extend(tm.game.ResultScene["default"], param);
             this.param = param;
 
             var userData = this._getUserData();
@@ -197,7 +197,7 @@
         },
     });
 
-    tm.game.ResultScene.default = {
+    tm.game.ResultScene["default"] = {
         score: 0,
         message: "this is tmlib.js project.",
         hashtags: "tmlibjs,game",

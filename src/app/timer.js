@@ -13,7 +13,7 @@
 
         init: function() {
             this.frame = 0;
-            this.fps = tm.app.Timer.default.fps;
+            this.fps = tm.app.Timer["default"].fps;
         },
 
         reset: function() {
@@ -74,7 +74,7 @@
             this._update();
         },
     });
-    
+
     /**
      * @property fps
      * fps
@@ -90,9 +90,9 @@
             this._fps = fps;
             this._update();
         },
-    });    
+    });
 
-    tm.app.Timer.default = {
+    tm.app.Timer["default"] = {
         fps: 30,
     };
 
