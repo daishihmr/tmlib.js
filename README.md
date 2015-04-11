@@ -19,7 +19,7 @@
 これだけで全ての機能を使う事ができます.
 
 ```html
-<script src="http://cdn.rawgit.com/phi-jp/tmlib.js/0.4.4/build/tmlib.js"></script>
+<script src="http://cdn.rawgit.com/phi-jp/tmlib.js/0.5.0/build/tmlib.js"></script>
 ```
 
 
@@ -60,6 +60,16 @@ tmlib.js に関する最新の情報やチュートリアルなどはこちら�
 
 ## Feature
 
+### 0.6
+
+- tm.game.ResultScene のデザインを変更
+- pointing の機能を強化( startPosition 保持したり, 数フレーム分の移動値をキャッシュしたり )
+- テスト改修
+- リファクタリング
+- マルチタッチ対応
+
+## Released
+
 ### 0.5
 
 - [getFinalMatrix の位置が origin によってズレるバグを修正](https://github.com/phi-jp/tmlib.js/pull/143)
@@ -75,10 +85,5 @@ tmlib.js に関する最新の情報やチュートリアルなどはこちら�
 - [scene namespace を game namespace に変更](https://github.com/phi-jp/tmlib.js/pull/151)
 - [tm.game.setup で Canvas ゲーム開発を簡略化](https://github.com/phi-jp/tmlib.js/pull/152)
 - [tm.game.SplashScene を実装](https://github.com/phi-jp/tmlib.js/pull/153)
-- tm.game.ResultScene のデザインを変更
-- pointing の機能を強化( startPosition 保持したり, 数フレーム分の移動値をキャッシュしたり )
-- テスト改修
-- リファクタリング
-
 
 
