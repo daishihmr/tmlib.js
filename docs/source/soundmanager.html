@@ -1,4 +1,21 @@
-/*
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">/*
  * soundmanager.js
  */
 
@@ -22,7 +39,7 @@
         play: function(name, volume, startTime, loop) {
             var origin = tm.asset.Manager.get(name);
             if (origin == null) {
-                console.warn('not found ' + name);
+                console.warn(&#39;not found &#39; + name);
                 return ;
             }
             var sound = origin.clone();
@@ -73,7 +90,7 @@
 
             var origin = tm.asset.Manager.get(name);
             if (origin == null) {
-                console.warn('not found ' + name);
+                console.warn(&#39;not found &#39; + name);
                 return ;
             }
             var music = origin.clone();
@@ -82,7 +99,7 @@
             music.volume = this.getVolumeMusic();
             music.play();
 
-            if (fadeTime > 0) {
+            if (fadeTime &gt; 0) {
                 var count = 32;
                 var counter = 0;
                 var unitTime = fadeTime/count;
@@ -94,7 +111,7 @@
                     var rate = counter/count;
                     music.volume = rate*volume;
 
-                    if (rate >= 1) {
+                    if (rate &gt;= 1) {
                         clearInterval(id);
                         return false;
                     }
@@ -119,7 +136,7 @@
 
             var music = this.currentMusic;
 
-            if (fadeTime > 0) {
+            if (fadeTime &gt; 0) {
                 var count = 32;
                 var counter = 0;
                 var unitTime = fadeTime/count;
@@ -131,7 +148,7 @@
                     var rate = counter/count;
                     music.volume = volume*(1-rate);
 
-                    if (rate >= 1) {
+                    if (rate &gt;= 1) {
                         music.stop();
                         clearInterval(id);
                         return false;
@@ -179,3 +196,6 @@
 
 })();
 
+</pre>
+</body>
+</html>

@@ -1848,7 +1848,7 @@ tm.event = tm.event || {};
             
             return this;
         },
-        
+
         /**
          * type に登録されたイベントがあるかをチェック
          */
@@ -1891,6 +1891,13 @@ tm.event = tm.event || {};
      * fire と同じ
      */
     proto.dispatchEvent         = proto.fire;
+    
+    /**
+     * @member  tm.event.EventDispatcher
+     * @method  trigger
+     * fire と同じ
+     */
+    proto.trigger = proto.fire;
     
 })();
 
@@ -19311,7 +19318,12 @@ tm.sound = tm.sound || {};
          * 再生
          */
         play: function(name, volume, startTime, loop) {
-            var sound = tm.asset.Manager.get(name).clone();
+            var origin = tm.asset.Manager.get(name);
+            if (origin == null) {
+                console.warn('not found ' + name);
+                return ;
+            }
+            var sound = origin.clone();
 
             sound.volume = this.getVolume();
             sound.play();
@@ -19357,7 +19369,12 @@ tm.sound = tm.sound || {};
                 this.stopMusic(fadeTime);
             }
 
-            var music = tm.asset.Manager.get(name).clone();
+            var origin = tm.asset.Manager.get(name);
+            if (origin == null) {
+                console.warn('not found ' + name);
+                return ;
+            }
+            var music = origin.clone();
 
             music.setLoop(true);
             music.volume = this.getVolumeMusic();
