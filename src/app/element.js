@@ -101,6 +101,13 @@ tm.app = tm.app || {};
          * 指定で要素を取得
          */
         getChildAt: function(child) {
+            return this.children.at(child);
+        },
+        
+        /**
+         * 指定で要素を取得
+         */
+        getChildIndex: function(child) {
             return this.children.indexOf(child);
         },
         
@@ -183,10 +190,12 @@ tm.app = tm.app || {};
                 
                 console.assert(Object.keys(_class).length !== 0, _class + " is not defined.");
                 
-                var elm = _class.apply(null, args).addChildTo(this);
+                var elm = _class.apply(null, args);
                 elm.fromJSON(data);
                 
                 this[name] = elm;
+                
+                elm.addChildTo(this);
             }.bind(this);
             
             for (var key in data) {

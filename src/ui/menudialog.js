@@ -66,8 +66,8 @@
 
             this.menu = this.params.menu.clone();
             this.currentIndex = this.params.defaultIndex;
-            if (this.params.menuDesctiptions) {
-                this.descriptions = this.params.menuDesctiptions.clone();
+            if (this.params.menuDescriptions) {
+                this.descriptions = this.params.menuDescriptions.clone();
             } else {
                 this.descriptions = this.params.menu.clone();
             }
@@ -250,12 +250,10 @@
                 });
 
             if (decided) {
-                this.cursor.tweener
-                    .clear()
-                    .call(function() {
-                        this.visible = !this.visible;
-                    }.bind(this.cursor))
-                    .setLoop(true);
+                this.cursor.tweener.clear();
+                this.cursor.on("enterframe", function() {
+                    this.visible = !this.visible;
+                });
             }
         },
     });

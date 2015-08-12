@@ -118,6 +118,13 @@ tm.app = tm.app || {};
 </span>         * 指定で要素を取得
          */
         getChildAt: function(child) {
+            return this.children.at(child);
+        },
+        
+<span id='tm-app-Element-method-getChildIndex'>        /**
+</span>         * 指定で要素を取得
+         */
+        getChildIndex: function(child) {
             return this.children.indexOf(child);
         },
         
@@ -211,14 +218,14 @@ tm.app = tm.app || {};
                 if (key == &quot;children&quot;) {
                     if (value instanceof Array) {
                         for (var i=0,len=value.length; i&lt;len; ++i) {
-                            var data = value[i];
-                            _fromJSON(data.name, data);
+                            var childData = value[i];
+                            _fromJSON(childData.name, childData);
                         }
                     }
                     else {
                         for (var key in value) {
-                            var data = value[key];
-                            _fromJSON(key, data);
+                            var childData = value[key];
+                            _fromJSON(key, childData);
                         }
                     }
                 }

@@ -62,6 +62,9 @@
                 if (layer.type == "objectgroup") {
                     self._buildObject(layer);
                 }
+                else if (layer.type == "imagelayer") {
+                    self._buildImageLayer(layer);
+                }
                 else {
                     self._buildLayer(layer);
                 }
@@ -111,7 +114,10 @@
         _buildLayer: function(layer) {
             var self     = this;
             var mapSheet = this.mapSheet;
-            var shape    = tm.display.Shape(this.width, this.height).addChildTo(this);
+            var shape    = tm.display.Shape({
+                width: this.width,
+                height: this.height
+            }).addChildTo(this);
             var visible  = (layer.visible === 1) || (layer.visible === undefined);
             var opacity  = layer.opacity === undefined ? 1 : layer.opacity;
             var tileset  = [];
@@ -170,8 +176,8 @@
             var self = this;
 
             var group = tm.display.CanvasElement().addChildTo(self);
-            group.width = layer.width;
-            group.height = layer.height;
+            group.width = self.width;
+            group.height = self.height;
 
             layer.objects.forEach(function(obj) {
                 var _class = tm.using(obj.type);
@@ -202,6 +208,19 @@
             self[layer.name] = group;
 
         },
+
+        /**
+         * @private
+         */
+        _buildImageLayer: function(layer) {
+            var sprite = tm.display.Sprite(layer.image.source).setOrigin(0, 0).addChildTo(this);
+            sprite.x = layer.x;
+            sprite.y = layer.y;
+            sprite.alpha = layer.alpha;
+            sprite.visible = layer.visible;
+
+            this[layer.name] = sprite;
+        }
 
     });
 
