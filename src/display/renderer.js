@@ -42,6 +42,11 @@
 
             // TODO: 別の場所で呼ぶよう調整する
             obj._dirtyCalc && obj._dirtyCalc();
+            
+            if (obj._drawToSelf) {
+                obj.draw();
+                return;
+            }
 
             // 描画可能かをチェック
             if (!this._checkRenderable(obj)) {

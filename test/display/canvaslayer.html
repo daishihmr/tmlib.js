@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+</head>
+<body>
+
+<canvas id="background"></canvas>
+<canvas id="foreground"></canvas>
+
+<script src="../../build/tmlib.js"></script>
+<script>
+var SCREEN_WIDTH    = 640;              // スクリーン幅
+var SCREEN_HEIGHT   = 960;              // スクリーン高さ
+var SCREEN_CENTER_X = SCREEN_WIDTH/2;   // スクリーン幅の半分
+var SCREEN_CENTER_Y = SCREEN_HEIGHT/2;  // スクリーン高さの半分
+var ASSETS = {
+    "player": "http://jsrun.it/assets/s/A/3/j/sA3jL.png",
+    "bg": "http://jsrun.it/assets/a/G/5/Y/aG5YD.png",
+};
+
+
+tm.define("MainScene", {
+    superClass: "tm.app.Scene",
+ 
+    init: function() {
+        this.superInit();
+
+        this.fromJSON({
+            children: {
+                sprite: {
+                    type: "tm.display.CircleShape",
+                    init: { width: 50, height: 50, fillStyle: "DarkTurquoise" },
+                    x: 100, y: 100,
+                    onenterframe: function(e) {
+                        this.x = SCREEN_CENTER_X + Math.cos(e.app.frame * 0.06) * 200;
+                        this.y = SCREEN_CENTER_Y + Math.sin(e.app.frame * 0.02) * 200;
+                    },
+                },
+                layer: {
+                    type: "tm.display.CanvasLayer",
+                    init: "#background",
+                    drawRate: 0.2,
+                },
+            },
+        });
+        
+        (500).times(function() {
+            
+            var v = tm.geom.Vector2().setRandom();
+            
+            tm.display.CircleShape({
+                width: 400,
+                height: 400,
+            })
+                .on("enterframe", function() {
+                    this.position.add(v);
+                    if (this.x < 0 || SCREEN_WIDTH < this.x) v.x *= -1;
+                    if (this.y < 0 || SCREEN_HEIGHT < this.y) v.y *= -1;
+                })
+                .setPosition(Math.rand(0, SCREEN_WIDTH), Math.rand(0, SCREEN_HEIGHT))
+                .addChildTo(this.layer);
+            
+        }.bind(this));
+    },
+
+});
+
+
+// main
+tm.main(function() {
+    // キャンバスアプリケーションを生成
+    var app = tm.display.CanvasApp("#foreground");
+    app.fps = 60;
+    // リサイズ
+    app.resize(SCREEN_WIDTH, SCREEN_HEIGHT);
+    // ウィンドウにフィットさせる
+    app.fitWindow();
+    
+    app.background = "transparent";
+    
+    app.replaceScene(MainScene());
+
+    // 実行
+    app.run();
+    
+    tm.asset.Script.loadStats().onload = function() {
+        app.enableStats();
+    };
+});
+</script>
+
+</body>
+</html>
