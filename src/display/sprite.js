@@ -16,79 +16,38 @@ tm.display = tm.display || {};
     tm.display.Sprite = tm.createClass({
         superClass: tm.display.CanvasElement,
         
-        /** @property srcRect */
-        /** @property width */
-        /** @property height */
+        /** @property srcRect          */
+        /** @property width            width */
+        /** @property height           height */
+        /** @property @private _image  表示しているアセット(画像) */
 
         /**
          * @constructor
          */
-        init: function(texture, width, height) {
+        init: function(image, width, height) {
             this.superInit();
             
-            console.assert(typeof texture != 'number', "Sprite の第一引数はテクスチャもしくはテクスチャ名に変わりました");
+            console.assert(typeof image != 'number', "Sprite の第一引数はテクスチャもしくはテクスチャ名に変わりました");
             
+            this._frameIndex = 0;
             this.srcRect = tm.geom.Rect(0, 0, 64, 64);
             
-            // 画像のみ渡された場合
-            if (arguments.length == 1) {
-                var texture = arguments[0];
-                if (typeof texture == "string") texture = tm.asset.AssetManager.get(texture);
-                
-                this.width = texture.width;
-                this.height= texture.height;
-                
-                this.image = texture;
-            }
-            // その他
-            else {
-                width = width   || 64;
-                height= height  || 64;
-                
-                this.width  = width;
-                this.height = height;
-                if (texture) {
-                    this.image  = texture;
-                }
-            }
-        },
-        
-        /**
-         * @TODO ?
-         */
-        setFrameIndex: function(index, width, height) {
-            var w   = width || this.width;
-            var h   = width || this.height;
-            var row = ~~(this.image.width / w)
-            var x   = index%row;
-            var y   = ~~(index/row);
-            this.srcRect.x = x*w;
-            this.srcRect.y = y*h;
-            this.srcRect.width  = w;
-            this.srcRect.height = h;
+            // 引数あり
+            if (arguments.length >= 1) {
+                this.setImage(image).fitImage();
 
-            return this;
+                if (width !== undefined) this.width = width;
+                if (height !== undefined) this.height = height;
+            }
         },
-        
+
         /**
-         * @TODO ?
-         * @private
+         * 表示するアセット(画像)をセット
          */
-        _refreshSize: function() {},
-    });
-    
-    /**
-     * @property    image
-     * 高さ
-     */
-    tm.display.Sprite.prototype.accessor("image", {
-        "get": function()   {
-            return this._image;
-        },
-        "set": function(image)  {
+        setImage: function(image, width, height) {
             if (typeof image == "string") {
                 var key = image;
-                image = tm.asset.AssetManager.get(key);
+                image = tm.asset.Manager.get(key);
                 console.assert(image != null, "don't find '" + key + "' as image.");
             }
             
@@ -97,6 +56,84 @@ tm.display = tm.display || {};
             this.srcRect.y = 0;
             this.srcRect.width  = image.element.width;
             this.srcRect.height = image.element.height;
+
+            if (width  !== undefined) this.width  = width;
+            if (height !== undefined) this.height = height;
+            // this.width  = (width !== undefined)  ? width  : image.element.width;
+            // this.height = (height !== undefined) ? height : image.element.height;
+
+            return this;
+        },
+
+        /**
+         * 表示しているアセット(画像)を取得
+         */
+        getImage: function() {
+            return this._image;
+        },
+
+        /**
+         * 自分自信を画像サイズと同じサイズにする
+         */
+        fitImage: function() {
+            this.width  = this.image.width;
+            this.height = this.image.height;
+
+            return this;
+        },
+        
+        /**
+         * フレームインデックスをセット
+         */
+        setFrameIndex: function(index, width, height) {
+            var tw  = width || this.width;      // tw
+            var th  = height || this.height;    // th
+            var row = ~~(this.image.width / tw);
+            var col = ~~(this.image.height / th);
+            var maxIndex = row*col;
+            index = index%maxIndex;
+            
+            var x   = index%row;
+            var y   = ~~(index/row);
+            this.srcRect.x = x*tw;
+            this.srcRect.y = y*th;
+            this.srcRect.width  = tw;
+            this.srcRect.height = th;
+
+            this._frameIndex = index;
+
+            return this;
+        },
+        
+        /**
+         * @private
+         */
+        _refreshSize: function() {},
+    });
+    
+    /**
+     * @property    image
+     * 画像
+     */
+    tm.display.Sprite.prototype.accessor("image", {
+        "get": function()   {
+            return this._image;
+        },
+        "set": function(image)  {
+            this.setImage(image);
+        }
+    });
+
+    /**
+     * @property    frameIndex
+     * フレームインデックス
+     */
+    tm.display.Sprite.prototype.accessor("frameIndex", {
+        "get": function()   {
+            return this._frameIndex;
+        },
+        "set": function(value)  {
+            this.setFrameIndex(value);
         }
     });
     

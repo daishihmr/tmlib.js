@@ -26,7 +26,7 @@ tm.util = tm.util || {};
     
 <span id='tm-util-File'>    /**
 </span>     * @class tm.util.File
-     * @TODO ?
+     * ファイルクラス
      */
     tm.define(&quot;tm.util.File&quot;, {
         superClass: &quot;tm.event.EventDispatcher&quot;,
@@ -49,7 +49,7 @@ tm.util = tm.util || {};
         },
         
 <span id='tm-util-File-method-load'>        /**
-</span>         * @TODO ?
+</span>         * ロード
          */
         load: function(params) {
             if (typeof params == &quot;string&quot;) {
@@ -75,7 +75,7 @@ tm.util = tm.util || {};
         },
         
 <span id='tm-util-File-method-loadLocalStorage'>        /**
-</span>         * @TODO ?
+</span>         * ローカルストレージからロード
          */
         loadLocalStorage: function() {
             
@@ -88,55 +88,6 @@ tm.util = tm.util || {};
 })();
 
 
-
-(function() {
-    
-<span id='tm-util-FileManager'>    /**
-</span>     * @class tm.util.FileManager
-     * ファイルマネージャ
-     */
-    tm.util.FileManager = {
-<span id='tm-util-FileManager-static-method-load'><span id='tm-util-FileManager-property-files'>        files: {}
-</span></span>    };
-
-    /**
-     * @static
-     * @method
-     * @TODO ?
-     */
-    tm.util.FileManager.load = function(key, params) {
-        var file = tm.util.File(params);
-        this.files[key] = file;
-<span id='tm-util-FileManager-static-method-get'>        return file;
-</span>    };
-
-    /**
-     * @static
-     * @method
-     * @TODO ?
-     */
-    tm.util.FileManager.get = function(key) {
-<span id='tm-util-FileManager-static-method-isLoaded'>        return this.files[key];
-</span>    };
-    
-    /**
-     * @static
-     * @method  isLoaded
-     * ロードチェック
-     */
-    tm.util.FileManager.isLoaded = function() {
-        for (var key in this.files) {
-            var file = this.files[key];
-            
-            if (file.loaded == false) {
-                return false;
-            }
-        }
-        return true;
-    };
-    
-    tm.addLoadCheckList(tm.util.FileManager);
-    
-})();</pre>
+</pre>
 </body>
 </html>

@@ -17,8 +17,10 @@
         /** @property chipWidth */
         /** @property chipHeight */
         /** @property originX */
+        /** @property originY */
         /** @property width */
         /** @property height */
+        /** @property tileset */
 
         /**
          * @constructor
@@ -27,7 +29,7 @@
             this.superInit();
 
             if (typeof mapSheet == "string") {
-                this.mapSheet = tm.asset.AssetManager.get(mapSheet);
+                this.mapSheet = tm.asset.Manager.get(mapSheet);
             }
             else {
                 this.mapSheet = mapSheet;
@@ -41,6 +43,8 @@
             this.width = chipWidth*this.mapSheet.width;
             this.height= chipWidth*this.mapSheet.height;
 
+            this.tileset = [];
+            this.tilesetInfo = {};
             this._build();
         },
 
@@ -59,15 +63,21 @@
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _build: function() {
             var self = this;
 
+            this.mapSheet.tilesets.each(function(tileset, index) {
+                self._buildTileset(tileset, index);
+            });
+
             this.mapSheet.layers.each(function(layer, hoge) {
                 if (layer.type == "objectgroup") {
                     self._buildObject(layer);
+                }
+                else if (layer.type == "imagelayer") {
+                    self._buildImageLayer(layer);
                 }
                 else {
                     self._buildLayer(layer);
@@ -76,18 +86,71 @@
         },
 
         /**
-         * @TODO ?
+         * @private
+         */
+        _buildTileset: function(tileset, index) {
+            var self      = this;
+            var mapSheet  = this.mapSheet;
+            var texture   = tm.asset.Manager.get(tileset.image);
+            var xIndexMax = (texture.width / mapSheet.tilewidth)|0;
+            var yIndexMax = (texture.height / mapSheet.tileheight)|0;
+
+            var info = {
+                begin: self.tileset.length,
+                end: self.tileset.length + xIndexMax * yIndexMax
+            };
+
+            self.tilesetInfo[index] = info;
+
+            if (tileset.name !== undefined) {
+                self.tilesetInfo[tileset.name] = info;
+            }
+
+            yIndexMax.times(function(my) {
+                xIndexMax.times(function(mx) {
+                    var rect = tm.geom.Rect(
+                        mx * mapSheet.tilewidth,
+                        my * mapSheet.tileheight,
+                        mapSheet.tilewidth,
+                        mapSheet.tileheight
+                        );
+                    self.tileset.push({
+                        image: tileset.image,
+                        rect: rect
+                    });
+                });
+            });
+        },
+
+        /**
          * @private
          */
         _buildLayer: function(layer) {
-            var self        = this;
-            var mapSheet    = this.mapSheet;
-            var texture     = tm.asset.AssetManager.get(mapSheet.tilesets[0].image);
-            var xIndexMax   = (texture.width/mapSheet.tilewidth)|0;
-            var shape       = tm.display.Shape(this.width, this.height).addChildTo(this);
-            var visible = (layer.visible === 1) || (layer.visible === undefined);
-            var opacity = layer.opacity === undefined ? 1 : layer.opacity;
+            var self     = this;
+            var mapSheet = this.mapSheet;
+            var shape    = tm.display.Shape({
+                width: this.width,
+                height: this.height
+            }).addChildTo(this);
+            var visible  = (layer.visible === 1) || (layer.visible === undefined);
+            var opacity  = layer.opacity === undefined ? 1 : layer.opacity;
+            var tileset  = [];
             shape.origin.set(0, 0);
+
+            if (layer.tilesets !== undefined) {
+                var tilesets = null;
+                if (Array.isArray(layer.tilesets)) {
+                    tilesets = layer.tilesets;
+                } else {
+                    tilesets = [layer.tilesets];
+                }
+                tilesets.each(function(n) {
+                    var info = self.tilesetInfo[n];
+                    tileset = tileset.concat(self.tileset.slice(info.begin, info.end));
+                });
+            } else {
+                tileset = self.tileset;
+            }
 
             if (visible) {
                 layer.data.each(function(d, index) {
@@ -96,19 +159,23 @@
                         return ;
                     }
                     type = Math.abs(type);
+                    if (tileset[type] === undefined) {
+                        return ;
+                    }
 
                     var xIndex = index%mapSheet.width;
                     var yIndex = (index/mapSheet.width)|0;
-
-                    var mx = (type%xIndexMax);
-                    var my = (type/xIndexMax)|0;
-
                     var dx = xIndex*self.chipWidth;
                     var dy = yIndex*self.chipHeight;
 
+                    var tile = tileset[type];
+
+                    var texture = tm.asset.Manager.get(tile.image);
+                    var rect = tile.rect;
+
                     shape.canvas.globalAlpha = opacity;
                     shape.canvas.drawTexture(texture,
-                        mx*mapSheet.tilewidth, my*mapSheet.tileheight, mapSheet.tilewidth, mapSheet.tileheight,
+                        rect.x, rect.y, rect.width, rect.height,
                         dx, dy, self.chipWidth, self.chipHeight
                         );
                 }.bind(this));
@@ -117,15 +184,14 @@
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _buildObject: function(layer) {
             var self = this;
 
             var group = tm.display.CanvasElement().addChildTo(self);
-            group.width = layer.width;
-            group.height = layer.height;
+            group.width = self.width;
+            group.height = self.height;
 
             layer.objects.forEach(function(obj) {
                 var _class = tm.using(obj.type);
@@ -156,6 +222,19 @@
             self[layer.name] = group;
 
         },
+
+        /**
+         * @private
+         */
+        _buildImageLayer: function(layer) {
+            var sprite = tm.display.Sprite(layer.image.source).setOrigin(0, 0).addChildTo(this);
+            sprite.x = layer.x;
+            sprite.y = layer.y;
+            sprite.alpha = layer.alpha;
+            sprite.visible = layer.visible;
+
+            this[layer.name] = sprite;
+        }
 
     });
 

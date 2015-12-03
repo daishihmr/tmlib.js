@@ -9,7 +9,7 @@ tm.util = tm.util || {};
     
     /**
      * @class tm.util.File
-     * @TODO ?
+     * ファイルクラス
      */
     tm.define("tm.util.File", {
         superClass: "tm.event.EventDispatcher",
@@ -32,7 +32,7 @@ tm.util = tm.util || {};
         },
         
         /**
-         * @TODO ?
+         * ロード
          */
         load: function(params) {
             if (typeof params == "string") {
@@ -58,7 +58,7 @@ tm.util = tm.util || {};
         },
         
         /**
-         * @TODO ?
+         * ローカルストレージからロード
          */
         loadLocalStorage: function() {
             
@@ -71,53 +71,3 @@ tm.util = tm.util || {};
 })();
 
 
-
-(function() {
-    
-    /**
-     * @class tm.util.FileManager
-     * ファイルマネージャ
-     */
-    tm.util.FileManager = {
-        files: {}
-    };
-
-    /**
-     * @static
-     * @method
-     * @TODO ?
-     */
-    tm.util.FileManager.load = function(key, params) {
-        var file = tm.util.File(params);
-        this.files[key] = file;
-        return file;
-    };
-
-    /**
-     * @static
-     * @method
-     * @TODO ?
-     */
-    tm.util.FileManager.get = function(key) {
-        return this.files[key];
-    };
-    
-    /**
-     * @static
-     * @method  isLoaded
-     * ロードチェック
-     */
-    tm.util.FileManager.isLoaded = function() {
-        for (var key in this.files) {
-            var file = this.files[key];
-            
-            if (file.loaded == false) {
-                return false;
-            }
-        }
-        return true;
-    };
-    
-    tm.addLoadCheckList(tm.util.FileManager);
-    
-})();

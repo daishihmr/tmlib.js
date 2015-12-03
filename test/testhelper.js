@@ -9,15 +9,10 @@
     global.testhelper.scripts = {
         "core": [
             "src/tmlib.js",
-
-            "src/core/object.js",
-            "src/core/array.js",
-            "src/core/date.js",
-            "src/core/function.js",
-            "src/core/math.js",
-            "src/core/number.js",
-            "src/core/string.js",
-            "src/core/list.js",
+        ],
+        "event": [
+            "src/event/event.js",
+            "src/event/eventdispatcher.js",
         ],
         "util": [
             "src/util/random.js",
@@ -25,9 +20,10 @@
             "src/util/file.js",
             "src/util/timeline.js",
             "src/util/data.js",
-            "src/util/script.js",
             "src/util/querystring.js",
             "src/util/type.js",
+            "src/util/flow.js",
+            "src/util/gridsystem.js",
         ],
         "geom": [
             "src/geom/vector2.js",
@@ -49,15 +45,14 @@
             "src/dom/trans.js",
             "src/dom/data.js",
         ],
-        "event": [
-            "src/event/event.js",
-            "src/event/eventdispatcher.js",
-        ],
         "asset": [
+            "src/asset/manager.js",
+            "src/asset/loader.js",
             "src/asset/texture.js",
             "src/asset/spritesheet.js",
             "src/asset/mapsheet.js",
-            "src/asset/assetmanager.js",
+            "src/asset/font.js",
+            "src/asset/script.js",
         ],
         "input": [
             "src/input/keyboard.js",
@@ -76,9 +71,12 @@
             "src/anim/tween.js",
         ],
         "app": [
-            "src/app/baseapp.js",
+            "src/app/timer.js",
             "src/app/element.js",
+            "src/app/updater.js",
+            "src/app/baseapp.js",
             "src/app/object2d.js",
+            "src/app/grid.js",
             "src/app/scene.js",
             "src/app/collision.js",
             "src/app/tweener.js",
@@ -101,7 +99,18 @@
             "src/ui/menudialog.js",
             "src/ui/sketch.js",
             "src/ui/gauge.js",
+            "src/ui/labelarea.js",
             "src/ui/loadingscene.js",
+        ],
+        "game": [
+            "src/game/game.js",
+            "src/game/titlescene.js",
+            "src/game/resultscene.js",
+            "src/game/loadingscene.js",
+            "src/game/splashscene.js",
+            "src/game/managerscene.js",
+            "src/game/numericalinputscene.js",
+            "src/game/countscene.js",
         ],
         "three": [
             "src/three/three.js",
@@ -110,6 +119,7 @@
 
             "src/sound/sound.js",
             "src/sound/webaudio.js",
+            "src/sound/soundmanager.js",
         ],
         "twitter": [
 
@@ -120,10 +130,28 @@
         "google": [
             "src/google/chart.js",
         ],
-        // "dirty": [
-        //     "src/dirty.js",
-        // ],
+        "dirty": [
+            "src/dirty.js",
+        ],
     };
+
+    global.testhelper.testScripts = [
+        "app/baseapp.js",
+        "app/scene.js",
+        "app/timer.js",
+        "app/object2d.js",
+        "app/timeline.js",
+        "app/tweener.js",
+        "app/collision.js",
+
+        "display/sprite.js",
+        "display/shape.js",
+        "display/mapsprite.js",
+
+        "scene/scene.js",
+
+        "input/pointing.js",
+    ];
     
     global.testhelper.scripts.all = (function() {
         var scripts = [];
@@ -156,5 +184,166 @@
     global.testhelper.loadtmlibAll = function(path) {
         this.loadtmlib(path, "all");
     };
+
+
+    testhelper.current = '';
+    testhelper.units = {};
+
+    testhelper.describe = function(name, func) {
+        testhelper.units[name] = {
+            name: name,
+            func: func,
+            its: {},
+        };
+    };
+
+    testhelper.it = function(name, func) {
+        var unit = this.units[this.current];
+        var lines = func.toString().split('\n');
+
+        lines.shift();
+        lines.pop();
+        lines = lines.map(function(line) {
+            return line.replace('        ', '');
+        });
+
+        var code = lines.join('\n');
+
+        unit.its[name] = {
+            func: func,
+            code: code,
+        };
+    };
+
+    testhelper.run = function(param) {
+        this.units.$forIn(function(key, value, i) {
+            testhelper.current = key;
+            value.func();
+        });
+
+        // setup dom
+        var sidebar = tm.dom.Element(param.sidebar);
+        this.units.$forIn(function(key, value, i) {
+            var div = sidebar.create("div");
+
+            // header
+            var header = div.create("h2");
+            header.html = key;
+
+            // list
+            var list = div.create("ul");
+
+            value.its.$forIn(function(key, value, i) {
+                var li = list.create("li");
+                var a = li.create("a");
+                a.html = key;
+                a.attr.set("href", "#");
+                a.event.add("click", function() {
+                    preview(value);
+                });
+            });
+
+            value.element = div;
+        });
+
+        // preview
+        var previewElement = tm.dom.Element(param.preview);
+
+        var preview = function(code) {
+            var baseURL = "runstant.html#";
+            var data = {
+                version: '0.0.1',
+                current: "script",
+
+                setting: {
+                    title: "",
+                    detail: "",
+                },
+
+                code: {
+                    html: {
+                        type: "html",
+                        value: document.querySelector("#html-template").innerHTML.replace(/__script__/g, 'script'),
+                    },
+                    style: {
+                        type: "css",
+                        value: "",
+                    },
+                    script: {
+                        type: "javascript",
+                        value: document.querySelector("#script-template").innerHTML.replace("{testcode}", code.code),
+                    }
+                }
+            };
+
+            var url = baseURL + _encode(data);
+
+            previewElement.attr.set("src", url);
+        };
+
+
+        // serach
+        var searchElement = tm.dom.Element(param.search);
+        var search = localStorage.getItem("search");
+
+        if (search) {
+            searchElement.value = search;
+            filter(search);
+        }
+
+        searchElement.event.add("keyup", function(e) {
+            var value = e.target.value;
+            filter(value);
+        }.bind(this));
+    };
+
+    var filter = function(value) {
+        testhelper.units.$forIn(function(key, unit, i) {
+            var re = new RegExp(value, 'gim');
+            if (re.test(unit.name)) {
+                unit.element.element.classList.remove("hide");
+            }
+            else {
+                unit.element.element.classList.add("hide");
+            }
+        });
+
+        localStorage.setItem("search", value);
+    };
     
 })(this);
+
+
+var _encode = function(data) {
+    data = JSON.stringify(data);
+    data = zip(data);
+    data = encodeURI(data);
+
+    return data;
+};
+
+var zip = function(data) {
+    var zip = new JSZip();
+    zip.file('data', data);
+
+    return zip.generate({type:"base64"});
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,6 +1,6 @@
 /*
- * tmlib.js 0.2.0
- * http://github.com/phi1618/tmlib.js
+ * tmlib.js 0.5.0
+ * http://github.com/phi-jp/tmlib.js
  * MIT Licensed
  * 
  * Copyright (C) 2010 phi, http://tmlife.net
@@ -13,6 +13,9 @@
  */
 var tm = tm || {};
 tm.global = window || global || this;
+if (tm.global.Meteor != null) {
+  tm.global.tm = tm;
+}
 
 // node.js
 if (typeof module !== 'undefined' && module.exports) {
@@ -25,7 +28,7 @@ if (typeof module !== 'undefined' && module.exports) {
     /**
      * バージョン
      */
-    tm.VERSION = "0.1.8";
+    tm.VERSION = '0.5.0';
 
     /**
      * tmlib.js のルートパス
@@ -51,7 +54,7 @@ if (typeof module !== 'undefined' && module.exports) {
         else if (/opera/i.test(navigator.userAgent))    { return "Opera";   }
         else if (/getcko/i.test(navigator.userAgent))   { return "Getcko";  }
         else if (/msie/i.test(navigator.userAgent))     { return "IE";      }
-        else { return null; }
+        else { return ''; }
     })();
 
     /**
@@ -81,8 +84,12 @@ if (typeof module !== 'undefined' && module.exports) {
         var ua = navigator.userAgent;
         return (ua.indexOf("iPhone") > 0 || ua.indexOf("iPad") > 0 || ua.indexOf("Android") > 0);
     })();
-
-
+    
+    tm.isLocal = (function() {
+        var flag = (location.protocol == "file:");
+        return function() { return flag; };
+    })();
+    
     /**
      * クラス定義
      */
@@ -225,8 +232,36 @@ if (typeof module !== 'undefined' && module.exports) {
     };
     
     tm.globalize = function(obj) {
-        tm.global.$strict(obj);
-        
+        tm.$forIn(function(key, value) {
+            if (typeof value !== 'object') {
+                return ;
+            }
+            else if (key === "classes") {
+                return ;
+            }
+            else if (key === "global") {
+                return ;
+            }
+            else if (key === "event") {
+                return ;
+            }
+            else if (key === "dom") {
+                return ;
+            }
+
+            // console.log("#### " + key + " ###########");
+            value.$forIn(function(key, value) {
+                if (!window[key]) {
+                    // console.log(key);
+                    window[key] = value;
+                }
+                else {
+                    // TODO: 名前を考えなおす
+                    // console.log(key);
+                }
+            });
+        });
+
         return this;
     };
     
@@ -329,49 +364,27 @@ if (typeof module !== 'undefined' && module.exports) {
 (function() {
     if (!window.document) return ;
 
-    _loadCheckList = [];
-    tm.addLoadCheckList = function(obj) {
-        console.assert(obj.isLoaded !== undefined, "isLoaded が定義されていません!!");
+    var _mainListeners = [];
 
-        _loadCheckList.push(obj);
-    };
-
-    _preloadListners = [];
-    _mainListners = [];
-
-    tm.preload = function(fn) { _preloadListners.push(fn); };
-    tm.main    = function(fn) { _mainListners.push(fn); };
-
-    var _preload = function() {
-
-        for (var i=0,len=_preloadListners.length; i<len; ++i) {
-            _preloadListners[i]();
+    tm.main    = function(fn) {
+        if (fn) {
+            _mainListeners.push(fn);
         }
-        _preloadListners = [];
+        else {
+            _main();
+        }
     };
 
     var _main = function() {
-        for (var i=0,len=_loadCheckList.length; i<len; ++i) {
-            var c = _loadCheckList[i];
-            if (c.isLoaded() == false) {
-                setTimeout(arguments.callee, 0);
-                return ;
-            }
+        for (var i=0,len=_mainListeners.length; i<len; ++i) {
+            _mainListeners[i]();
         }
 
-        for (var i=0,len=_mainListners.length; i<len; ++i) {
-            _mainListners[i]();
-        }
-
-        _mainListners = [];
+        _mainListeners = [];
     };
 
     window.addEventListener("load", function() {
-
-        _preload();
-
         _main();
-
     }, false);
 
 })();
@@ -420,7 +433,7 @@ if (typeof module !== 'undefined' && module.exports) {
     
     /**
      * @method defineInstanceVariable
-     * @TODO ?
+     * インスタンス変数を定義する
      */
     Object.prototype.defineFunction("defineInstanceVariable", function(name, val){
         Object.defineProperty(this.prototype, name, {
@@ -432,7 +445,7 @@ if (typeof module !== 'undefined' && module.exports) {
     
     /**
      * @method defineInstanceMethod
-     * @TODO ?
+     * インスタンスメソッドを定義する
      */
     Object.prototype.defineFunction("defineInstanceMethod", function(name, fn){
         Object.defineProperty(this.prototype, name, {
@@ -444,7 +457,7 @@ if (typeof module !== 'undefined' && module.exports) {
     
     /**
      * @method setter
-     * @TODO ?
+     * セッターを定義する
      */
     Object.defineInstanceMethod("setter", function(name, fn){
         Object.defineProperty(this, name, {
@@ -452,12 +465,11 @@ if (typeof module !== 'undefined' && module.exports) {
             enumerable: false,
             configurable: true
         });
-        // this.__defineSetter__(name, fn);
     });
     
     /**
      * @method getter
-     * @TODO ?
+     * ゲッターを定義する
      */
     Object.defineInstanceMethod("getter", function(name, fn){
         Object.defineProperty(this, name, {
@@ -465,12 +477,11 @@ if (typeof module !== 'undefined' && module.exports) {
             enumerable: false,
             configurable: true
         });
-        // this.__defineGetter__(name, fn);
     });
     
     /**
      * @method accessor
-     * @TODO ?
+     * アクセッサ(セッター/ゲッター)を定義する
      */
     Object.defineInstanceMethod("accessor", function(name, param) {
         Object.defineProperty(this, name, {
@@ -479,13 +490,27 @@ if (typeof module !== 'undefined' && module.exports) {
             enumerable: false,
             configurable: true
         });
-        // (param["get"]) && this.getter(name, param["get"]);
-        // (param["set"]) && this.setter(name, param["set"]);
+    });
+    
+    /**
+     * @method $forIn
+     * オブジェクト用ループ処理
+     */
+    Object.defineInstanceMethod("$forIn", function(fn, self) {
+        self = self || this;
+
+        Object.keys(this).forEach(function(key, index) {
+            var value = this[key];
+
+            fn.call(self, key, value, index);
+        }, this);
+
+        return this;
     });
 
     /**
      * @method  $has
-     * text
+     * そのプロパティを持っているかを判定する
      */
     Object.defineInstanceMethod("$has", function(key) {
         return this.hasOwnProperty(key);
@@ -512,7 +537,7 @@ if (typeof module !== 'undefined' && module.exports) {
     Object.defineInstanceMethod("$safe", function(source) {
         Array.prototype.forEach.call(arguments, function(source) {
             for (var property in source) {
-                if (!this[property]) this[property] = source[property];
+                if (this[property] === undefined) this[property] = source[property];
             }
         }, this);
         return this;
@@ -536,7 +561,7 @@ if (typeof module !== 'undefined' && module.exports) {
 
     /**
      * @method  $pick
-     * text
+     * ピック
      */
     Object.defineInstanceMethod("$pick", function() {
         var temp = {};
@@ -550,7 +575,7 @@ if (typeof module !== 'undefined' && module.exports) {
 
     /**
      * @method  $omit
-     * text
+     * オミット
      */
     Object.defineInstanceMethod("$omit", function() {
         var temp = {};
@@ -563,31 +588,6 @@ if (typeof module !== 'undefined' && module.exports) {
 
         return temp;
     });
-    
-    /**
-     * @method  using
-     * 使う
-     */
-    Object.defineInstanceMethod("$using", function(source) {
-        // TODO:
-        
-        return this;
-    });
-    
-    /**
-     * @method  globalize
-     * グローバル化
-     */
-    Object.defineInstanceMethod("$globalize", function(key) {
-        if (key) {
-            tm.global[key] = this[key];
-        }
-        else {
-            tm.global.$strict(this);
-        }
-        return this;
-    });
-    
     
 })();
 
@@ -623,7 +623,7 @@ if (typeof module !== 'undefined' && module.exports) {
         "get": function()   { return this[this.length-1]; },
         "set": function(v)  { this[this.length-1] = v; }
     });
-    
+
     /**
      * @method  equals
      * 渡された配列と等しいかどうかをチェック
@@ -656,6 +656,14 @@ if (typeof module !== 'undefined' && module.exports) {
             }
         }
         return true;
+    });
+
+    /**
+     * @property    contains
+     * 要素が含まれいるかをチェック
+     */
+    Array.defineInstanceMethod("contains", function(item, fromIndex) {
+        return this.indexOf(item, fromIndex) != -1;
     });
     
     /**
@@ -761,14 +769,9 @@ if (typeof module !== 'undefined' && module.exports) {
      * 重複削除
      */
     Array.defineInstanceMethod("uniq", function(deep) {
-        var arr = [];
-        for (var i=0,len=this.length; i<len; ++i) {
-            var value = this[i];
-            if (value in arr == false) {
-                arr.push(value);
-            }
-        }
-        return arr;
+        return this.filter(function(value, index, self) {
+            return self.indexOf(value) === index;
+        });
     });
     
 
@@ -777,13 +780,24 @@ if (typeof module !== 'undefined' && module.exports) {
      * フラット.
      * Ruby のやつ.
      */
-    Array.defineInstanceMethod("flatten", function(deep) {
-        var temp = Array.flatten(this);
-        
-        this.clear().concat(temp);
-        for (var i=0,len=temp.length; i<len; ++i) this[i] = temp[i];
-        
-        return this;
+    Array.defineInstanceMethod("flatten", function(level) {
+        var arr = null;
+
+        if (level) {
+            arr = this;
+            for (var i=0; i<level; ++i) {
+                arr = Array.prototype.concat.apply([], arr);
+            }
+        }
+        else {
+            // 完全フラット
+            arr = this.reduce(function (previousValue, curentValue) {
+                return Array.isArray(curentValue) ?
+                    previousValue.concat(curentValue.flatten()) : previousValue.concat(curentValue);
+            }, []);
+        }
+
+        return arr;
     });
     
     /**
@@ -922,46 +936,6 @@ if (typeof module !== 'undefined' && module.exports) {
         // TODO:
     });
 
-
-    
-    /**
-     * @static
-     * @method  uniq
-     * 重複削除
-     */
-    Array.defineFunction("uniq", function(arr) {
-        var temp = [];
-        for (var i=0,len=arr.length; i<len; ++i) {
-            var value = arr[i];
-            if (temp.indexOf(value) == -1) {
-                temp.push(value);
-            }
-        }
-        return temp;
-    });
-
-    
-    /**
-     * @static
-     * @method  flatten
-     * フラット.
-     * Ruby のやつ.
-     */
-    Array.flatten = function(array, deep) {
-        var arr = [];
-        
-        for (var i=0,len=array.length; i<len; ++i) {
-            var value = array[i];
-            if (value instanceof Array) {
-                arr = arr.concat(Array.flatten(value));
-            }
-            else {
-                arr.push(value);
-            }
-        }
-        return arr;
-    };
-
     
     /**
      * @static
@@ -998,7 +972,7 @@ if (typeof module !== 'undefined' && module.exports) {
      * @method  format
      * 日付フォーマットに合わせた文字列を返す
      */
-    Date.prototype.format = function(pattern) {
+    Date.defineInstanceMethod("format", function(pattern) {
         /*
         var str = "{y}/{m}/{d}".format({
             y: this.getYear()+1900,
@@ -1016,6 +990,7 @@ if (typeof module !== 'undefined' && module.exports) {
         var hours   = this.getHours();
         var minutes = this.getMinutes();
         var seconds = this.getSeconds();
+        var millseconds = this.getMilliseconds();
         var str = "";
         
         for (var i=0,len=pattern.length; i<len; ++i) {
@@ -1056,13 +1031,14 @@ if (typeof module !== 'undefined' && module.exports) {
                 case "H": temp = hours.padding(2, '0'); break;
                 case "i": temp = minutes.padding(2, '0'); break;
                 case "s": temp = seconds.padding(2, '0'); break;
+                case "S": temp = millseconds.padding(3, '0'); break;
                 
                 default : temp = ch; break;
             }
             str += temp;
         }
         return str;
-    };
+    });
     
 })();
 
@@ -1091,8 +1067,16 @@ if (typeof module !== 'undefined' && module.exports) {
             };
         });
     }
+
+
+    // 関数名（無名関数は空文字列）を取得 (IE用パッチ)
+    if (!Function.prototype.$has("name")) {
+        Function.prototype.getter("name", function() {
+            return (''+this).replace(/^\s*function\s*([^\(]*)[\S\s]+$/im, '$1');
+        });
+    }
     
-    
+
     /**
      * @method  toArrayFunction
      * 関数を配列対応関数に変換.
@@ -1131,22 +1115,13 @@ if (typeof module !== 'undefined' && module.exports) {
      * @class global.Math
      * Mathの拡張
      */
-    
-    /**
-     * @method
-     * クランプ
-     */
-    Math.clamp = function(x, a, b) {
-//        return ( Math.max( Math.min(x, ), min ) )
-        return (x < a) ? a : ( (x > b) ? b : x );
-    };
+
     
     /**
      * @property    DEG_TO_RAD
      * Degree to Radian.
      */
     Math.DEG_TO_RAD = Math.PI/180;
-    
     
     /**
      * @property    RAD_TO_DEG
@@ -1170,55 +1145,39 @@ if (typeof module !== 'undefined' && module.exports) {
         return rad * Math.RAD_TO_DEG;
     };
     
+
     
+    /**
+     * @method
+     * クランプ
+     */
+    Math.defineFunction("clamp", function(value, min, max) {
+        return (value < min) ? min : ( (value > max) ? max : value );
+    });
+    
+    /**
+     * @method
+     * min <= value <= max のとき true を返す
+     */
+    Math.defineFunction("inside", function(value, min, max) {
+        return (value >= min) && (value) <= max;
+    });
     
     /**
      * @method
      * ランダムな値を指定された範囲内で生成
      */
-    Math.rand = function(min, max) {
+    Math.defineFunction("rand", function(min, max) {
         return window.Math.floor( Math.random()*(max-min+1) ) + min;
-    };
+    });
     
     /**
      * @method
      * ランダムな値を指定された範囲内で生成
      */
-    Math.randf= function(min, max) {
+    Math.defineFunction("randf", function(min, max) {
         return window.Math.random()*(max-min)+min;
-    };
-
-    /**
-     * @method
-     * 長さを取得
-     */
-    Math.magnitude = function() {
-        return Math.sqrt(Math.magnitudeSq.apply(null, arguments));
-    };
-    
-    
-    /**
-     * @method
-     * 長さの２乗を取得
-     */
-    Math.magnitudeSq = function() {
-        var n = 0;
-        
-        for (var i=0,len=arguments.length; i<len; ++i) {
-            n += arguments[i]*arguments[i];
-        }
-        
-        return n;
-    };
-
-
-    /**
-     * @method
-     * a <= x <= b のとき true を返す
-     */
-    Math.inside = function(x, a, b) {
-        return (x >= a) && (x) <= b;
-    };
+    });
     
 })();
 
@@ -1323,6 +1282,55 @@ if (typeof module !== 'undefined' && module.exports) {
         return str;
     });
     
+    /**
+     * @method  times
+     * 数値分繰り返す
+     */
+    Number.defineInstanceMethod("times",  function(fn, self) {
+        self = self || this;
+        for (var i=0; i<this; ++i) {
+            fn.call(self, i);
+        }
+        return this;
+    });
+    
+    /**
+     * @method  upto
+     * インクリメント繰り返し
+     */
+    Number.defineInstanceMethod("upto",  function(t, fn, self) {
+        self = self || this;
+        for (var i=+this; i<=t; ++i) {
+            fn.call(self, i);
+        }
+        return this;
+    });
+    
+    /**
+     * @method  upto
+     * デクリメント繰り返し
+     */
+    Number.defineInstanceMethod("downto",  function(t, fn, self) {
+        self = self || this;
+        for (var i=+this; i>=t; --i) {
+            fn.call(self, i);
+        }
+        return this;
+    });
+
+    /**
+     * @method step
+     * ステップ繰り返し(float対応)
+     */
+    Number.defineInstanceMethod("step",  function(limit, step, fn, self) {
+        self = self || this;
+        for (var i=+this; i<=limit; i+=step) {
+            fn.call(self, i);
+        }
+        return this;
+    });
+
+    
 })();
 
 
@@ -1360,7 +1368,14 @@ if (typeof module !== 'undefined' && module.exports) {
         // オブジェクトの場合
         if (typeof arg == "object") {
             /** @ignore */
-            rep_fn = function(m, k) { return arg[k]; }
+            rep_fn = function(m, k) {
+                if (arg[k] === undefined) {
+                    return '';
+                }
+                else {
+                    return arg[k];
+                }
+            }
         }
         // 複数引数だった場合
         else {
@@ -1485,6 +1500,26 @@ if (typeof module !== 'undefined' && module.exports) {
         return arr.join('');
     });
     
+    /**
+     * @method  count
+     * リピート
+     */
+    String.defineInstanceMethod("count", function(str) {
+        var re = new RegExp(str, 'gm');
+        return this.match(re).length;
+    });
+    
+    /**
+     * @method  toString
+     * 配列に変換
+     */
+    String.defineInstanceMethod("toArray", function() {
+        var arr = [];
+        for (var i=0,len=this.length; i<len; ++i) {
+            arr.push(this[i]);
+        }
+        return arr;
+    });
     
     
     var table = "00000000 77073096 EE0E612C 990951BA 076DC419 706AF48F E963A535 9E6495A3 0EDB8832 79DCB8A4 E0D5E91E 97D2D988 09B64C2B 7EB17CBD E7B82D07 90BF1D91 1DB71064 6AB020F2 F3B97148 84BE41DE 1ADAD47D 6DDDE4EB F4D4B551 83D385C7 136C9856 646BA8C0 FD62F97A 8A65C9EC 14015C4F 63066CD9 FA0F3D63 8D080DF5 3B6E20C8 4C69105E D56041E4 A2677172 3C03E4D1 4B04D447 D20D85FD A50AB56B 35B5A8FA 42B2986C DBBBC9D6 ACBCF940 32D86CE3 45DF5C75 DCD60DCF ABD13D59 26D930AC 51DE003A C8D75180 BFD06116 21B4F4B5 56B3C423 CFBA9599 B8BDA50F 2802B89E 5F058808 C60CD9B2 B10BE924 2F6F7C87 58684C11 C1611DAB B6662D3D 76DC4190 01DB7106 98D220BC EFD5102A 71B18589 06B6B51F 9FBFE4A5 E8B8D433 7807C9A2 0F00F934 9609A88E E10E9818 7F6A0DBB 086D3D2D 91646C97 E6635C01 6B6B51F4 1C6C6162 856530D8 F262004E 6C0695ED 1B01A57B 8208F4C1 F50FC457 65B0D9C6 12B7E950 8BBEB8EA FCB9887C 62DD1DDF 15DA2D49 8CD37CF3 FBD44C65 4DB26158 3AB551CE A3BC0074 D4BB30E2 4ADFA541 3DD895D7 A4D1C46D D3D6F4FB 4369E96A 346ED9FC AD678846 DA60B8D0 44042D73 33031DE5 AA0A4C5F DD0D7CC9 5005713C 270241AA BE0B1010 C90C2086 5768B525 206F85B3 B966D409 CE61E49F 5EDEF90E 29D9C998 B0D09822 C7D7A8B4 59B33D17 2EB40D81 B7BD5C3B C0BA6CAD EDB88320 9ABFB3B6 03B6E20C 74B1D29A EAD54739 9DD277AF 04DB2615 73DC1683 E3630B12 94643B84 0D6D6A3E 7A6A5AA8 E40ECF0B 9309FF9D 0A00AE27 7D079EB1 F00F9344 8708A3D2 1E01F268 6906C2FE F762575D 806567CB 196C3671 6E6B06E7 FED41B76 89D32BE0 10DA7A5A 67DD4ACC F9B9DF6F 8EBEEFF9 17B7BE43 60B08ED5 D6D6A3E8 A1D1937E 38D8C2C4 4FDFF252 D1BB67F1 A6BC5767 3FB506DD 48B2364B D80D2BDA AF0A1B4C 36034AF6 41047A60 DF60EFC3 A867DF55 316E8EEF 4669BE79 CB61B38C BC66831A 256FD2A0 5268E236 CC0C7795 BB0B4703 220216B9 5505262F C5BA3BBE B2BD0B28 2BB45A92 5CB36A04 C2D7FFA7 B5D0CF31 2CD99E8B 5BDEAE1D 9B64C2B0 EC63F226 756AA39C 026D930A 9C0906A9 EB0E363F 72076785 05005713 95BF4A82 E2B87A14 7BB12BAE 0CB61B38 92D28E9B E5D5BE0D 7CDCEFB7 0BDBDF21 86D3D2D4 F1D4E242 68DDB3F8 1FDA836E 81BE16CD F6B9265B 6FB077E1 18B74777 88085AE6 FF0F6A70 66063BCA 11010B5C 8F659EFF F862AE69 616BFFD3 166CCF45 A00AE278 D70DD2EE 4E048354 3903B3C2 A7672661 D06016F7 4969474D 3E6E77DB AED16A4A D9D65ADC 40DF0B66 37D83BF0 A9BCAE53 DEBB9EC5 47B2CF7F 30B5FFE9 BDBDF21C CABAC28A 53B39330 24B4A3A6 BAD03605 CDD70693 54DE5729 23D967BF B3667A2E C4614AB8 5D681B02 2A6F2B94 B40BBE37 C30C8EA1 5A05DF1B 2D02EF8D".split(' ');
@@ -1508,191 +1543,6 @@ if (typeof module !== 'undefined' && module.exports) {
     
     
 })();
-
-/*
- * list.js
- */
-
-(function() {
-    
-    /**
-     * @class tm.Item
-     * Item クラス
-     */
-    tm.Item = tm.createClass({
-        /** prev */
-        prev: null,
-        /** next */
-        next: null,
-        /** data */
-        data: null,
-        
-        /**
-         * @constructor
-         */
-        init: function() {
-        }
-    });
-    
-    /**
-     * @class tm.List
-     * List クラス
-     * ### Reference
-     * - <http://java.sun.com/javase/ja/6/docs/ja/api/java/util/LinkedList.html>
-     * - <http://www.javadrive.jp/start/linkedlist/>
-     * - <http://www5c.biglobe.ne.jp/~ecb/cpp/07_08.html>
-     * - <http://hextomino.tsukuba.ch/e30895.html>
-     * - <http://www.nczonline.net/blog/2009/04/21/computer-science-in-javascript-doubly-linked-lists/>
-     * - <http://www.nczonline.net/blog/2009/04/13/computer-science-in-javascript-linked-list/>
-     */
-    tm.List = tm.createClass({
-        
-        /**
-         * @constructor
-         */
-        init: function() {
-            this._length = 0;
-            this._head = tm.Item();
-            this._tail = tm.Item();
-            
-            this._head.next = this._tail;
-            this._tail.prev = this._head;
-        },
-        
-        /**
-         * 追加
-         */
-        add: function(data) {
-            var item = tm.Item();
-            item.data = data;
-            
-            item.prev = this._tail.prev;
-            item.next = this._tail;
-            
-            this._tail.prev.next = item;
-            this._tail.prev = item;
-            
-            ++this._length;
-            
-            return this;
-        },
-        
-        /**
-         * 削除
-         */
-        remove: function(index) {
-            var current = this.getItem(index);
-            
-            current.prev.next = current.next;
-            current.next.prev = current.prev;
-            
-            --this._length;
-            
-            return current;
-        },
-        
-        /**
-         * ゲット
-         */
-        get: function(index) {
-            return this.getItem(index).data;
-        },
-        
-        /**
-         * アイテムを取得
-         */
-        getItem: function(index) {
-            var current = this._head.next;
-            var i=0;
-            
-            while (i++ < index) {
-                current = current.next;
-            }
-            
-            return current;
-        },
-        
-        /**
-         * 繰り返し
-         */
-        forEach: function(fn) {
-            // TODO:
-        },
-        
-        /**
-         * クリア
-         */
-        clear: function() {
-            // TODO:
-        },
-        
-        /**
-         * クローン
-         */
-        clone: function() {
-            // TODO:
-        },
-        
-        /**
-         * 最初の要素を取得
-         */
-        getFirst: function() {
-            // TODO:
-        },
-        
-        /**
-         * 最後の要素を取得
-         */
-        getLast: function() {
-            // TODO:
-        },
-        
-        /**
-         * 最初に一致した位置のインデックスを取得
-         */
-        indexOf: function(obj) {
-            // TODO:
-        },
-        
-        /**
-         * 最後に一致した位置のインデックスを取得
-         */
-        lastIndexOf: function(obj) {
-            // TODO:
-        },
-        
-        /**
-         * 配列に変換
-         */
-        toArray: function() {
-            if (this._length <= 0) return [];
-            
-            var current = this._head.next;
-            var arr = [];
-            
-            while (current.data != null) {
-                arr.push(current.data);
-                current = current.next;
-            }
-            
-            return arr;
-        },
-        
-        /**
-         * 文字列に変換
-         */
-        toString: function() {
-            var arr = this.toArray();
-            for (var i=0,len=arr.length; i<len; ++i) {
-                arr[i] = arr[i].toString();
-            }
-            
-            return arr.join(',');
-        },
-    });
-    
-})();
-
 
 /*
  * event/event.js
@@ -1734,8 +1584,10 @@ tm.event = tm.event || {};
         
         superClass: tm.event.Event,
 
-        /** @property time */
-        /** @property now */
+        /** time */
+        time: null,
+        /** now */
+        now: null,
 
         /**
          * @constructor
@@ -1749,17 +1601,35 @@ tm.event = tm.event || {};
         
     });
     
-    /** @static @property */
+    /**
+     * @static
+     * チェンジ
+     */
     tm.event.TweenEvent.CHANGE    = "change";
-    /** @static @property */
+    /**
+     * @static
+     * フィニッシュ
+     */
     tm.event.TweenEvent.FINISH    = "finish";
-    /** @static @property */
+    /**
+     * @static
+     * ループ
+     */
     tm.event.TweenEvent.LOOP      = "loop";
-    /** @static @property */
+    /**
+     * @static
+     * レジューム
+     */
     tm.event.TweenEvent.RESUME    = "resume";
-    /** @static @property */
+    /**
+     * @static
+     * スタート
+     */
     tm.event.TweenEvent.START     = "start";
-    /** @static @property */
+    /**
+     * @static
+     * ストップ
+     */
     tm.event.TweenEvent.STOP      = "stop";
     
 })();
@@ -1778,8 +1648,15 @@ tm.event = tm.event || {};
         
         superClass: tm.event.Event,
 
-        /** @property app */
-        /** @property pointing */
+        /**
+         * app
+         */
+        app: null,
+
+        /**
+         * pointing
+         */
+        pointing: null,
 
         /**
          * @constructor
@@ -1809,8 +1686,15 @@ tm.event = tm.event || {};
         
         superClass: tm.event.Event,
 
-        /** @property app */
-        /** @property pointing */
+        /**
+         * app
+         */
+        app: null,
+
+        /**
+         * pointing
+         */
+        pointing: null,
 
         /**
          * @constructor
@@ -1839,8 +1723,15 @@ tm.event = tm.event || {};
         
         superClass: tm.event.Event,
 
-        /** @property app */
-        /** @property pointing */
+        /**
+         * app
+         */
+        app: null,
+        
+        /**
+         * pointing
+         */
+        pointing: null,
         
         /**
          * @constructor
@@ -1915,7 +1806,7 @@ tm.event = tm.event || {};
         },
         
         /**
-         * イベント起動
+         * イベント発火
          */
         fire: function(e) {
             e.target = this;
@@ -1924,11 +1815,25 @@ tm.event = tm.event || {};
             
             var listeners = this._listeners[e.type];
             if (listeners) {
-                for (var i=0,len=listeners.length; i<len; ++i) {
-                    listeners[i].call(this, e);
+                var temp = listeners.clone();
+                for (var i=0,len=temp.length; i<len; ++i) {
+                    temp[i].call(this, e);
                 }
             }
             
+            return this;
+        },
+
+        /*
+         * イベント名でイベント発火
+         */
+        flare: function(eventName, param) {
+            var e = tm.event.Event(eventName);
+            if (param) {
+                e.$extend(param);
+            }
+            this.fire(e);
+
             return this;
         },
         
@@ -1945,9 +1850,9 @@ tm.event = tm.event || {};
             
             return this;
         },
-        
+
         /**
-         * 登録されたイベントがあるかをチェック
+         * type に登録されたイベントがあるかをチェック
          */
         hasEventListener: function(type) {
             if (this._listeners[type] === undefined && !this["on" + type]) return false;
@@ -1955,7 +1860,7 @@ tm.event = tm.event || {};
         },
         
         /**
-         * リスナーを全てクリア
+         * type に登録されているリスナーを全てクリア
          */
         clearEventListener: function(type) {
             var oldEventName = 'on' + type;
@@ -1988,6 +1893,13 @@ tm.event = tm.event || {};
      * fire と同じ
      */
     proto.dispatchEvent         = proto.fire;
+    
+    /**
+     * @member  tm.event.EventDispatcher
+     * @method  trigger
+     * fire と同じ
+     */
+    proto.trigger = proto.fire;
     
 })();
 
@@ -2045,10 +1957,9 @@ tm.util = tm.util || {};
 
 
 (function() {
-    
+
     /*
      * @enum
-     * @TODO ?
      * @private
      */
     var AJAX_DEFAULT_SETTINGS = {
@@ -2062,6 +1973,8 @@ tm.util = tm.util || {};
         contentType: 'application/x-www-form-urlencoded',
         /* @property dataType */
         dataType: 'text',
+        /* @property dataType */
+        responseType: '', // or 'arraybuffer'
         /* @property username */
         username: null,
         /* @property password */
@@ -2073,10 +1986,10 @@ tm.util = tm.util || {};
         /* @property beforeSend */
         beforeSend: null,
     };
-    
+
     /**
      * @class tm.util.Ajax
-     * @TODO ?
+     * Ajax クラス
      */
     tm.util.Ajax = {
         /**
@@ -2086,11 +1999,11 @@ tm.util = tm.util || {};
             for (var key in AJAX_DEFAULT_SETTINGS) {
                 params[key] = params[key] || AJAX_DEFAULT_SETTINGS[key];
             }
-            
+
             var httpRequest = new XMLHttpRequest();
             var ajax_params = "";
             var conv_func = tm.util.Ajax.DATA_CONVERTE_TABLE[params.dataType];
-            
+
             var url = params.url;
             if (params.data) {
                 var query = "";
@@ -2101,7 +2014,7 @@ tm.util = tm.util || {};
                 else {
                     query = tm.util.QueryString.stringify(params.data);
                 }
-                
+
                 if (params.type == 'GET') {
                     params.url += '?' + query;
                     params.data = null;
@@ -2110,23 +2023,23 @@ tm.util = tm.util || {};
                     params.data = query;
                 }
             }
-            
+
             // httpRequest.withCredentials = true;
-            
+
             // コールバック
             httpRequest.onreadystatechange = function() {
                 if (httpRequest.readyState == 4) {
-                    // 成功
-                    if (httpRequest.status === 200) {
-                        // タイプ別に変換をかける
-                        var data = conv_func(httpRequest.responseText);
-                        params.success(data);
-                    }
-                    // status === 0 はローカルファイル用
-                    else if (httpRequest.status === 0) {
-                        // タイプ別に変換をかける
-                        var data = conv_func(httpRequest.responseText);
-                        params.success(data);
+                    // 成功(status === 0 はローカルファイル用)
+                    if (httpRequest.status === 200 || httpRequest.status === 201 || httpRequest.status === 0) {
+                        if (params.responseType !== "arraybuffer") {
+                            // タイプ別に変換をかける
+                            var data = conv_func(httpRequest.responseText);
+                            params.success(data);
+                        }
+                        else {
+                            // バイナリデータ
+                            params.success(this.response);
+                        }
                     }
                     else {
                         params.error(httpRequest.responseText);
@@ -2136,20 +2049,28 @@ tm.util = tm.util || {};
                     //console.log("通信中");
                 }
             };
-            
-            
+
+
             httpRequest.open(params.type, params.url, params.async, params.username, params.password);   // オープン
             if (params.type === "POST") {
                 httpRequest.setRequestHeader('Content-Type', params.contentType);        // ヘッダをセット
             }
-            
+
+            if (params.responseType) {
+                httpRequest.responseType = params.responseType;
+            }
+
             if (params.beforeSend) {
                 params.beforeSend(httpRequest);
             }
-            
+
+            if (params.password) {
+                httpRequest.withCredentials = true;
+            }
+
             httpRequest.send(params.data);
         },
-        
+
         /**
          * loadJSONP
          */
@@ -2158,16 +2079,16 @@ tm.util = tm.util || {};
             g.tmlib_js_dummy_func_count = tm.global.tmlib_js_dummy_func || 0;
             var dummy_func_name = "tmlib_js_dummy_func" + (g.tmlib_js_dummy_func_count++);
             g[dummy_func_name]  = callback;
-            
+
             var elm = document.createElement("script");
             elm.type = "text/javascript";
             elm.charset = "UTF-8";
-            elm.src = url + "&callback=" + dummy_func_name;
+            elm.src = url + (url.indexOf("?") < 0 ? "?" : "&") + "callback=" + dummy_func_name;
             elm.setAttribute("defer", true);
             document.getElementsByTagName("head")[0].appendChild(elm);
         }
     };
-    
+
     /*
      * @enum tm.util.Ajax.DATA_CONVERTE_TABLE
      * データコンバータテーブル
@@ -2177,26 +2098,27 @@ tm.util = tm.util || {};
         undefined: function(data) {
             return data;
         },
-        
+
         /* @method */
         text: function(data) {
             return data;
         },
-        
+
         /* @method */
         xml: function(data) {
-            var div = document.createElement("div");
-            div.innerHTML = data;
-            return div;
+            var parser = new DOMParser();
+            var xml = parser.parseFromString(data, 'text/xml');
+
+            return xml;
         },
-        
+
         /* @method */
         dom: function(data) {
             var div = document.createElement("div");
             div.innerHTML = data;
             return tm.dom.Element(div);
         },
-        
+
         /* @method */
         json: function(data) {
             try {
@@ -2207,13 +2129,13 @@ tm.util = tm.util || {};
                 console.dir(data);
             }
         },
-        
+
         /* @method */
         script: function(data) {
             eval(data);
             return data;
         },
-        
+
         /*
          * @method
          * ### Reference
@@ -2227,9 +2149,12 @@ tm.util = tm.util || {};
             }
             return bytearray;
         },
-        
+
     };
-    
+
+
+    tm.util.Ajax.DEFAULT_SETTINGS = AJAX_DEFAULT_SETTINGS;
+
 })();
 
 /*
@@ -2243,7 +2168,7 @@ tm.util = tm.util || {};
     
     /**
      * @class tm.util.File
-     * @TODO ?
+     * ファイルクラス
      */
     tm.define("tm.util.File", {
         superClass: "tm.event.EventDispatcher",
@@ -2266,7 +2191,7 @@ tm.util = tm.util || {};
         },
         
         /**
-         * @TODO ?
+         * ロード
          */
         load: function(params) {
             if (typeof params == "string") {
@@ -2292,7 +2217,7 @@ tm.util = tm.util || {};
         },
         
         /**
-         * @TODO ?
+         * ローカルストレージからロード
          */
         loadLocalStorage: function() {
             
@@ -2306,55 +2231,6 @@ tm.util = tm.util || {};
 
 
 
-(function() {
-    
-    /**
-     * @class tm.util.FileManager
-     * ファイルマネージャ
-     */
-    tm.util.FileManager = {
-        files: {}
-    };
-
-    /**
-     * @static
-     * @method
-     * @TODO ?
-     */
-    tm.util.FileManager.load = function(key, params) {
-        var file = tm.util.File(params);
-        this.files[key] = file;
-        return file;
-    };
-
-    /**
-     * @static
-     * @method
-     * @TODO ?
-     */
-    tm.util.FileManager.get = function(key) {
-        return this.files[key];
-    };
-    
-    /**
-     * @static
-     * @method  isLoaded
-     * ロードチェック
-     */
-    tm.util.FileManager.isLoaded = function() {
-        for (var key in this.files) {
-            var file = this.files[key];
-            
-            if (file.loaded == false) {
-                return false;
-            }
-        }
-        return true;
-    };
-    
-    tm.addLoadCheckList(tm.util.FileManager);
-    
-})();
 /*
  * tmline.js
  */
@@ -2386,7 +2262,7 @@ tm.util = tm.util || {};
         },
         
         /**
-         * @TODO ?
+         * アット
          */
         at: function(time, action) {
             this.tasks.push({
@@ -2397,7 +2273,7 @@ tm.util = tm.util || {};
         },
 
         /**
-         * @TODO ?
+         * アフター
          */
         after: function(time, action) {
             this.at(this.time + time, action);
@@ -2405,7 +2281,7 @@ tm.util = tm.util || {};
         },
 
         /**
-         * @TODO ?
+         * クリア
          */
         clear: function() {
             this.tasks = [];
@@ -2413,21 +2289,21 @@ tm.util = tm.util || {};
         },
 
         /**
-         * @TODO ?
+         * リムーブタイム
          */
         removeTime: function(time) {
             // TODO: 
         },
 
         /**
-         * @TODO ?
+         * リムーブアクション
          */
         removeAction: function(action) {
             // TODO: 
         },
         
         /**
-         * @TODO ?
+         * スタート
          */
         start: function() {
             this.isPlaying = true;
@@ -2436,7 +2312,7 @@ tm.util = tm.util || {};
         },
 
         /**
-         * @TODO ?
+         * レジューム
          */
         resume: function() {
             this.isPlaying = true;
@@ -2445,21 +2321,21 @@ tm.util = tm.util || {};
         },
 
         /**
-         * @TODO ?
+         * ストップ
          */
         stop: function() {
             this.isPlaying = false;
         },
 
         /**
-         * @TODO ?
+         * レウィンド
          */
         rewind: function() {
             this.time = 0;
         },
 
         /**
-         * @TODO ?
+         * 更新
          */
         update: function() {
             // タスク更新
@@ -2476,7 +2352,6 @@ tm.util = tm.util || {};
         },
         
         /**
-         * @TODO ?
          * @private
          */
         _startTime: function() {
@@ -2484,7 +2359,6 @@ tm.util = tm.util || {};
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _resumeTime: function() {
@@ -2492,7 +2366,6 @@ tm.util = tm.util || {};
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _updateTime: function() {
@@ -2503,7 +2376,6 @@ tm.util = tm.util || {};
         },
         
         /**
-         * @TODO ?
          * @private
          */
         _nextTime: function() {
@@ -2540,7 +2412,7 @@ tm.util = tm.util || {};
     /**
      * @static
      * @method
-     * @TODO ?
+     * セーブ
      */
     tm.util.DataManager.save = function() {
         // TODO: ローカルストレージ?
@@ -2553,7 +2425,7 @@ tm.util = tm.util || {};
     /**
      * @static
      * @method
-     * @TODO ?
+     * ロード
      */
     tm.util.DataManager.load = function(key) {
         // TODO: ローカルストレージ?
@@ -2565,7 +2437,7 @@ tm.util = tm.util || {};
     /**
      * @static
      * @method
-     * @TODO ?
+     * セット
      */
     tm.util.DataManager.set = function(key, value) {
         this.data[key] = value;
@@ -2575,7 +2447,7 @@ tm.util = tm.util || {};
     /**
      * @static
      * @method
-     * @TODO ?
+     * ゲット
      */
     tm.util.DataManager.get = function(key) {
         return this.data[key];
@@ -2585,157 +2457,6 @@ tm.util = tm.util || {};
     // tm.addLoadCheckList(tm.util.DataManager);
     
 })();
-/*
- * script.js
- */
-
-tm.util = tm.util || {};
-
-
-(function() {
-    
-    /**
-     * @class tm.util.Script
-     * スクリプトクラス
-     */
-    tm.util.Script = tm.createClass({
-        /** element */
-        element: null,
-        /** loaded */
-        loaded: false,
-        
-        /**
-         * @constructor
-         */
-        init: function(src, callback) {
-            this.loaded = false;
-            this.element = document.createElement("script");
-            this.element.type = "text/javascript";
-            this.element.src = src;
-            this.element.charset = "UTF-8";
-            this.element.setAttribute("defer", true);
-            document.head.appendChild(this.element);
-            
-            var self = this;
-            this.element.onload = function() {
-                if (callback) callback.call(this);
-                self.loaded = true;
-            };
-        },
-        
-        /**
-         * getElement
-         */
-        getElement: function() {
-            return this.element;
-        },
-        
-    });
-    
-})();
-
-(function(){
-    
-    /**
-     * @class tm.util.ScriptManager
-     * スクリプトマネージャクラス
-     */
-    tm.util.ScriptManager = {
-        scriptList: {},
-        loaded: true,
-    };
-    
-    /**
-     * @static
-     * @method
-     * 追加
-     */
-    tm.util.ScriptManager.load = function(src, callback) {
-        this.scriptList[src] = tm.util.Script(src, callback);
-    };
-
-    /**
-     * @static
-     * @method
-     * stats.js を動的ロード
-     */
-    tm.util.ScriptManager.loadStats = function(version) {
-        version = version || "r11";
-        var path = null;
-        if (["r6", "r7", "r8", "r9", "10"].indexOf(version) != -1) {
-            path = "http://rawgithub.com/mrdoob/stats.js/" + version + "/build/Stats.js";
-        }
-        else {
-            path = "http://rawgithub.com/mrdoob/stats.js/" + version + "/build/stats.min.js";
-        }
-        this.load(path);
-    };
-
-    /**
-     * @static
-     * @method
-     * Dat GUI を動的ロード
-     */
-    tm.util.ScriptManager.loadDatGUI = function(version) {
-        // http://dat-gui.googlecode.com/git/build/dat.gui.min.js
-        // https://dat-gui.googlecode.com/git-history/0.5/build/dat.gui.min.js
-
-        version = version || "0.5";
-//        var path = "https://dat-gui.googlecode.com/git-history/" + version + "/build/dat.gui.min.js";
-//        var path = "http://dat-gui.googlecode.com/git/build/dat.gui.min.js";
-        var path = "http://dat-gui.googlecode.com/git/build/dat.gui.js";
-        this.load(path);
-    };
-
-    /**
-     * @static
-     * @method
-     * Three.js を動的ロード
-     */
-    tm.util.ScriptManager.loadThree = function(version) {
-        var THREE_JS_URL = "http://rawgithub.com/mrdoob/three.js/{version}/build/three.js";
-//        var THREE_JS_URL = "https://raw.github.com/mrdoob/three.js/{version}/build/three.min.js";
-        version = version || "r55";
-
-        var path = THREE_JS_URL.format({version: version});
-
-        this.load(path);
-    };
-
-    /**
-     * @static
-     * @method
-     * BulletML を動的ロード
-     */
-    tm.util.ScriptManager.loadBulletML = function(version) {
-        var BULLETML_FOR_TMLIB_JS_URL   = "http://rawgithub.com/daishihmr/bulletml.js/{version}/target/bulletml.for.tmlib.js";
-        version = version || "v0.4.1";
-        var path = BULLETML_FOR_TMLIB_JS_URL.format({version: version});        
-        this.load(path);
-    };
-    
-    /**
-     * @static
-     * @method
-     * ロードチェック
-     */
-    tm.util.ScriptManager.isLoaded = function() {
-        if (this.scriptList.length <= 0) return true;
-
-        for (var key in this.scriptList) {
-            if (this.scriptList[key].loaded == false) {
-                return false;
-            }
-        }
-        return true;
-    };
-    
-    tm.addLoadCheckList(tm.util.ScriptManager);
-    
-})();
-
-
-
 /*
  * querystring.js
  */
@@ -2747,11 +2468,11 @@ tm.util = tm.util || {};
     
     /**
      * @class tm.util.QueryString
-     * @TODO ?
+     * クエリ文字列クラス
      */
     tm.util.QueryString = {
         /**
-         * @TODO ?
+         * パース
          */
         parse: function(str, sep, eq) {
             sep = sep || '&';
@@ -2773,7 +2494,7 @@ tm.util = tm.util || {};
         },
         
         /**
-         * @TODO ?
+         * ストリングファイ
          */
         stringify: function(obj, sep, eq) {
             sep = sep || '&';
@@ -2902,8 +2623,8 @@ tm.namespace("tm.util.Type", function() {
     
 /**
  * @class tm.util.Flow
- * it is inspire in made flow.js of @uupaa
  * @extends tm.event.EventDispatcher
+ * it is inspire in made flow.js of `@uupaa`
  */
 tm.define("tm.util.Flow", {
     superClass: "tm.event.EventDispatcher",
@@ -2935,6 +2656,10 @@ tm.define("tm.util.Flow", {
         this.callback = callback;
         this.counter = 0;
         this.args = {};
+
+        this._check();
+
+        return this;
     },
     
     /**
@@ -2975,6 +2700,39 @@ tm.define("tm.util.Flow", {
     }
 });
 
+
+/*
+ * グリッドシステム
+ */
+tm.define("tm.util.GridSystem", {
+    width: 640, // 幅
+    col: 12,    // 列数
+    
+    init: function(width, col) {
+        if (typeof arguments[0] === 'object') {
+            var param = arguments[0];
+            width = param.width;
+            col = param.col;
+        }
+        
+        this.width = width;
+        this.col = col;
+        this.unitWidth = this.width/this.col;
+    },
+    
+    // スパン指定で値を取得(負数もok)
+    span: function(index) {
+        index += this.col;
+        index %= this.col;
+
+        return this.unitWidth * index;
+    },
+    
+    // 真ん中
+    center: function() {
+        return this.unitWidth * (this.col/2);
+    },
+});
 
 /*
  * vector2.js
@@ -3287,14 +3045,14 @@ tm.geom = tm.geom || {};
         },
 
         /**
-         * @TODO ?
+         * スタイル文字列に変換
          */
         toStyleString: function() {
             return "{x:{x}, y:{y}}".format(this);
         },
 
         /**
-         * @TODO ?
+         * 文字列に変換
          */
         toString: function() {
             return "{x:{x}, y:{y}}".format(this);
@@ -3782,7 +3540,7 @@ tm.geom = tm.geom || {};
         },
         
         /**
-         * @TODO ?
+         * ２次元ベクトルに変換
          */
         toVector2: function() {
             // TODO:
@@ -3836,14 +3594,14 @@ tm.geom = tm.geom || {};
         },
 
         /**
-         * @TODO ?
+         * スタイル文字列に変換
          */
         toStyleString: function() {
             return "{x:{x}, y:{y}, z:{z}}".format(this);
         },
 
         /**
-         * @TODO ?
+         * 文字列に変換
          */
         toString: function() {
             return "{x:{x}, y:{y}, z:{z}}".format(this);
@@ -4265,7 +4023,7 @@ tm.geom = tm.geom || {};
         },
 
         /**
-         * @TODO ?
+         * 行列式
          */
         determinant: function() {
             var m = this.m;
@@ -4833,28 +4591,28 @@ tm.geom = tm.geom || {};
         */
         
         /**
-         * @TODO ?
+         * X軸ベクトルをゲット
          */
         getAxisX: function() { return TM.Geom.Vector3(this.m00, this.m01, this.m02); },
         /**
-         * @TODO ?
+         * Y軸ベクトルをゲット
          */
         getAxisY: function() { return TM.Geom.Vector3(this.m10, this.m11, this.m12); },
         /**
-         * @TODO ?
+         * Z軸ベクトルをゲット
          */
         getAxisZ: function() { return TM.Geom.Vector3(this.m20, this.m21, this.m22); },
 
         /**
-         * @TODO ?
+         * X軸ベクトルをセット
          */
         setAxisX: function(v) { this.m00=v.x, this.m01=v.y, this.m02=v.z; },
         /**
-         * @TODO ?
+         * Y軸ベクトルをセット
          */
         setAxisY: function(v) { this.m10=v.x, this.m11=v.y, this.m12=v.z; },
         /**
-         * @TODO ?
+         * Z軸ベクトルをセット
          */
         setAxisZ: function(v) { this.m20=v.x, this.m21=v.y, this.m22=v.z; },
         
@@ -5337,6 +5095,10 @@ tm.geom = tm.geom || {};
             return this;
         },
 
+        contains: function(x, y) {
+            return this.left <= x && x <= this.right && this.top <= y && y <= this.bottom;
+        },
+
         /**
          * クローン
          */
@@ -5345,7 +5107,7 @@ tm.geom = tm.geom || {};
         },
         
         /**
-         * @TODO ?
+         * 円に変換
          */
         toCircle: function() {
             return tm.geom.Circle(
@@ -5356,7 +5118,7 @@ tm.geom = tm.geom || {};
         },
 
         /**
-         * @TODO ?
+         * 配列に変換
          */
         toArray: function() {
             return [this.x, this.y, this.width, this.height];
@@ -5499,6 +5261,17 @@ tm.geom = tm.geom || {};
         },
 
         /**
+         * 
+         */
+        contains: function(x, y) {
+            var lenX = this.x-x;
+            var lenY = this.y-y;
+            var lenSquared = (lenX*lenX)+(lenY*lenY);
+
+            return lenSquared <= this.radius*this.radius;
+        },
+
+        /**
          * クローン作成
          */
         clone: function() {
@@ -5580,7 +5353,7 @@ tm.collision = tm.collision || {};
     tm.collision.testCircleCircle = function(circle0, circle1) {
         var distanceSquared = tm.geom.Vector2.distanceSquared(circle0, circle1);
         return distanceSquared <= Math.pow(circle0.radius + circle1.radius, 2);
-    }
+    };
     
     /**
      * @method testRectRect
@@ -5589,9 +5362,66 @@ tm.collision = tm.collision || {};
     tm.collision.testRectRect = function(rect0, rect1) {
         return (rect0.left < rect1.right) && (rect0.right > rect1.left) &&
                (rect0.top < rect1.bottom) && (rect0.bottom > rect1.top);
-    }
+    };
+
+    tm.collision.testCircleRect = function(circle, rect) {
+        // まずは大きな矩形で判定(高速化)
+        var bigRect = tm.geom.Rect(rect.left-circle.radius, rect.top-circle.radius, rect.width+circle.radius*2, rect.height+circle.radius*2);
+        if (bigRect.contains(circle.x, circle.y) == false) {
+            return false;
+        }
+        
+        // 2種類の矩形と衝突判定
+        var r = tm.geom.Rect(rect.left-circle.radius, rect.top, rect.width+circle.radius*2, rect.height);
+        if (r.contains(circle.x, circle.y)) {
+            return true;
+        }
+        r.set(rect.left, rect.top-circle.radius, rect.width, rect.height+circle.radius*2);
+        if (r.contains(circle.x, circle.y)) {
+            return true;
+        }
+        
+        // 円と矩形の４点の判定
+        var c = tm.geom.Circle(circle.x, circle.y, circle.radius);
+        // left top
+        if (c.contains(rect.left, rect.top)) {
+            return true;
+        }
+        // right top
+        if (c.contains(rect.right, rect.top)) {
+            return true;
+        }
+        // right bottom
+        if (c.contains(rect.right, rect.bottom)) {
+            return true;
+        }
+        // left bottom
+        if (c.contains(rect.left, rect.bottom)) {
+            return true;
+        }
+        
+        return false;
+    };
+
+    tm.collision.testRectCircle = function(rect, circle) {
+        return this.testCircleRect(circle, rect);
+    };
  
 })();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /*
  * element.js
  */
@@ -5762,28 +5592,28 @@ tm.dom = tm.dom || {};
         },
 
         /**
-         * @TODO ?
+         * 表示
          */
         show: function() {
             this.visible = true;
         },
 
         /**
-         * @TODO ?
+         * 非表示
          */
         hide: function() {
             this.visible = false;
         },
         
         /**
-         * @TODO ?
+         * 文字列に変換
          */
         toString: function() {
             return "tm.dom.element";
         },
         
         /**
-         * @TODO ?
+         * 要素を取得
          */
         getElement: function() {
             return this.element;
@@ -5904,7 +5734,7 @@ tm.dom = tm.dom || {};
         },
         
         /**
-         * @TODO ?
+         * 文字列に変換
          */
         toString: function() {
             return "";
@@ -6112,7 +5942,7 @@ tm.dom = tm.dom || {};
         },
         
         /**
-         * @TODO ?
+         * ミドルクリックイベント
          */
         mdlclick: function(fn, id) {
             var temp_fn = function(e) {
@@ -6236,7 +6066,7 @@ tm.dom = tm.dom || {};
     
     /**
      * @class tm.dom.Attr
-     * @TODO ?
+     * 属性クラス
      */
     tm.dom.Attr = tm.createClass({
         
@@ -6310,7 +6140,7 @@ tm.dom = tm.dom || {};
         },
 
         /**
-         * @TODO ?
+         * トグル
          */
         toggle: function(name, value) {
             if (this.contains(name, value)) {
@@ -6563,7 +6393,7 @@ tm.dom = tm.dom || {};
     
     /**
      * @class tm.dom.Trans
-     * @TODO ?
+     * トランス
      */
     tm.dom.Trans = tm.createClass({
         
@@ -6578,7 +6408,7 @@ tm.dom = tm.dom || {};
         },
         
         /**
-         * @TODO ?
+         * 変換開始
          */
         to: function(props, t) {
             this.set(props).duration(t||1000);
@@ -6586,7 +6416,7 @@ tm.dom = tm.dom || {};
         },
 
         /**
-         * @TODO ?
+         * セット
          */
         set: function(props) {
             var style = this.element.style;
@@ -6604,7 +6434,7 @@ tm.dom = tm.dom || {};
         },
 
         /**
-         * @TODO ?
+         * 間関
          */
         duration: function(t) {
             var style = this.element.style;
@@ -6614,7 +6444,7 @@ tm.dom = tm.dom || {};
         },
 
         /**
-         * @TODO ?
+         * イージング
          */
         easing: function(ease) {
             var style = this.element.style;
@@ -6623,7 +6453,7 @@ tm.dom = tm.dom || {};
         },
 
         /**
-         * @TODO ?
+         * 終了
          */
         end: function(fn) {
             var elm  = tm.dom.Element(this.element);
@@ -6632,7 +6462,7 @@ tm.dom = tm.dom || {};
         },
 
         /**
-         * @TODO ?
+         * リセット
          */
         reset: function() {
             var style = this.element.style;
@@ -6641,7 +6471,7 @@ tm.dom = tm.dom || {};
         },
 
         /**
-         * @TODO ?
+         * 移動
          */
         translate: function(x, y, t) {
             this.to({"transform": "translate({0}px,{1}px)".format(x, y)}, t);
@@ -6649,7 +6479,7 @@ tm.dom = tm.dom || {};
         },
 
         /**
-         * @TODO ?
+         * 移動3D
          */
         translate3d: function(x, y, z, t) {
             this.to({"transform": "translate3d({0}px,{1}px,{2}px)".format(x, y, z)}, t);
@@ -6657,7 +6487,7 @@ tm.dom = tm.dom || {};
         },
 
         /**
-         * @TODO ?
+         * 回転
          */
         rotate: function(deg, t) {
             this.to({"transform": "rotate({0}deg)".format(deg)}, t);
@@ -6665,7 +6495,7 @@ tm.dom = tm.dom || {};
         },
 
         /**
-         * @TODO ?
+         * 回転3D
          */
         rotate3d: function(x, y, z, deg, t) {
             this.to({"transform": "rotate3d({0},{1},{2},{3}deg)".format(x, y, z, deg)}, t);
@@ -6673,7 +6503,7 @@ tm.dom = tm.dom || {};
         },
 
         /**
-         * @TODO ?
+         * スケール
          */
         scale: function(x, y, t) {
             this.to({"transform": "scale({0},{1})".format(x, y)}, t);
@@ -6681,7 +6511,7 @@ tm.dom = tm.dom || {};
         },
 
         /**
-         * @TODO ?
+         * 行列変換
          */
         transform: function() {
             // TODO: 実装する
@@ -6690,7 +6520,7 @@ tm.dom = tm.dom || {};
         // -------------------------------------
         
         /**
-         * @TODO ?
+         * プロパティをセット
          */
         setProp: function(prop) {
             var style = this.element.style;
@@ -6708,7 +6538,7 @@ tm.dom = tm.dom || {};
         },
 
         /**
-         * @TODO ?
+         * 間関をセット
          */
         setDuration: function(t) {
             var style = this.element.style;
@@ -6717,7 +6547,7 @@ tm.dom = tm.dom || {};
         },
 
         /**
-         * @TODO ?
+         * タイミングファンクをセット
          */
         setTimingFunction: function(func) {
             var style = this.element.style;
@@ -6726,7 +6556,7 @@ tm.dom = tm.dom || {};
         },
 
         /**
-         * @TODO ?
+         * リセット
          */
         resetProp: function() {
             var style = this.element.style;
@@ -6735,7 +6565,7 @@ tm.dom = tm.dom || {};
         },
 
         /**
-         * @TODO ?
+         * 終了時関数を登録
          */
         setEndFunction: function(fn) {
             var elm  = tm.dom.Element(this.element);
@@ -6828,6 +6658,288 @@ tm.dom = tm.dom || {};
 
 })();
 /*
+ * manager.js
+ */
+
+(function() {
+
+    tm.asset = tm.asset || {};
+    
+    /**
+     * アセットマネージャー
+     */
+    tm.asset.Manager = {
+        /** アセット */
+        assets: {},
+        
+        /**
+         * アセットのゲット
+         * @param {Object} key
+         */
+        get: function(key) {
+            return this.assets[key];
+        },
+
+        /**
+         * アセットのセット
+         * @param {Object} key
+         * @param {Object} asset
+         */
+        set: function(key, asset) {
+            this.assets[key] = asset;
+            return this;
+        },
+
+        /**
+         * キーと一致するアセットを含んでいるか
+         * @param {Object} key
+         */
+        contains: function(key) {
+            return (this.assets[key]) ? true : false;
+        },
+
+    };
+
+})();
+
+
+
+
+
+
+
+
+
+
+
+
+
+(function() {
+
+    /**
+     * @class tm.asset.Loader
+     * @extends tm.event.EventDispatcher
+     * アセットローダー
+     */
+    tm.define("tm.asset.Loader", {
+        superClass: "tm.event.EventDispatcher",
+
+        /** @property assets  アセット */
+        
+        /**
+         * @constructor
+         */
+        init: function() {
+            this.superInit();
+            
+            this.assets = {};
+        },
+        
+        /**
+         * キーと一致するアセットを含んでいるか
+         * @param {Object} key
+         */
+        contains: function(key) {
+            return (this.assets[key]) ? true : false;
+        },
+        
+        /**
+         * アセットのロード実行
+         * @param {Object} arg
+         */
+        load: function(arg) {
+            if (tm.util.Type.isObject(arg)) {
+                this._loadByObject(arg);
+            }
+            else {
+                this._loadString(arguments[0], arguments[1], arguments[2]);
+            }
+            
+            return this;
+        },
+
+        /**
+         * アセットのゲット
+         * @param {Object} key
+         */
+        get: function(key) {
+            return this.assets[key];
+        },
+
+        /**
+         * アセットのセット
+         * @param {Object} key
+         * @param {Object} asset
+         */
+        set: function(key, asset) {
+            this.assets[key] = asset;
+            
+            // manager の方にもセットする
+            tm.asset.Manager.set(key, asset);
+            
+            return this;
+        },
+        
+        /**
+         * アセットのロード
+         * @private
+         * @param {Object} key
+         * @param {Object} path
+         * @param {Object} type
+         */
+        _load: function(key, path, type) {
+            // if (tm.asset.Manager.contains(key)) {
+            //     return tm.asset.Manager.get(key);
+            // }
+            
+            path = path || key;
+            // type が省略されている場合は拡張子から判定する
+            type = type || path.split('?')[0].split('#')[0].split('.').last;
+            
+            var asset = tm.asset.Loader._funcs[type](path, key);
+            this.set(key, asset);
+            
+            return asset;
+        },
+        /**
+         * 文字列指定のアセットのロード
+         * @private
+         * @param {Object} key
+         * @param {Object} path
+         * @param {Object} type
+         */
+        _loadString: function(key, path, type) {
+            
+            var hash = {};
+            hash[key] = {
+                url: path,
+                type: type,
+            };
+            this._loadByObject(hash);
+        },
+        /**
+         * オブジェクト指定のアセットのロード
+         * @private
+         * @param {Object} hash
+         */
+        _loadByObject: function(hash) {
+            var flow = tm.util.Flow(Object.keys(hash).length, function() {
+                var e = tm.event.Event("load");
+                this.dispatchEvent(e);
+            }.bind(this));
+            
+            var loadAsset = function(asset, key) {
+
+                var e = tm.event.Event("progress");
+                e.key = key;
+                e.asset = asset;
+                e.progress = (flow.counter+1)/flow.waits; // todo
+                this.dispatchEvent(e);
+
+                flow.pass();
+            }.bind(this);
+            
+            Object.keys(hash).each(function(key) {
+                var value = hash[key];
+                var asset = null;
+
+                if (typeof value == 'string') {
+                    asset = this._load(key, value);
+                }
+                else {
+                    asset = this._load(key, value['url'] || value['src'] || value['path'], value['type']);
+                }
+                
+                if (asset.loaded) {
+                    loadAsset(asset, key);
+                }
+                else {
+                    asset.on("load", function() {
+                        loadAsset(asset, key);
+                    });
+                }
+            }.bind(this));
+        },
+    });
+    
+    
+    tm.asset.Loader._funcs = [];
+    tm.asset.Loader.defineFunction("register", function(type, func) {
+        this._funcs[type] = func;
+    });
+    
+    
+    var _textureFunc = function(path) {
+        var texture = tm.asset.Texture(path);
+        return texture;
+    };
+    var _soundFunc = function(path) {
+        var audio = tm.sound.WebAudio(path);
+        return audio;
+    };
+    
+    var _tmxFunc = function(path) {
+        var mapSheet = tm.asset.MapSheet(path);
+        return mapSheet;
+    };
+    
+    var _tmssFunc = function(path) {
+        var ss = tm.asset.SpriteSheet(path);
+        return ss;
+    };
+
+    var _jsonFunc = function(path) {
+        var file = tm.util.File();
+        
+        if (typeof path == 'string') {
+            file.load({
+                url: path,
+                dataType: 'json',
+            });
+        }
+        else {
+            var data = path;
+            file.setData(path);
+            file.loaded = true;
+        }
+
+        return file;
+    };
+
+    var _loadScript = function(path) {
+        var script = tm.asset.Script(path);
+
+        return script;
+    };
+
+    // image
+    tm.asset.Loader.register("png", _textureFunc);
+    tm.asset.Loader.register("gif", _textureFunc);
+    tm.asset.Loader.register("jpg", _textureFunc);
+    tm.asset.Loader.register("jpeg", _textureFunc);
+
+    // sound
+    tm.asset.Loader.register("wav", _soundFunc);
+    tm.asset.Loader.register("mp3", _soundFunc);
+    tm.asset.Loader.register("ogg", _soundFunc);
+    tm.asset.Loader.register("m4a", _soundFunc);
+
+    // json
+    tm.asset.Loader.register("json", _jsonFunc);
+
+    // map data
+    tm.asset.Loader.register("tmx", _tmxFunc);
+    
+    // spritesheet for tmlib.js
+    tm.asset.Loader.register("tmss", _tmssFunc);
+    
+    // script file
+    tm.asset.Loader.register("js", _loadScript);
+    
+})();
+
+
+/*
  * texture.js
  */
 
@@ -6854,6 +6966,9 @@ tm.dom = tm.dom || {};
             this.superInit();
             
             this.element = new Image();
+            if ( !tm.isLocal() && !(/^data:/.test(src)) ) {
+                // this.element.crossOrigin = "anonymous";
+            }
             this.element.src = src;
             
             var self = this;
@@ -6861,6 +6976,16 @@ tm.dom = tm.dom || {};
                 self.loaded = true;
                 var e = tm.event.Event("load");
                 self.dispatchEvent( e );
+            };
+
+            this.element.onerror = function(e) {
+                console.error("[tmlib] {0}の読み込みに失敗!".format(src));
+                
+                var key = src.split('/').last.replace('.png', '').split('?').first.split('#').first;
+                var elm = e.target;
+                
+                elm.src = "http://dummyimage.com/128x128/444444/eeeeee&text=" + key;
+                elm.onerror = null;
             };
         },
         
@@ -6936,7 +7061,7 @@ tm.dom = tm.dom || {};
     tm.define("tm.asset.SpriteSheet", {
         superClass: "tm.event.EventDispatcher",
 
-        /** loaded  */
+        /** ロード済みかどうか */
         loaded: false,
 
         /**
@@ -6959,7 +7084,7 @@ tm.dom = tm.dom || {};
         },
 
         /**
-         * @TODO ?
+         * ロード
          */
         load: function(path) {
         	tm.util.Ajax.load({
@@ -6973,16 +7098,17 @@ tm.dom = tm.dom || {};
         },
 
         /**
-         * @TODO ?
+         * パース
          */
         parse: function(param) {
             this.frame = param.frame;
 
             if (typeof param.image == "string") {
-                if (!tm.asset.AssetManager.contains(param.image)) {
-                    tm.asset.AssetManager.load(param.image);
+                if (!tm.asset.Manager.contains(param.image)) {
+                    var loader = tm.asset.Loader();
+                    loader.load(param.image);
                 }
-                this.image = tm.asset.AssetManager.get(param.image);
+                this.image = tm.asset.Manager.get(param.image);
             }
             else {
                 this.image = param.image;
@@ -7005,21 +7131,20 @@ tm.dom = tm.dom || {};
         },
 
         /**
-         * @TODO ?
+         * フレームを取得
          */
         getFrame: function(index) {
             return this.frames[index];
         },
         
         /**
-         * @TODO ?
+         * アニメーションを取得
          */
         getAnimation: function(name) {
             return this.animations[name];
         },
         
         /**
-         * @TODO ?
          * @private
          */
         _calcFrames: function(frame) {
@@ -7046,7 +7171,6 @@ tm.dom = tm.dom || {};
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _calcAnim: function(animations) {
@@ -7131,7 +7255,7 @@ tm.dom = tm.dom || {};
         },
 
         /**
-         * @TODO ?
+         * パース
          * @private
          */
         _parse: function(str) {
@@ -7153,7 +7277,6 @@ tm.dom = tm.dom || {};
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _parseTilesets: function(xml) {
@@ -7178,7 +7301,6 @@ tm.dom = tm.dom || {};
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _parseLayers: function(xml) {
@@ -7188,7 +7310,7 @@ tm.dom = tm.dom || {};
             var map = xml.getElementsByTagName("map")[0];
             var layers = [];
             each.call(map.childNodes, function(elm) {
-                if (elm.tagName == "layer" || elm.tagName == "objectgroup") {
+                if (elm.tagName == "layer" || elm.tagName == "objectgroup" || elm.tagName == "imagelayer") {
                     layers.push(elm);
                 }
             });
@@ -7231,13 +7353,28 @@ tm.dom = tm.dom || {};
 
                     data.push(l);
                 }
+                else if (layer.tagName == "imagelayer") {
+                    var l = {
+                        type: "imagelayer",
+                        name: layer.getAttribute("name"),
+                        x: layer.getAttribute("x") || 0,
+                        y: layer.getAttribute("y") || 0,
+                        alpha: layer.getAttribute("opacity") || 1,
+                        visible: (layer.getAttribute("visible") === undefined || layer.getAttribute("visible") != 0),
+                    };
+                    var imageElm = layer.getElementsByTagName("image")[0];
+                    l.image = {
+                        source: imageElm.getAttribute("source")
+                    };
+
+                    data.push(l);
+                }
             }.bind(this));
 
             return data;
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _parseCSV: function(data) {
@@ -7273,18 +7410,18 @@ tm.dom = tm.dom || {};
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _propertiesToJson: function(elm) {
             var properties = elm.getElementsByTagName("properties")[0];
             var obj = {};
-            if (properties) {
-                for (var k = 0;k < properties.childNodes.length;k++) {
-                    var p = properties.childNodes[k];
-                    if (p.tagName === "property") {
-                        obj[p.getAttribute('name')] = p.getAttribute('value');
-                    }
+            if (properties === undefined) {
+                return obj;
+            }
+            for (var k = 0;k < properties.childNodes.length;k++) {
+                var p = properties.childNodes[k];
+                if (p.tagName === "property") {
+                    obj[p.getAttribute('name')] = p.getAttribute('value');
                 }
             }
 
@@ -7292,7 +7429,6 @@ tm.dom = tm.dom || {};
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _attrToJSON: function(source) {
@@ -7307,14 +7443,29 @@ tm.dom = tm.dom || {};
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _checkImage: function() {
             var self = this;
+            var imageSoruces = [];
+
+            // for tile set
             if (this.tilesets.length) {
+                Array.prototype.push.apply(imageSoruces, this.tilesets.map(function(tile) {
+                    return tile.image;
+                }));
+            }
+
+            // for image layer
+            this.layers.each(function(layer) {
+                if (layer.type == "imagelayer") {
+                    imageSoruces.push(layer.image.source);
+                }
+            });
+
+            if (imageSoruces.length) {
                 var i = 0;
-                var len = this.tilesets.length;
+                var len = imageSoruces.length;
 
                 var _onloadimage = function() {
                     i++;
@@ -7325,8 +7476,8 @@ tm.dom = tm.dom || {};
                     }
                 }.bind(this);
 
-                this.tilesets.each(function(elm) {
-                    var image = tm.asset.AssetManager.get(elm.image)
+                imageSoruces.each(function(imageName) {
+                    var image = tm.asset.Manager.get(imageName);
 
                     if (image) {
                         if (image.loaded) {
@@ -7343,8 +7494,9 @@ tm.dom = tm.dom || {};
                         }
                     }
                     else {
-                        tm.asset.AssetManager.load(elm.image);
-                        var texture = tm.asset.AssetManager.get(elm.image);
+                        var loader = tm.asset.Loader();
+                        loader.load(imageName);
+                        var texture = tm.asset.Manager.get(imageName);
                         texture.addEventListener("load", _onloadimage);
                     }
                 });
@@ -7359,230 +7511,182 @@ tm.dom = tm.dom || {};
     });
 
 })();
-/*
- * assetmanger.js
- */
+tm.asset = tm.asset || {};
 
 (function() {
 
-    tm.asset = tm.asset || {};
-
-    /**
-     * @class tm.asset.AssetManager
-     * マップシート
-     * @extends tm.event.EventDispatcher
-     */
-    tm.define("tm.asset.AssetManager", {
+    tm.define("tm.asset.Font", {
         superClass: "tm.event.EventDispatcher",
 
-        /** @property assets  */
-        /** @property _funcs  @private */
-        /** @property _loadedCounter  @private */
-
-        /**
-         * @constructor
-         */
-        init: function() {
+        init: function(path, key, format) {
             this.superInit();
 
-            this.assets = {};
+            var fontFaceStyleElement = tm.dom.Element("head").create("style");
+            fontFaceStyleElement.text = "@font-face { font-family: '{0}'; src: url({1}) format('{2}'); }".format(key, path, format);
 
-            this._funcs = [];
-            this._loadedCounter = 0;
+            tm.asset.Font.checkLoaded(key, function() {
+                this.flare("load");
+            }.bind(this));
         },
-
-        /**
-         * アセットのロード
-         * @param {Object} key
-         * @param {Object} path
-         */
-        load: function(key, path, type) {
-            if (typeof arguments[0] == 'string') {
-                path = (arguments.length < 2) ? key : path;
-                this._load(key, path, type);
-            }
-            else {
-                var hash = arguments[0];
-                for (var key in hash) {
-                    var value = hash[key];
-                    if (typeof value == 'string') {
-                        this._load(key, value);
-                    }
-                    else {
-                        this._load(key, value['url'] || value['src'], value['type']);
-                    }
-                }
-            }
-
-            // 重複ロード対応
-            if (this.isLoaded()) {
-                var e = tm.event.Event("load");
-                this.dispatchEvent(e);
-            }
-
-            return this;
-        },
-
-        /**
-         * アセットのロード
-         * @private
-         * @param {Object} key
-         * @param {Object} path
-         * @param {Object} type
-         */
-        _load: function(key, path, type) {
-            if (this.contains(key)) return ;
-
-            // type が省略されている場合は拡張子から判定する
-            type = type || path.split('.').last;
-
-            var asset = this._funcs[type](path);
-            this.assets[key] = asset;
-
-            if (asset.loaded == false) {
-                asset.addEventListener("load", this._checkLoadedFunc.bind(this));
-            }
-            else {
-                this._checkLoadedFunc();
-            }
-
-            return this;
-        },
-
-        /**
-         * アセットのゲット
-         * @param {Object} key
-         */
-        get: function(key) {
-            return this.assets[key];
-        },
-
-        /**
-         * アセットのセット
-         * @param {Object} key
-         * @param {Object} asset
-         */
-        set: function(key, asset) {
-            this.assets[key] = asset;
-            return this;
-        },
-
-        /**
-         * @TODO ?
-         * @param {Object} key
-         */
-        contains: function(key) {
-            return (this.assets[key]) ? true : false;
-        },
-
-        /**
-         * アセットのセット
-         * @param {Object} key
-         * @param {Object} asset
-         */
-        register: function(type, fn) {
-            this._funcs[type] = fn;
-        },
-
-        /**
-         * ロード済みか調べる
-         */
-        isLoaded: function() {
-            return (this._loadedCounter == Object.keys(this.assets).length);
-        },
-        
-        getProgress: function() {
-            return (this._loadedCounter / Object.keys(this.assets).length);
-        },
-
-        /**
-         * @TODO ?
-         * @private
-         */
-        _checkLoadedFunc: function() {
-            this._loadedCounter++;
-            
-            var e = tm.event.Event("progress");
-            e.progress = this.getProgress();
-            this.dispatchEvent(e);
-            
-            if (this.isLoaded()) {
-                var e = tm.event.Event("load");
-                this.dispatchEvent(e);
-            }
-        }
-
     });
 
-    tm.asset.AssetManager = tm.asset.AssetManager();
+    tm.asset.Font.checkLoaded = function (font, callback) {
+        var canvas = tm.graphics.Canvas();
+        var DEFAULT_FONT = canvas.context.font.split(' ')[1];
+        canvas.context.font = '40px ' + DEFAULT_FONT;
 
-    var _textureFunc = function(path) {
-        var texture = tm.asset.Texture(path);
-        return texture;
-    };
-    var _soundFunc = function(path) {
-        var audio = tm.sound.WebAudio(path);
-        return audio;
-    };
-    
-    var _tmxFunc = function(path) {
-        var mapSheet = tm.asset.MapSheet(path);
-        return mapSheet;
-    };
-    
-    var _tmssFunc = function(path) {
-        var ss = tm.asset.SpriteSheet(path);
-        return ss;
-    };
+        var checkText = "1234567890-^\\qwertyuiop@[asdfghjkl;:]zxcvbnm,./\!\"#$%&'()=~|QWERTYUIOP`{ASDFGHJKL+*}ZXCVBNM<>?_１２３４５６７８９０－＾￥ｑｗｅｒｔｙｕｉｏｐａｓｄｆｇｈｊｋｌｚｘｃｖｂｎｍ，．あいうかさたなをん時は金なり";
 
-    var _jsonFunc = function(path) {
-        var file = tm.util.File();
-        if (typeof path == 'string') {
-            file.load({
-                url: path,
-                dataType: 'json',
-            });
-        }
-        else {
-            var data = path;
-            file.setData(path);
-        }
+        var before = canvas.context.measureText(checkText).width;
+        canvas.context.font = '40px ' + font + ', ' + DEFAULT_FONT;
 
-        return file;
+        var checkLoadFont = function () {
+            if (canvas.context.measureText(checkText).width !== before) {
+                callback && callback();
+            } else {
+                setTimeout(checkLoadFont, 100);
+            }
+        };
+        setTimeout(checkLoadFont, 100);
     };
 
-    // image
-    tm.asset.AssetManager.register("png", _textureFunc);
-    tm.asset.AssetManager.register("gif", _textureFunc);
-    tm.asset.AssetManager.register("jpg", _textureFunc);
-    tm.asset.AssetManager.register("jpeg", _textureFunc);
-
-    // sound
-    tm.asset.AssetManager.register("wav", _soundFunc);
-    tm.asset.AssetManager.register("mp3", _soundFunc);
-    tm.asset.AssetManager.register("ogg", _soundFunc);
-    tm.asset.AssetManager.register("m4a", _soundFunc);
-
-    // json
-    tm.asset.AssetManager.register("json", _jsonFunc);
-
-    // map data
-    tm.asset.AssetManager.register("tmx", _tmxFunc);
-    
-    // spritesheet for tmlib.js
-    tm.asset.AssetManager.register("tmss", _tmssFunc);
+    tm.asset.Loader.register("ttf", function(path, key) {
+        return tm.asset.Font(path, key, "truetype");
+    });
+    tm.asset.Loader.register("otf", function(path, key) {
+        return tm.asset.Font(path, key, "opentype");
+    });
+    tm.asset.Loader.register("woff", function(path, key) {
+        return tm.asset.Font(path, key, "woff");
+    });
+    tm.asset.Loader.register("woff2", function(path, key) {
+        return tm.asset.Font(path, key, "woff2");
+    });
 
 })();
 
+/*
+ * script.js
+ */
+
+tm.util = tm.util || {};
 
 
+(function() {
+    
+    /**
+     * @class tm.asset.Script
+     * スクリプトクラス
+     */
+
+    tm.define("tm.asset.Script", {
+
+        superClass: "tm.event.EventDispatcher",
+
+        /** element */
+        element: null,
+        /** loaded */
+        loaded: false,
+        
+        /**
+         * @constructor
+         */
+        init: function(src) {
+            this.superInit();
+
+            this.loaded = false;
+            this.element = document.createElement("script");
+            this.element.type = "text/javascript";
+            this.element.src = src;
+            this.element.charset = "UTF-8";
+            this.element.setAttribute("defer", true);
+            document.head.appendChild(this.element);
+            
+            var self = this;
+            this.element.onload = function() {
+                self.loaded = true;
+                self.fire(tm.event.Event("load"));
+            };
+        },
+        
+        /**
+         * getElement
+         */
+        getElement: function() {
+            return this.element;
+        },
+        
+    });
+
+    tm.asset.Script.load = function(src) {
+        var script = tm.asset.Script(src);
+
+        return script;
+    };
+
+    /**
+     * @static
+     * @method
+     * Stats を動的ロード
+     */
+    tm.asset.Script.loadStats = function(version) {
+        version = version || "r11";
+        var path = null;
+        if (["r6", "r7", "r8", "r9", "10"].indexOf(version) != -1) {
+            path = "http://rawgithub.com/mrdoob/stats.js/" + version + "/build/Stats.js";
+        }
+        else {
+            path = "http://rawgithub.com/mrdoob/stats.js/" + version + "/build/stats.min.js";
+        }
+
+        return this.load(path);
+    };
+
+    /**
+     * @static
+     * @method
+     * datGUI を動的ロード
+     */
+    tm.asset.Script.loadDatGUI = function(version) {
+        // http://dat-gui.googlecode.com/git/build/dat.gui.min.js
+        // https://dat-gui.googlecode.com/git-history/0.5/build/dat.gui.min.js
+
+        version = version || "0.5";
+//        var path = "https://dat-gui.googlecode.com/git-history/" + version + "/build/dat.gui.min.js";
+//        var path = "http://dat-gui.googlecode.com/git/build/dat.gui.min.js";
+        var path = "http://dat-gui.googlecode.com/git/build/dat.gui.js";
+        return this.load(path);
+    };
+
+    /**
+     * @static
+     * @method
+     * Three.js を動的ロード
+     */
+    tm.asset.Script.loadThree = function(version) {
+        var THREE_JS_URL = "http://rawgithub.com/mrdoob/three.js/{version}/build/three.js";
+//        var THREE_JS_URL = "https://raw.github.com/mrdoob/three.js/{version}/build/three.min.js";
+        version = version || "r55";
+
+        var path = THREE_JS_URL.format({version: version});
+
+        return this.load(path);
+    };
+
+    /**
+     * @static
+     * @method
+     * BulletML.js を動的ロード
+     */
+    tm.asset.Script.loadBulletML = function(version) {
+        var BULLETML_FOR_TMLIB_JS_URL   = "http://rawgithub.com/daishihmr/bulletml.js/{version}/target/bulletml.for.tmlib.js";
+        version = version || "v0.4.2";
+        var path = BULLETML_FOR_TMLIB_JS_URL.format({version: version});        
+        return this.load(path);
+    };
 
 
-
-
-
-
-
+})();
 
 /*
  * keyboard.js
@@ -7773,15 +7877,19 @@ tm.input = tm.input || {};
             if (typeof(key) == "string") {
                 key = KEY_CODE[key];
             }
-            return this.press[key] = flag;
+            this.key[key] = flag;
+            
+            return this;
         },
 
         /**
          * キーを全て離したことにする
          */
         clearKey: function() {
-            this.press = {};
-        }
+            this.key = {};
+            
+            return this;
+        },
         
     });
 
@@ -8120,6 +8228,7 @@ tm.input = tm.input || {};
             this.prevPosition   = tm.geom.Vector2(0, 0);
             this._x = 0;
             this._y = 0;
+            this.touches = [];
             
             var self = this;
             this.element.addEventListener("mousedown", function(e){
@@ -8164,8 +8273,8 @@ tm.input = tm.input || {};
             this.up   = (this.press ^ this.last) & this.last;
             
             // 変化値を更新
-            this.deltaPosition.x = this._x - this.prevPosition.x;
-            this.deltaPosition.y = this._y - this.prevPosition.y;
+            this.deltaPosition.x = this._x - this.position.x;
+            this.deltaPosition.y = this._y - this.position.y;
             
             // 前回の座標を更新
             this.prevPosition.setObject(this.position);
@@ -8208,7 +8317,6 @@ tm.input = tm.input || {};
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _mousemove: function(e) {
@@ -8218,7 +8326,6 @@ tm.input = tm.input || {};
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _mousemoveNormal: function(e) {
@@ -8228,7 +8335,6 @@ tm.input = tm.input || {};
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _mousemoveScale: function(e) {
@@ -8363,7 +8469,8 @@ tm.input = tm.input || {};
             this.prevPosition   = tm.geom.Vector2(0, 0);
             this._x = 0;
             this._y = 0;
-            
+            this.touches = [];
+
             var self = this;
             this.element.addEventListener("touchstart", function(e){
                 self.touched = true;
@@ -8372,14 +8479,20 @@ tm.input = tm.input || {};
                 // 最初だけセット
                 self.position.set(self._x, self._y);
                 self.prevPosition.set(self._x, self._y);    // prevPostion をリセット
+
+                self._setTouches(e);
             });
             this.element.addEventListener("touchend", function(e){
                 self.touched = false;
+
+                self._setTouches(e);
             });
             this.element.addEventListener("touchmove", function(e){
                 self._touchmove(e);
                 // 画面移動を止める
                 e.stop();
+
+                self._setTouches(e);
             });
             
             // var self = this;
@@ -8435,8 +8548,8 @@ tm.input = tm.input || {};
             this.end    = (this.now ^ this.last) & this.last;
             
             // 変化値を更新
-            this.deltaPosition.x = this._x - this.prevPosition.x;
-            this.deltaPosition.y = this._y - this.prevPosition.y;
+            this.deltaPosition.x = this._x - this.position.x;
+            this.deltaPosition.y = this._y - this.position.y;
             
             // 前回の座標を更新
             this.prevPosition.setObject(this.position);
@@ -8467,7 +8580,6 @@ tm.input = tm.input || {};
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _touchmove: function(e) {
@@ -8478,7 +8590,6 @@ tm.input = tm.input || {};
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _touchmoveScale: function(e) {
@@ -8494,6 +8605,37 @@ tm.input = tm.input || {};
                 this._y *= e.target.height / parseInt(e.target.style.height);
             }
         },
+
+        _getAdjustPoint: function(p) {
+            var elm = this.element;
+            var style = elm.style;
+            var r = elm.getBoundingClientRect();
+            var p = {
+                x: p.clientX - r.left,
+                y: p.clientY - r.top,
+            };
+            
+            if (style.width) {
+                p.x *= elm.width / parseInt(style.width);
+            }
+            if (style.height) {
+                p.y *= elm.height / parseInt(style.height);
+            }
+
+            return p;
+         },
+
+        _setTouches: function(e) {
+            var touches = e.touches;
+
+            this.touches.clear();
+            for (var i=0,len=touches.length; i<len; ++i) {
+                var p = this._getAdjustPoint(touches[i]);
+                this.touches.push(p);
+            }
+
+            return this;
+        }
         
     });
     
@@ -8618,7 +8760,7 @@ tm.input = tm.input || {};
         },
 
         /**
-         * @TODO ?
+         * 更新
          */
         update: function() {
             this.each(function(touch) {
@@ -8645,9 +8787,14 @@ tm.input = tm.input || {};
     
     /**
      * @class tm.input.Accelerometer
-     * @TODO ?
+     * スマートフォンのセンサー情報
      */
     tm.input.Accelerometer = tm.createClass({
+
+        /** @property  gravity 重力センサー */
+        /** @property  acceleration 加速度センサー */
+        /** @property  rotation 回転加速度センサー */
+        /** @property  orientation スマートフォンの傾き */
         
         /**
          * @constructor
@@ -8664,12 +8811,14 @@ tm.input = tm.input || {};
             
             this.gravity        = tm.geom.Vector3(0, 0, 0);
             this.acceleration   = tm.geom.Vector3(0, 0, 0);
+            this.rotation       = tm.geom.Vector3(0, 0, 0);
             this.orientation    = tm.geom.Vector3(0, 0, 0);
             
             var self = this;
             window.addEventListener("devicemotion", function(e) {
                 var acceleration = self.acceleration;
                 var gravity = self.gravity;
+                var rotation = self.rotation;
                 
                 if (e.acceleration) {
                     acceleration.x = e.acceleration.x;
@@ -8680,6 +8829,11 @@ tm.input = tm.input || {};
                     gravity.x = e.accelerationIncludingGravity.x;
                     gravity.y = e.accelerationIncludingGravity.y;
                     gravity.z = e.accelerationIncludingGravity.z;
+                }
+                if (e.rotationRate) {
+                    rotation.x = rotation.beta  = e.rotationRate.beta;
+                    rotation.y = rotation.gamma = e.rotationRate.gamma;
+                    rotation.z = rotation.alpha = e.rotationRate.alpha;
                 }
             });
             
@@ -8896,7 +9050,7 @@ tm.graphics = tm.graphics || {};
 
     /**
      * @static
-     * @TODO ?
+     * カラーリスト
      */
     tm.graphics.Color.COLOR_LIST = {
         /** @property black */
@@ -8937,13 +9091,6 @@ tm.graphics = tm.graphics || {};
      * @static
      * @member tm.graphics.Color
      * @method strToNum
-     * @TODO ?
-     */
-    /**
-     * @static
-     * @member tm.graphics.Color
-     * @method stringToNumber
-     * @TODO ?
      */
     tm.graphics.Color.strToNum = tm.graphics.Color.stringToNumber = function(str){
         var vlaue = null;
@@ -8974,7 +9121,7 @@ tm.graphics = tm.graphics || {};
     /**
      * @static
      * @method
-     * @TODO ?
+     * hsl を rgb に変換
      */
     tm.graphics.Color.HSLtoRGB = function(h, s, l) {
         var r, g, b;
@@ -9022,7 +9169,7 @@ tm.graphics = tm.graphics || {};
     /**
      * @static
      * @method
-     * @TODO ?
+     * hsla を rgba に変換
      */
     tm.graphics.Color.HSLAtoRGBA = function(h, s, l, a) {
         var temp = Color.HSLtoRGB(h, s, l); temp[3] = a;
@@ -9161,12 +9308,12 @@ tm.graphics = tm.graphics || {};
                 var rate = e.height/e.width;
                 
                 if (rateWidth > rateHeight) {
-                    s.width  = innerWidth+"px";
-                    s.height = innerWidth*rate+"px";
+                    s.width  = (innerWidth).floor()+"px";
+                    s.height = (innerWidth*rate).floor()+"px";
                 }
                 else {
-                    s.width  = innerHeight/rate+"px";
-                    s.height = innerHeight+"px";
+                    s.width  = (innerHeight/rate).floor()+"px";
+                    s.height = (innerHeight).floor()+"px";
                 }
             }.bind(this);
             
@@ -9354,7 +9501,7 @@ tm.graphics = tm.graphics || {};
         },
 
         /**
-         * @TODO ?
+         * ラインストローク描画
          */
         strokeLines: function() {
             this.beginPath();
@@ -9364,7 +9511,7 @@ tm.graphics = tm.graphics || {};
         },
 
         /**
-         * @TODO ?
+         * ライン塗りつぶし描画
          */
         fillLines: function() {
             this.beginPath();
@@ -9496,14 +9643,14 @@ tm.graphics = tm.graphics || {};
         },
 
         /**
-         * @TODO ?
+         * 星を塗りつぶし描画
          */
         fillStar: function(x, y, radius, sides, sideIndent, offsetAngle) {
             return this.beginPath().star(x, y, radius, sides, sideIndent, offsetAngle).fill();
         },
 
         /**
-         * @TODO ?
+         * 星をストローク描画
          */
         strokeStar: function(x, y, radius, sides, sideIndent, offsetAngle) {
             return this.beginPath().star(x, y, radius, sides, sideIndent, offsetAngle).stroke();
@@ -9641,34 +9788,94 @@ tm.graphics = tm.graphics || {};
             return this.context.strokeText.apply(this.context, arguments);
         },
         
-        /**
-         * 塗りつぶしテキスト
-         */
-        fillTextList: function(text_list, x, y, offsetX, offsetY) {
-            offsetX = offsetX || 0;
-            offsetY = offsetY || 20;
+        fillVerticalText: function(text, x, y) {
+            this._drawVerticalText("fillText", text, x, y);
+        },
+        strokeVerticalText: function(text, x, y) {
+            this._drawVerticalText("strokeText", text, x, y);
+        },
+        
+        _drawVerticalText: function(func, text, x, y) {
+            var ctx = this.context;
+            var lines = text.split('\n');
+            var charSize = this.context.measureText('あ').width;
             
-            for (var i=0,len=text_list.length; i<len; ++i) {
-                this.fillText(text_list[i], x+offsetX*i, y+offsetY*i);
-            }
+            ctx.save();
             
-            return this;
+            ctx.textAlign = "right";
+            ctx.textBaseline = "top";
+
+            Array.prototype.forEach.call(text, function(ch, j) {
+                ctx[func](ch, x, y+charSize*j);
+            });
+            
+            ctx.restore();
         },
         
         /**
-         * ストロークテキストリスト
+         * drawLabelBox, drawLabelArea, drawTextBox, 
          */
-        strokeTextList: function(text_list, x, y, offsetX, offsetY) {
-            offsetX = offsetX || 0;
-            offsetY = offsetY || 20;
+        _drawLabelArea: function(func, param) {
+            var ctx = this.context;
+            var text = param.text;
+            var charSize = this.context.measureText('あ').width;
+            var lines = text.split('\n');
+            var lineSpace = (param.lineSpace || 1)*charSize;
             
-            for (var i=0,len=text_list.length; i<len; ++i) {
-                this.strokeText(x+offsetX*i, y+offsetY*i, text_list[i]);
+            ctx.save();
+            
+            // 横書き
+            if (!param.mode || param.mode == "horizon") {
+                var maxCharNum = Math.max( (param.width/charSize)|0, 1 );
+                var normalLines = [];
+                
+                ctx.textAlign = "left";
+                ctx.textBaseline = "top";
+                
+                
+                lines.each(function(line) {
+                    for (var i=0,len=line.length; i<len; i+=maxCharNum) {
+                        var str = line.substr(i, maxCharNum);
+                        normalLines.push(str);
+                    }
+                });
+                
+                var funcName = func + "Text";
+                normalLines.each(function(line, i) {
+                    ctx[funcName](line, param.x, param.y + i*lineSpace + 4);
+                });
+            }
+            // 縦書き
+            else {
+                var maxCharNum = Math.max( (param.height/charSize)|0, 1 );
+                var startX = param.x + param.width;
+                var normalLines = [];
+                
+                lines.each(function(line) {
+                    for (var i=0,len=line.length; i<len; i+=maxCharNum) {
+                        var str = line.substr(i, maxCharNum);
+                        normalLines.push(str);
+                    }
+                });
+                
+                var funcName = func + "VerticalText";
+                normalLines.each(function(line, i) {
+                    // boldになるとフォントサイズが変わるため、マージンとして15pxずらす
+                    this[funcName](line, startX-i*lineSpace, param.y+15);
+                }.bind(this));
             }
             
-            return this;
+            ctx.restore();
         },
-                
+        
+        fillLabelArea: function(param) {
+            this._drawLabelArea("fill", param);
+        },
+        
+        strokeLabelArea: function(param) {
+            this._drawLabelArea("stroke", param);
+        },
+        
         /**
          * 画像描画
          */
@@ -9820,14 +10027,15 @@ tm.graphics = tm.graphics || {};
         },
 
         /**
-         * @TODO ?
+         * アルファとブレンドモードを同時セット
+         * TODO: 未実装
          */
         setCompositing: function(alpha, compositeOperation) {
             // TODO
         },
 
         /**
-         * @TODO ?
+         * 塗りつぶしスタイルをセット
          */
         setFillStyle: function(style) {
             this.context.fillStyle = style;
@@ -9835,7 +10043,7 @@ tm.graphics = tm.graphics || {};
         },
 
         /**
-         * @TODO ?
+         * ストロークスタイルをセット
          */
         setStrokeStyle: function(style) {
             this.context.strokeStyle = style;
@@ -10133,7 +10341,6 @@ tm.graphics = tm.graphics || {};
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _init: function(imageData) {
@@ -10181,7 +10388,7 @@ tm.graphics = tm.graphics || {};
         },
 
         /**
-         * @TODO ?
+         * ピクセルを数値としてゲット
          */
         getPixelAsNumber: function(index) {
             var i = index*4;
@@ -10189,7 +10396,7 @@ tm.graphics = tm.graphics || {};
         },
 
         /**
-         * @TODO ?
+         * ピクセルをオブジェクトとしてゲット
          */
         getPixelAsObject: function(index) {
             var i = index*4;
@@ -10202,7 +10409,7 @@ tm.graphics = tm.graphics || {};
         },
 
         /**
-         * @TODO ?
+         * ピクセルを配列としてゲット
          */
         getPixelAsArray: function(index) {
             var i = index*4;
@@ -10288,7 +10495,7 @@ tm.graphics = tm.graphics || {};
         },
 
         /**
-         * @TODO ?
+         * 32bit セット
          */
         setPixel32Index: function(index, r, g, b, a) {
             var i = index*4;
@@ -10300,28 +10507,28 @@ tm.graphics = tm.graphics || {};
         },
 
         /**
-         * @TODO ?
+         * 32bit セット
          */
         setPixel32: function(x, y, r, g, b, a) {
             return this.setPixel32Index(y*this.width+x, r, g, b, a);
         },
 
         /**
-         * @TODO ?
+         * 32bit セット
          */
         setPixel32XY: function(x, y, r, g, b, a) {
             return this.setPixel32Index(y*this.width+x, r, g, b, a);
         },
 
         /**
-         * @TODO ?
+         * 配列からピクセルをセット
          */
         setPixelFromArray: function(index, pixel) {
             return this.setPixel(index, pixel[0], pixel[1], pixel[2]);
         },
 
         /**
-         * @TODO ?
+         * 配列からピクセルをセット
          */
         setPixel32FromArray: function(index, pixel) {
             return this.setPixel32(index, pixel[0], pixel[1], pixel[2], pixel[3]);
@@ -10348,7 +10555,7 @@ tm.graphics = tm.graphics || {};
             return this.setPixel(pixel.r, pixel.g, pixel.b);
         },
         /**
-         * @TODO ?
+         * オブジェクトからピクセルをセット
          */
         setPixel32FromObject: function(index, pixel) {
             return this.setPixel32(pixel.r, pixel.g, pixel.b, pixel.a);
@@ -10369,9 +10576,8 @@ tm.graphics = tm.graphics || {};
             return y*this.imageData.width + x;
         },
         
-        // filter: function(rect, filter)
         /**
-         * @TODO ?
+         * フィルター
          */
         filter: function(filter) {
             for (var i=0; i<this.height; ++i) {
@@ -10405,7 +10611,8 @@ tm.graphics = tm.graphics || {};
         },
 
         /**
-         * @TODO ?
+         * フィルタを適応する
+         * TODO: 未実装
          */
         applyFilter: function(filter) {
             
@@ -10449,11 +10656,11 @@ tm.graphics = tm.graphics || {};
      * @member tm.asset.Texture
      * ビットマップ生成
      */
-    tm.asset.Texture.prototype.getBitmap = function(width, height) {
+    tm.asset.Texture.prototype.getBitmap = function(x, y, width, height) {
         var canvas = tm.graphics.Canvas();
         canvas.resize(this.width, this.height);
         canvas.drawTexture(this, 0, 0, this.width, this.height);
-        return canvas.getBitmap(width, height);
+        return canvas.getBitmap(x, y, width, height);
     };
 
     var dummyCanvas = null;
@@ -10752,7 +10959,7 @@ tm.graphics = tm.graphics || {};
         },
 
         /**
-         * @TODO ?
+         * カラー点を追加
          */
         addColorStop: function(offset, color) {
             this.gradient.addColorStop(offset, color);
@@ -10760,7 +10967,7 @@ tm.graphics = tm.graphics || {};
         },
 
         /**
-         * @TODO ?
+         * カラー点をリストで追加
          */
         addColorStopList: function(prop) {
             for (var i=0,len=prop.length; i<len; ++i) {
@@ -10772,7 +10979,7 @@ tm.graphics = tm.graphics || {};
         },
 
         /**
-         * @TODO ?
+         * スタイル化
          */
         toStyle: function() {
             return this.gradient;
@@ -10807,7 +11014,7 @@ tm.graphics = tm.graphics || {};
         },
         
         /**
-         * @TODO ?
+         * カラー点を追加
          */
         addColorStop: function(offset, color) {
             this.gradient.addColorStop(offset, color);
@@ -10815,7 +11022,7 @@ tm.graphics = tm.graphics || {};
         },
 
         /**
-         * @TODO ?
+         * カラー点をリストで追加
          */
         addColorStopList: function(prop) {
             for (var i=0,len=prop.length; i<len; ++i) {
@@ -10827,7 +11034,7 @@ tm.graphics = tm.graphics || {};
         },
 
         /**
-         * @TODO ?
+         * スタイル化
          */
         toStyle: function() {
             return this.gradient;
@@ -10982,7 +11189,7 @@ tm.anim = tm.anim || {};
         },
 
         /**
-         * @TODO ?
+         * from
          * @param {Object} target
          * @param {Object} beginProps
          * @param {Object} duration
@@ -11386,6 +11593,167 @@ tm.anim = tm.anim || {};
 
 
 /*
+ * Timer
+ */
+
+
+(function() {
+
+    tm.define("tm.app.Timer", {
+        /** フレーム */
+        frame: 0,
+        fps: 30,
+        frameTime: 1000/30,
+
+        init: function() {
+            this.frame = 0;
+            this.fps = tm.app.Timer.default.fps;
+        },
+
+        reset: function() {
+            this.frame = 0;
+            return this;
+        },
+
+        update: function() {
+            this.frame = this.frame + 1;
+            return this;
+        },
+
+        getFrame: function() {
+            return this.frame;
+        },
+
+        getSeconds: function() {
+            return this._seconds;
+        },
+
+        getMilliseconds: function() {
+            return this._milliseconds;
+        },
+
+        checkIntervalEnd: function(time) {
+            var t = (time/this.fps)|0;
+            if (this.frame % t == 0) {
+                return true;
+            }
+            return false;
+        },
+
+        // start ~ end の間かを判定する
+        checkBetween: function(start, end) {
+            if (arguments.length == 1) {
+                end = Math.max(start, 0);
+                start = end-this.frameTime;
+            }
+            var time = (this.frame/this.fps)*1000;
+
+            return start <= time < end;
+            return Math.inside(time, start, end);
+        },
+
+        _update: function() {
+            var time = (this.frame/this.fps);
+            this._seconds = time|0;
+            this._milliseconds = (time*1000)|0;
+        }
+    });
+
+    tm.app.Timer.prototype.accessor("frame", {
+        "get": function() {
+            return this._frame;
+        },
+        "set": function(frame){
+            this._frame = frame;
+            this._update();
+        },
+    });
+    
+    /**
+     * @property fps
+     * fps
+     */
+    tm.app.Timer.prototype.accessor("fps", {
+        "get": function() {
+            return this._fps;
+        },
+        "set": function(fps){
+            if (fps !== this._fps) {
+                this.frameTime = (1000/fps);
+            }
+            this._fps = fps;
+            this._update();
+        },
+    });    
+
+    tm.app.Timer.default = {
+        fps: 30,
+    };
+
+})();
+
+
+
+
+/*
+ * updater.js
+ */
+
+ 
+(function() {
+    
+    /**
+     * @class tm.app.Updater
+     * 更新管理クラス
+     */
+    tm.define("tm.app.Updater", {
+        app: null,
+
+        init: function(app) {
+            this.app = app;
+        },
+
+        update: function(root) {
+            this._updateElement(root);
+        },
+
+        _updateElement: function(elm) {
+            var app = this.app;
+            
+            // 更新するかを判定
+            if (elm.awake == false) return ;
+
+            // 更新
+            if (elm.update) elm.update(app);
+
+            // エンターフレームイベント
+            if (elm.hasEventListener("enterframe")) {
+                var e = tm.event.Event("enterframe");
+                e.app = app;
+                elm.fire(e);
+            }
+            
+            // タッチ判定
+            if (elm.interactive) {
+                elm._checkPointing(app);
+            }
+
+            // 子供を更新
+            var len = elm.children.length;
+            if (len > 0) {
+                var tempChildren = elm.children.slice();
+                for (var i=0; i<len; ++i) {
+                    this._updateElement(tempChildren[i]);
+                }
+            }
+        },
+    });
+
+})();
+
+
+
+/*
  * baseapp.js
  */
 
@@ -11399,6 +11767,8 @@ tm.app = tm.app || {};
      * ベースアプリケーション
      */
     tm.app.BaseApp = tm.createClass({
+
+        superClass: tm.event.EventDispatcher,
         
         /** エレメント */
         element       : null,
@@ -11412,14 +11782,14 @@ tm.app = tm.app || {};
         keyboard      : null,
         /** 加速度センサー */
         accelerometer : null,
+        /** 更新クラス */
+        updater       : null,
         /** statsライブラリ */
         stats         : null,
-        /** フレーム */
-        frame         : 0,
-        /** フレームレート */
-        fps           : 30,
+        /** タイマー */
+        timer         : null,
         /** 現在更新中か */
-        isPlaying     : null,
+        awake         : null,
         /** @private  シーン情報の管理 */
         _scenes       : null,
         /** @private  シーンのインデックス */
@@ -11430,7 +11800,12 @@ tm.app = tm.app || {};
          * @param {Object} elm
          */
         init: function(elm) {
+            this.superInit();
+
             this.element = elm;
+
+            // タイマー
+            this.timer = tm.app.Timer();
 
             // マウスを生成
             this.mouse      = tm.input.Mouse(this.element);
@@ -11441,12 +11816,20 @@ tm.app = tm.app || {};
             
             // ポインティングをセット(PC では Mouse, Mobile では Touch)
             this.pointing   = (tm.isMobile) ? this.touch : this.mouse;
+            this.element.addEventListener("touchstart", function () {
+                this.pointing = this.touch;
+            }.bind(this));
+            this.element.addEventListener("mousedown", function () {
+                this.pointing = this.mouse;
+            }.bind(this));
             
             // 加速度センサーを生成
             this.accelerometer = tm.input.Accelerometer();
+
+            this.updater = tm.app.Updater(this);
             
             // 再生フラグ
-            this.isPlaying = true;
+            this.awake = true;
             
             // シーン周り
             this._scenes = [ tm.app.Scene() ];
@@ -11454,17 +11837,20 @@ tm.app = tm.app || {};
             
             // 決定時の処理をオフにする(iPhone 時のちらつき対策)
             this.element.addEventListener("touchstart", function(e) { e.stop(); });
+            this.element.addEventListener("touchmove", function(e) { e.stop(); });
             
             // ウィンドウフォーカス時イベントリスナを登録
             window.addEventListener("focus", function() {
+                this.fire(tm.event.Event("focus"));
                 this.currentScene.dispatchEvent(tm.event.Event("focus"));
             }.bind(this));
             // ウィンドウブラー時イベントリスナを登録
             window.addEventListener("blur", function() {
+                this.fire(tm.event.Event("blur"));
                 this.currentScene.dispatchEvent(tm.event.Event("blur"));
             }.bind(this));
             // クリック
-            this.element.addEventListener((tm.isMobile) ? "touchstart" : "mousedown", this._onclick.bind(this));
+            this.element.addEventListener((tm.isMobile) ? "touchend" : "mouseup", this._onclick.bind(this));
         },
         
         /**
@@ -11472,28 +11858,30 @@ tm.app = tm.app || {};
          */
         run: function() {
             var self = this;
-            
-            // // requestAnimationFrame version
-            // var fn = function() {
-                // self._loop();
-                // requestAnimationFrame(fn);
-            // }
-            // fn();
-            
-            tm.setLoop(function(){ self._loop(); }, 1000/this.fps);
-            
-            return ;
-            
-            if (true) {
-                setTimeout(arguments.callee.bind(this), 1000/this.fps);
-                this._loop();
-            }
-            
-            return ;
-            
-            var self = this;
-            // setInterval(function(){ self._loop(); }, 1000/self.fps);
-            tm.setLoop(function(){ self._loop(); }, 1000/self.fps);
+
+            this.startedTime = new Date();
+            this.prevTime = new Date();
+            this.deltaTime = 0;
+
+            var _run = function() {
+                // start
+                var start = (new Date()).getTime();
+
+                // run
+                self._loop();
+
+                // calculate progress time
+                var progress = (new Date()).getTime() - start;
+                // calculate next waiting time
+                var newDelay = self.timer.frameTime-progress;
+
+                // set next running function
+                setTimeout(_run, newDelay);
+            };
+
+            _run();
+
+            return this;
         },
         
         /*
@@ -11508,6 +11896,10 @@ tm.app = tm.app || {};
             // draw
             if (this.draw) this.draw();
             this._draw();
+
+            var now = new Date();
+            this.deltaTime = now - this.prevTime;
+            this.prevTime = now;
             
             // stats update
             if (this.stats) this.stats.update();
@@ -11541,17 +11933,22 @@ tm.app = tm.app || {};
          * @param {Object} scene
          */
         pushScene: function(scene) {
-            e = tm.event.Event("exit");
+            this.fire(tm.event.Event("push"));
+
+            var e = tm.event.Event("pause");
             e.app = this;
             this.currentScene.dispatchEvent(e);
             
             this._scenes.push(scene);
             ++this._sceneIndex;
             
-            e = tm.event.Event("enter");
+            this.fire(tm.event.Event("pushed"));
+
+            var e = tm.event.Event("enter");
             e.app = this;
             scene.app = this;
             scene.dispatchEvent(e);
+
 
             return this;
         },
@@ -11560,17 +11957,22 @@ tm.app = tm.app || {};
          * シーンをポップする(ポーズやオブション画面などで使用)
          */
         popScene: function() {
+            this.fire(tm.event.Event("pop"));
+            
             var scene = this._scenes.pop();
             --this._sceneIndex;
             
-            e = tm.event.Event("exit");
+            var e = tm.event.Event("exit");
             e.app = this;
             scene.dispatchEvent(e);
             scene.app = null;
+
+            this.fire(tm.event.Event("poped"));
             
             // 
-            e = tm.event.Event("enter");
+            var e = tm.event.Event("resume");
             e.app = this;
+            e.prevScene = scene;
             this.currentScene.dispatchEvent(e);
             
             return scene;
@@ -11613,7 +12015,7 @@ tm.app = tm.app || {};
          * シーンのupdateを実行するようにする
          */
         start: function() {
-            this.isPlaying = true;
+            this.awake = true;
 
             return this;
         },
@@ -11622,7 +12024,7 @@ tm.app = tm.app || {};
          * シーンのupdateを実行しないようにする
          */
         stop: function() {
-            this.isPlaying = false;
+            this.awake = false;
 
             return this;
         },
@@ -11638,14 +12040,14 @@ tm.app = tm.app || {};
             this.touch.update();
             // this.touches.update();
             
-            if (this.isPlaying) {
-                this.currentScene._update(this);
-                ++this.frame;
+            if (this.awake) {
+                this.updater.update(this.currentScene);
+                this.timer.update();
             }
         },
         
         /**
-         * @TODO ? オーバーライド予定？
+         * 描画用仮想関数
          * @private
          */
         _draw: function() {},
@@ -11663,26 +12065,14 @@ tm.app = tm.app || {};
          * @param {Object} e
          */
         _onclick: function(e) {
-            var px = e.pointX;
-            var py = e.pointY;
-
-            if (this.element.style.width) {
-                px *= this.element.width / parseInt(this.element.style.width);
-            }
-            if (this.element.style.height) {
-                py *= this.element.height / parseInt(this.element.style.height);
-            }
-
             var _fn = function(elm) {
                 if (elm.children.length > 0) {
-                    elm.children.each(function(elm) {
-                        if (elm.hasEventListener("click")) {
-                            if (elm.isHitPoint && elm.isHitPoint(px, py)) {
-                                elm.dispatchEvent(tm.event.Event("click"));
-                            }
-                        }
-                    });
+                    elm.children.each(function(elm) { _fn(elm); });
                 }
+                if (elm._clickFlag && elm.hasEventListener("click")) {
+                    elm.dispatchEvent(tm.event.Event("click"));
+                }
+                elm._clickFlag = false;
             };
             _fn(this.currentScene);
         },
@@ -11691,14 +12081,52 @@ tm.app = tm.app || {};
     /**
      * @property currentScene
      * カレントシーン
-     * @TODO どうしよう？
      */
     tm.app.BaseApp.prototype.accessor("currentScene", {
         "get": function() { return this._scenes[this._sceneIndex]; },
         "set": function(v){ this._scenes[this._sceneIndex] = v; }
     });
     
+    /**
+     * @property frame
+     * フレーム
+     */
+    tm.app.BaseApp.prototype.accessor("frame", {
+        "get": function() {
+            return this.timer.frame;
+        },
+        "set": function(v){
+            this.timer.frame = v;
+        }
+    });
+    
+    /**
+     * @property fps
+     * fps
+     */
+    tm.app.BaseApp.prototype.accessor("fps", {
+        "get": function() {
+            return this.timer.fps;
+        },
+        "set": function(v){
+            this.timer.fps = v;
+        }
+    });
+    
 })();
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /*
  * element.js
@@ -11722,8 +12150,6 @@ tm.app = tm.app || {};
         parent: null,
         /** 子 */
         children: null,
-        /** @private */
-        _listeners: null,
         
         /**
          * @constructor
@@ -11731,7 +12157,6 @@ tm.app = tm.app || {};
         init: function() {
             this.superInit();
             this.children = [];
-            this._listeners = {};
         },
         
         /**
@@ -11806,6 +12231,13 @@ tm.app = tm.app || {};
          * 指定で要素を取得
          */
         getChildAt: function(child) {
+            return this.children.at(child);
+        },
+        
+        /**
+         * 指定で要素を取得
+         */
+        getChildIndex: function(child) {
             return this.children.indexOf(child);
         },
         
@@ -11880,28 +12312,52 @@ tm.app = tm.app || {};
          * jsonをパースしてthisに展開
          */
         fromJSON: function(data) {
+            var _fromJSON = function(name, data) {
+                var init = data["init"];
+                var args = (init instanceof Array) ? init : [init];
+                var type = (DIRTY_CLASS_MAP[data.type]) ? DIRTY_CLASS_MAP[data.type] : data.type;
+                var _class = tm.using(type);
+                
+                console.assert(Object.keys(_class).length !== 0, _class + " is not defined.");
+                
+                var elm = _class.apply(null, args);
+                elm.fromJSON(data);
+                
+                this[name] = elm;
+                
+                elm.addChildTo(this);
+            }.bind(this);
+            
             for (var key in data) {
                 var value = data[key];
                 if (key == "children") {
-                    for (var i=0,len=value.length; i<len; ++i) {
-                        var data = value[i];
-                        var init = data["init"] || [];
-                        var type = (DIRTY_CLASS_MAP[data.type]) ? DIRTY_CLASS_MAP[data.type] : data.type;
-                        var _class = tm.using(type);
-                        
-                        console.assert(Object.keys(_class).length !== 0, _class + " is not defined.");
-                        
-                        var elm = _class.apply(null, init).addChildTo(this);
-                        elm.fromJSON(data);
-                        this[data.name] = elm;
+                    if (value instanceof Array) {
+                        for (var i=0,len=value.length; i<len; ++i) {
+                            var childData = value[i];
+                            _fromJSON(childData.name, childData);
+                        }
+                    }
+                    else {
+                        for (var key in value) {
+                            var childData = value[key];
+                            _fromJSON(key, childData);
+                        }
                     }
                 }
                 else {
+                    if (key == "type") key = "__key";
                     this[key] = value;
                 }
             }
 
             return this;
+        },
+        /**
+         * 要素を JSON 化する
+         * TODO: 実装する予定
+         */
+        toJSON: function() {
+            // TODO:
         },
         
     });
@@ -11911,21 +12367,23 @@ tm.app = tm.app || {};
      * namespaceの後方互換
      */
     var DIRTY_CLASS_MAP = {
-        "Sprite"            : "tm.display.Sprite",
-        "Label"             : "tm.display.Label",
-        "Shape"             : "tm.display.Shape",
-        "CircleShape"       : "tm.display.CircleShape",
-        "TriangleShape"     : "tm.display.TriangleShape",
-        "RectangleShape"    : "tm.display.RectangleShape",
-        "StarShape"         : "tm.display.StarShape",
-        "PolygonShape"      : "tm.display.PolygonShape",
-        "HeartShape"        : "tm.display.HeartShape",
-        "AnimationSprite"   : "tm.display.AnimationSprite",
+        "Sprite"                : "tm.display.Sprite",
+        "Label"                 : "tm.display.Label",
+        "Shape"                 : "tm.display.Shape",
+        "CircleShape"           : "tm.display.CircleShape",
+        "TriangleShape"         : "tm.display.TriangleShape",
+        "RectangleShape"        : "tm.display.RectangleShape",
+        "RoundRectangleShape"   : "tm.display.RoundRectangleShape",
+        "TextShape"             : "tm.display.TextShape",
+        "StarShape"             : "tm.display.StarShape",
+        "PolygonShape"          : "tm.display.PolygonShape",
+        "HeartShape"            : "tm.display.HeartShape",
+        "AnimationSprite"       : "tm.display.AnimationSprite",
         
-        "LabelButton"       : "tm.ui.LabelButton",
-        "IconButton"        : "tm.ui.IconButton",
-        "GlossyButton"      : "tm.ui.GlossyButton",
-        "FlatButton"        : "tm.ui.FlatButton",
+        "LabelButton"           : "tm.ui.LabelButton",
+        "IconButton"            : "tm.ui.IconButton",
+        "GlossyButton"          : "tm.ui.GlossyButton",
+        "FlatButton"            : "tm.ui.FlatButton",
     };
     
 })();
@@ -11950,6 +12408,8 @@ tm.app = tm.app || {};
         scale: null,
         /** 回転 */
         rotation: 0,
+        /** 起きているフラグ */
+        awake: true,
         /** @private  幅 */
         _width:  64,
         /** @private  高さ */
@@ -11976,17 +12436,18 @@ tm.app = tm.app || {};
             this._matrix.identity();
             
             this.boundingType = "circle";
+            this.checkHierarchy = true;
             this.interactive = false;
             this.hitFlags = [];
             this.downFlags= [];
+            this._clickFlag = false;
 
-            this._worldMatrix = tm.geom.Matrix33();
-            this._worldMatrix.identity();
+            this._worldMatrix = tm.geom.Matrix33().identity();
             this._worldAlpha = 1.0;
         },
         
         /**
-         * @TODO ?
+         * 最終的な行列をゲット
          */
         getFinalMatrix: function() {
             var matrix = tm.geom.Matrix33();
@@ -11994,7 +12455,7 @@ tm.app = tm.app || {};
             if (this.parent) {
                 matrix.multiply(this.parent.getFinalMatrix());
             }
-            matrix.translate(this.centerX, this.centerY);
+            matrix.translate(this.x, this.y);
             matrix.rotateZ(this.rotation*Math.DEG_TO_RAD);
             matrix.scale(this.scaleX, this.scaleY);
  
@@ -12019,7 +12480,7 @@ tm.app = tm.app || {};
         },
  
         /**
-         * @TODO ?
+         * 円として点と衝突判定
          * @param {Number} x
          * @param {Number} y
          */
@@ -12033,7 +12494,7 @@ tm.app = tm.app || {};
         },
  
         /**
-         * @TODO ?
+         * 矩形として点と衝突判定
          * @param {Number} x
          * @param {Number} y
          */
@@ -12144,11 +12605,10 @@ tm.app = tm.app || {};
          * @param {Object} elm
          */
         globalToLocal: function(p) {
-            // var matrix = this.getFinalMatrix();
             var matrix = this._worldMatrix.clone();
             matrix.invert();
             matrix.transpose();
-            
+
             return matrix.multiplyVector2(p);
         },
         
@@ -12182,7 +12642,7 @@ tm.app = tm.app || {};
         },
 
         /**
-         * @TODO ?
+         * 回転をセット
          * @param {Number} rotation
          */
         setRotation: function(rotation) {
@@ -12191,7 +12651,7 @@ tm.app = tm.app || {};
         },
 
         /**
-         * @TODO ?
+         * スケールをセット
          * @param {Number} x
          * @param {Number} y
          */
@@ -12206,7 +12666,7 @@ tm.app = tm.app || {};
         },
         
         /**
-         * @TODO ?
+         * 基準点をセット
          * @param {Number} x
          * @param {Number} y
          */
@@ -12249,7 +12709,7 @@ tm.app = tm.app || {};
          * 起動
          */
         wakeUp: function() {
-            this.isUpdate = true;
+            this.awake = true;
             return this;
         },
         
@@ -12257,7 +12717,7 @@ tm.app = tm.app || {};
          * 停止
          */
         sleep: function() {
-            this.isUpdate = false;
+            this.awake = false;
             return this;
         },
         
@@ -12265,8 +12725,13 @@ tm.app = tm.app || {};
          * タッチ判定の有効/無効をセット
          * @param {Boolean} flag
          */
-        setInteractive: function(flag) {
+        setInteractive: function(flag, type) {
             this.interactive = flag;
+
+            if (type) {
+                this.boundingType = type;
+            }
+
             return this;
         },
         
@@ -12280,37 +12745,7 @@ tm.app = tm.app || {};
         },
         
         /**
-         * @TODO ?
-         * @private
-         * @param {Object} app
-         */
-        _update: function(app) {
-            // 更新有効チェック
-            if (this.isUpdate == false) return ;
-            
-            if (this.update) this.update(app);
-            
-            if (this.hasEventListener("enterframe")) {
-                var e = tm.event.Event("enterframe");
-                e.app = app;
-                this.dispatchEvent(e);
-            }
-            
-            if (this.interactive) {
-                this._checkPointing(app);
-            }
-            
-            // 子供達も実行
-            if (this.children.length > 0) {
-                var tempChildren = this.children.slice();
-                for (var i=0,len=tempChildren.length; i<len; ++i) {
-                    tempChildren[i]._update(app);
-                }
-            }
-        },
-        
-        /**
-         * @TODO ?
+         * ポインティングをチェック
          * @private
          * @param {Object} app
          */
@@ -12319,7 +12754,7 @@ tm.app = tm.app || {};
         },
         
         /**
-         * @TODO ?
+         * マウスチェック
          * @private
          * @param {Object} app
          */
@@ -12328,7 +12763,7 @@ tm.app = tm.app || {};
         },
 
         /**
-         * @TODO ?
+         * タッチチェック
          * @private
          * @param {Object} app
          */
@@ -12341,7 +12776,7 @@ tm.app = tm.app || {};
         },
         
         /**
-         * @TODO ?
+         * チェックポインンティング
          * @private
          * @param {Object} app
          * @param {Object} p
@@ -12351,9 +12786,8 @@ tm.app = tm.app || {};
             var elm = this.element;
             
             var prevHitFlag = this.hitFlags[index];
-            
             this.hitFlags[index]    = this.isHitPoint(p.x, p.y);
-            
+
             if (!prevHitFlag && this.hitFlags[index]) {
                 this._dispatchPointingEvent("mouseover", "touchover", "pointingover", app, p);
             }
@@ -12366,6 +12800,7 @@ tm.app = tm.app || {};
                 if (p.getPointingStart()) {
                     this._dispatchPointingEvent("mousedown", "touchstart", "pointingstart", app, p);
                     this.downFlags[index] = true;
+                    this._clickFlag = true;
                 }
             }
             
@@ -12380,7 +12815,7 @@ tm.app = tm.app || {};
         },
         
         /**
-         * @TODO ?
+         * ポイントイベントを発火する
          * @private
          * @param {Object} mouse
          * @param {Object} touch
@@ -12395,7 +12830,7 @@ tm.app = tm.app || {};
         },
         
         /**
-         * @TODO ?
+         * ワールドマトリックスを計算
          * @private
          */
         _calcWorldMatrix: function() {
@@ -12420,11 +12855,11 @@ tm.app = tm.app || {};
             localTransform[3] = this._sr * this.scale.x;
             localTransform[4] = this._cr * this.scale.y;
 
-            ///AAARR GETTER SETTTER!
+            // 
             localTransform[2] = this.position.x;
             localTransform[5] = this.position.y;
 
-            // Cache the matrix values (makes for huge speed increases!)
+            // cache
             var a00 = localTransform[0], a01 = localTransform[1], a02 = localTransform[2],
                 a10 = localTransform[3], a11 = localTransform[4], a12 = localTransform[5],
 
@@ -12441,7 +12876,7 @@ tm.app = tm.app || {};
         },
         
         /**
-         * @TODO ?
+         * dirty method
          * @private
          */
         _dirtyCalc: function() {
@@ -12529,7 +12964,9 @@ tm.app = tm.app || {};
      * 半径
      */
     tm.app.Object2D.prototype.accessor("radius", {
-        "get": function()   { return this._radius || (this.width+this.height)/4; },
+        "get": function()   {
+            return (this._radius !== undefined) ? this._radius : (this.width+this.height)/4;
+        },
         "set": function(v)  { this._radius = v; }
     });
     
@@ -12537,34 +12974,38 @@ tm.app = tm.app || {};
      * @property    top
      * 左
      */
-    tm.app.Object2D.prototype.getter("top", function() {
-        return this.y - this.height*this.originY;
+    tm.app.Object2D.prototype.accessor("top", {
+        "get": function()   { return this.y - this.height*this.originY; },
+        "set": function(v)  { this.y = v + this.height*this.originY; },
     });
  
     /**
      * @property    right
      * 左
      */
-    tm.app.Object2D.prototype.getter("right", function() {
-        return this.x + this.width*(1-this.originX);
+    tm.app.Object2D.prototype.accessor("right", {
+        "get": function()   { return this.x + this.width*(1-this.originX); },
+        "set": function(v)  { this.x = v - this.width*(1-this.originX); },
     });
  
     /**
      * @property    bottom
      * 左
      */
-    tm.app.Object2D.prototype.getter("bottom", function() {
-        return this.y + this.height*(1-this.originY);
+    tm.app.Object2D.prototype.accessor("bottom", {
+        "get": function()   { return this.y + this.height*(1-this.originY); },
+        "set": function(v)  { this.y = v - this.height*(1-this.originY); },
     });
  
     /**
      * @property    left
      * 左
      */
-    tm.app.Object2D.prototype.getter("left", function() {
-        return this.x - this.width*this.originX;
+    tm.app.Object2D.prototype.accessor("left", {
+        "get": function()   { return this.x - this.width*this.originX; },
+        "set": function(v)  { this.x = v + this.width*this.originX; },
     });
- 
+
     /**
      * @property    centerX
      * centerX
@@ -12652,7 +13093,7 @@ tm.app = tm.app || {};
     /**
      * @member      tm.app.Object2D
      * @property    _checkPointing
-     * @TODO ?
+     * ポイントをチェック
      * @param {Object} isMobile
      * @private
      */
@@ -12661,6 +13102,60 @@ tm.app = tm.app || {};
 
     
 })();
+
+
+
+
+;(function() {
+
+
+    /**
+     * @class tm.app.Grid
+     * @extends tm.app.Object2d
+     * グリッド
+     */
+    tm.define("tm.app.Grid", {
+        superClass: "tm.app.Object2D",
+
+        cellWidth: 64,
+        cellHeight: 64,
+        maxPerLine: 8,
+        arrangement: "horizontal", // vertical
+        
+        /**
+         * @constructor
+         */
+        init: function(param) {
+            this.superInit();
+
+        },
+
+        reposition: function() {
+            var childs = this.children;
+
+            if (this.arrangement == "horizontal") {
+                childs.each(function(child, i) {
+                    var xIndex = (i%this.maxPerLine);
+                    var yIndex = (i/this.maxPerLine)|0;
+                    var x = this.cellWidth*xIndex;
+                    var y = this.cellHeight*yIndex;
+                    child.setPosition(x, y);
+                }, this);
+            }
+            else {
+                childs.each(function(child, i) {
+                    var xIndex = (i/this.maxPerLine)|0;
+                    var yIndex = (i%this.maxPerLine);
+                    var x = this.cellWidth*xIndex;
+                    var y = this.cellHeight*yIndex;
+                    child.setPosition(x, y);
+                }, this);
+            }
+        },
+    });
+
+})();
+
 
 /*
  * scene.js
@@ -12678,10 +13173,14 @@ tm.app = tm.app || {};
      */
     tm.app.Scene = tm.createClass({
         superClass: tm.app.Object2D,
-    
-        /** @private  @TODO ? */
-        _sceneResultCallback: null,
-        /** @property  boundingType  当たり判定の形 */
+
+        app: null,
+
+        /** ManagerScene 経由で生成された際に次にどのシーンに遷移するかのラベル */
+        nextLabel: "",
+
+        /** ManagerScene 経由で生成された際に次のシーンに渡す引数 */
+        nextArguments: null,
 
         /**
          * @constructor
@@ -12695,227 +13194,33 @@ tm.app = tm.app || {};
             this.setInteractive(true);
         },
 
-    });
-    
-})();
+        exit: function(param) {
+            if (!this.app) return ;
 
-(function() {
-    
-    var DEFAULT_PARAM = {
-        width: 465,
-        height: 465,
-    };
-    
-    /**
-     * @class tm.app.LoadingScene
-     * ローディングシーン
-     * @extends tm.app.Scene
-     */
-    tm.app.LoadingScene = tm.createClass({
-        superClass: tm.app.Scene,
-        
-        /**
-         * @constructor
-         * @param {Object} param
-         */
-        init: function(param) {
-            this.superInit();
-            
-            param = {}.$extend(DEFAULT_PARAM, param);
-            
-            var label = tm.display.Label("Loading");
-            label.x = param.width/2;
-            label.y = param.height/2;
-            label.width = param.width;
-            label.align     = "center";
-            label.baseline  = "middle";
-            label.fontSize = 32;
-            label.counter = 0;
-            label.update = function(app) {
-                if (app.frame % 30 == 0) {
-                    this.text += ".";
-                    this.counter += 1;
-                    if (this.counter > 3) {
-                        this.counter = 0;
-                        this.text = "Loading";
-                    }
-                }
-            };
-            this.addChild(label);
-
-            // ひよこさん
-            var piyo = tm.display.Shape(84, 84);
-            piyo.setPosition(param.width, param.height - 80);
-            piyo.canvas.setColorStyle("white", "yellow").fillCircle(42, 42, 32);
-            piyo.canvas.setColorStyle("white", "black").fillCircle(27, 27, 2);
-            piyo.canvas.setColorStyle("white", "brown").fillRect(40, 70, 4, 15).fillTriangle(0, 40, 11, 35, 11, 45);
-            piyo.update = function(app) {
-                piyo.x -= 4;
-                if (piyo.x < -80) piyo.x = param.width;
-                piyo.rotation -= 7;
-            };
-
-            this.addChild(piyo);
-
-            this.alpha = 0.0;
-            this.tweener.clear().fadeIn(100).call(function() {
-                if (param.assets) {
-                    tm.asset.AssetManager.onload = function() {
-                        this.tweener.clear().fadeOut(200).call(function() {
-                            if (param.nextScene) {
-                                this.app.replaceScene(param.nextScene());
-                            }
-                            var e = tm.event.Event("load");
-                            this.fire(e);
-                        }.bind(this));
-                    }.bind(this);
-                    tm.asset.AssetManager.load(param.assets);
-                }
-            }.bind(this));
-        },
-    });
-    
-    
-})();
-    
-(function() {
-    
-    var DEFAULT_PARAM = {
-        title: "Time is money",
-        titleSize: 32,
-        width: 465,
-        height: 465,
-    };
-    
-    /**
-     * @class tm.app.TitleScene
-     * タイトルシーン
-     * @extends tm.app.Scene
-     */
-    tm.app.TitleScene = tm.createClass({
-        superClass: tm.app.Scene,
-        
-        /**
-         * @constructor
-         * @param {Object} param
-         */
-        init: function(param) {
-            this.superInit();
-            
-            param = {}.$extend(DEFAULT_PARAM, param);
-
-            if (param.backgroundImage) {
-                var texture = tm.asset.AssetManager.get(param.backgroundImage);
-                this._backgroundImage = tm.display.Sprite(texture, param.width, param.height);
-                this._backgroundImage.originX = this._backgroundImage.originY = 0;
-                this.addChild(this._backgroundImage);
+            if (typeof param !== 'object') {
+                var temp = {};
+                temp.nextLabel = arguments[0];
+                temp.nextArguments = arguments[1];
+                param = temp;
             }
-            
-            var label = tm.display.Label(param.title);
-            label.x = param.width/2;
-            label.y = param.height/2;
-            label.width = param.width;
-            label.align     = "center";
-            label.baseline  = "middle";
-            label.fontSize = param.titleSize;
-            this.addChild(label);
-        },
 
-        /**
-         * pointingstartイベント登録
-         */
-        onpointingstart: function() {
-            var e = tm.event.Event("nextscene");
-            this.dispatchEvent(e);
-        },
-    });
-    
-    
-})();
-
-(function() {
-    
-    
-    var DEFAULT_PARAM = {
-        score: 256,
-        msg: "tmlib.js のサンプルです!",
-        hashtags: "tmlibjs",
-        url: "https://github.com/phi1618/tmlib.js/",
-        width: 465,
-        height: 465,
-        related: "tmlib.js tmlife javascript",
-    };
-    
-    /**
-     * @class tm.app.ResultScene
-     * リザルトシーン
-     * @extends tm.app.Scene
-     */
-    tm.app.ResultScene = tm.createClass({
-        superClass: tm.app.Scene,
-        
-        /**
-         * @constructor
-         * @param {Object} param
-         */
-        init: function(param) {
-            this.superInit();
-            
-            param = {}.$extend(DEFAULT_PARAM, param);
-            
-            var text = "SCORE: {score}, {msg}".format(param);
-            var twitterURL = this.tweetURL = tm.social.Twitter.createURL({
-                type    : "tweet",
-                text    : text,
-                hashtags: param.hashtags,
-                url     : param.url, // or window.document.location.href
-            });
-
-            if (param.backgroundImage) {
-                var texture = tm.asset.AssetManager.get(param.backgroundImage);
-                this._backgroundImage = tm.display.Sprite(texture, param.width, param.height);
-                this._backgroundImage.originX = this._backgroundImage.originY = 0;
-                this.addChild(this._backgroundImage);
+            if (param.nextLabel) {
+                this.nextLabel = param.nextLabel;
             }
-            
-            var scoreLabel = tm.display.Label("SCORE: {score}".format(param));
-            scoreLabel.x = param.width/2;
-            scoreLabel.y = param.height/2-70;
-            scoreLabel.width = param.width;
-            scoreLabel.align     = "center";
-            scoreLabel.baseline  = "middle";
-            scoreLabel.fontSize = 32;
-            this.addChild(scoreLabel);
-            
-            var msgLabel = tm.display.Label(param.msg);
-            msgLabel.x = param.width/2;
-            msgLabel.y = param.height/2-20;
-            msgLabel.width = param.width;
-            msgLabel.align     = "center";
-            msgLabel.baseline  = "middle";
-            msgLabel.fontSize = 16;
-            this.addChild(msgLabel);
-            
-            // ツイートボタン
-            var tweetButton = this.tweetButton = tm.ui.GlossyButton(120, 50, "blue", "Tweet").addChildTo(this);
-            tweetButton.setPosition(param.width/2 - 65, param.height/2 + 50);
-            tweetButton.onclick = function() {
-                window.open(twitterURL);
-            };
-            
-            // 戻るボタン
-            var backButton = tm.ui.GlossyButton(120, 50, "black", "Back").addChildTo(this);
-            backButton.setPosition(param.width/2 + 65, param.height/2 + 50);
-            backButton.onpointingstart = function() {
-                var e = tm.event.Event("nextscene");
-                this.dispatchEvent(e);
-            }.bind(this);
+            if (param.nextArguments) {
+                this.nextArguments = param.nextArguments;
+            }
 
+            this.app.popScene();
 
+            return this;
         },
+
     });
     
 })();
+
+
 
 /*
  * collision.js
@@ -13035,7 +13340,7 @@ tm.app = tm.app || {};
      * @extends tm.event.EventDispatcher
      */
     tm.define("tm.app.Tweener", {
-        superClass: "tm.event.EventDispatcher",
+        superClass: "tm.app.Element",
 
         /**
          * @constructor
@@ -13044,7 +13349,7 @@ tm.app = tm.app || {};
         init: function(elm) {
             this.superInit();
 
-            this.setTarget(elm);
+            this.setTarget(elm || {});
             this.loop = false;
 
             this._init();
@@ -13065,13 +13370,9 @@ tm.app = tm.app || {};
          * @param {Object} target
          */
         setTarget: function(target) {
-            if (this._fn) {
-                this.element.removeEventListener("enterframe", this._fn);
-            }
-
             this.element = target;
-            this._fn = function(e) { this.update(e.app); }.bind(this);
-            this.element.addEventListener("enterframe", this._fn);
+
+            return this;
         },
 
         /**
@@ -13101,8 +13402,8 @@ tm.app = tm.app || {};
                     // 全てのアニメーション終了チェック
                     if (this.tweens.length <= 0) {
                         this.isAnimation = false;
-                        var e = tm.event.Event("animationend");
-                        this.element.dispatchEvent(e);
+                        var e = tm.event.Event("finish");
+                        this.element.fire(e);
                         this.dispatchEvent(e);
                     }
                 }
@@ -13125,6 +13426,7 @@ tm.app = tm.app || {};
 
                 if (this.loop === true) {
                     this._index = 0;
+                    return this._updateTask(app);
                 }
                 else {
                     this.isPlaying = false;
@@ -13153,7 +13455,7 @@ tm.app = tm.app || {};
                 this._func(app);
             }
             else if (task.type == "call") {
-                task.data.func.apply(null, task.data.args);
+                task.data.func.apply(task.data.self, task.data.args);
                 // 1フレーム消費しないよう再帰
                 this._updateTask(app);
             }
@@ -13203,7 +13505,7 @@ tm.app = tm.app || {};
         },
 
         /**
-         * @TODO ?
+         * 追加
          * @param {Object} param
          */
         add: function(param) {
@@ -13251,6 +13553,16 @@ tm.app = tm.app || {};
                 duration: duration,
                 fn: fn,
                 type: "to"
+            });
+            return this;
+        },
+
+        from: function(props, duration, fn) {
+            this._addTweenTask({
+                props: props,
+                duration: duration,
+                fn: fn,
+                type: "from"
             });
             return this;
         },
@@ -13370,11 +13682,12 @@ tm.app = tm.app || {};
          * @param {Function} fn
          * @param {Object} args
          */
-        call: function(fn, args) {
+        call: function(fn, self, args) {
             this._tasks.push({
                 type: "call",
                 data: {
                     func: fn,
+                    self: self || this,
                     args: args,
                 },
             });
@@ -13458,6 +13771,9 @@ tm.app = tm.app || {};
     tm.app.Element.prototype.getter("tweener", function() {
         if (!this._tweener) {
             this._tweener = tm.app.Tweener(this);
+            this.on("enterframe", function(e) {
+                this._tweener.update(e.app);
+            });
         }
         
         return this._tweener;
@@ -13476,7 +13792,7 @@ tm.namespace("tm.app", function() {
      * @extends tm.event.EventDispatcher
      */
     tm.define("tm.app.Timeline", {
-        superClass: "tm.event.EventDispatcher",
+        superClass: "tm.app.Element",
         
         /**
          * @constructor
@@ -13485,11 +13801,11 @@ tm.namespace("tm.app", function() {
         init: function(elm) {
             this.superInit();
             
-            this.setTarget(elm);
-
-            this.fps = 30;
+            this.setTarget(elm || {});
             
             this.currentFrame = 0;
+            this.currentTime = 0;
+            this.prevTime = 0;
             this.duration = 0;
             this.isPlay = true;
             this._tweens  = [];
@@ -13502,20 +13818,19 @@ tm.namespace("tm.app", function() {
          */
         update: function(app) {
             if (!this.isPlay) return ;
-            
-            if (this.currentFrame > this.duration) {
-//                this.gotoAndPlay(0);
-            }
-            else {
+
+            if (this.prevTime <= this.duration) {
                 this._updateTween();
                 this._updateAction();
             }
-            
+
             this.currentFrame++;
+            this.prevTime = this.currentTime;
+            this.currentTime = ((this.currentFrame/app.fps)*1000)|0;
         },
         
         /**
-         * @TODO ?
+         * トゥイーンを更新
          * @private
          */
         _updateTween: function() {
@@ -13523,11 +13838,11 @@ tm.namespace("tm.app", function() {
             for (var i=0,len=tweens.length; i<len; ++i) {
                 var tween = tweens[i];
                 
-                if (tween.delay > this.currentFrame) {
+                if (tween.delay > this.currentTime) {
                     continue ;
                 }
                 
-                var time = this.currentFrame - tween.delay;
+                var time = this.currentTime - tween.delay;
                 tween._setTime(time);
                 if (tween.time >= tween.duration) {
                 }
@@ -13538,7 +13853,7 @@ tm.namespace("tm.app", function() {
         },
         
         /**
-         * @TODO ?
+         * アクションを更新
          * @private
          */
         _updateAction: function() {
@@ -13547,9 +13862,10 @@ tm.namespace("tm.app", function() {
             for (var i=0,len=actions.length; i<len; ++i) {
                 var action = actions[i];
                 
-                if (action.delay == this.currentFrame) {
+                if (this.prevTime <= action.delay && action.delay < this.currentTime) {
                     if (action.type == "call") {
-                        action.func();
+                        action.func.call(action.self);
+                        // action.func();
                     }
                     else if (action.type == "set") {
                         var props = action.props;
@@ -13563,12 +13879,13 @@ tm.namespace("tm.app", function() {
         
         /**
          * 指定した値までアニメーション
+         * @param {Object} delay
          * @param {Object} props
          * @param {Object} duration
-         * @param {Object} delay
          * @param {Function} func
          */
-        to: function(props, duration, delay, fn) {
+        to: function(delay, props, duration, fn) {
+            console.assert(typeof delay == "number", "to の第一引数はdelayに変わりました");
             this._addTween({
                 props: props,
                 duration: duration,
@@ -13581,12 +13898,13 @@ tm.namespace("tm.app", function() {
 
         /**
          * 指定した値を足した値までアニメーション
+         * @param {Object} delay
          * @param {Object} props
          * @param {Object} duration
-         * @param {Object} delay
          * @param {Function} func
          */
-        by: function(props, duration, delay, fn) {
+        by: function(delay, props, duration, fn) {
+            console.assert(typeof delay == "number", "by の第一引数はdelayに変わりました");
             for (var key in props) {
                 props[key] += this.element[key] || 0;
             }
@@ -13602,13 +13920,15 @@ tm.namespace("tm.app", function() {
         
         /**
          * 関数を実行
-         * @param {Function} func
          * @param {Object} delay
+         * @param {Function} func
          */
-        call: function(func, delay) {
+        call: function(delay, func, self) {
+            console.assert(typeof delay == "number", "call の第一引数はdelayに変わりました");
             this._addAction({
                 "type": "call",
                 func: func,
+                self: self || this,
                 delay: delay,
             });
             return this;
@@ -13616,10 +13936,11 @@ tm.namespace("tm.app", function() {
         
         /**
          * プロパティをセット
-         * @param {Object} props
          * @param {Object} delay
+         * @param {Object} props
          */
-        set: function(props, delay) {
+        set: function(delay, props) {
+            console.assert(typeof delay == "number", "set の第一引数はdelayに変わりました");
             this._addAction({
                 "type": "set",
                 props: props,
@@ -13627,21 +13948,18 @@ tm.namespace("tm.app", function() {
             });
             return this;
         },
-        
+
+
         /**
-         * ターゲットをセット
+         * ターゲットのセット
          * @param {Object} target
          */
         setTarget: function(target) {
-            if (this._fn) {
-                this.element.removeEventListener("enterframe", this._fn);
-            }
-            
             this.element = target;
-            this._fn = function(e) { this.update(e.app); }.bind(this);
-            this.element.addEventListener("enterframe", this._fn);
+
+            return this;
         },
-        
+
         /**
          * ターゲットをゲット
          */
@@ -13704,7 +14022,7 @@ tm.namespace("tm.app", function() {
         },
         
         /**
-         * @TODO ?
+         * 時間を更新
          * @private
          * @param {Object} task
          */
@@ -13715,16 +14033,17 @@ tm.namespace("tm.app", function() {
         },
 
         /**
-         * @TODO ?
+         * dirty method
          * @private
          * @param {Object} t
          */
         _dirty: function(t) {
-            return (t/this.fps).toInt();
+            return t;
+//            return (t/this.fps).toInt();
         },
         
         /**
-         * @TODO ?
+         * ロード
          * @param {Object} data
          */
         load: function(data) {
@@ -13741,6 +14060,8 @@ tm.namespace("tm.app", function() {
          */
         clear: function() {
             this.currentFrame = 0;
+            this.prevTime = 0;
+            this.currentTime = 0;
             this.duration = 0;
             this.isPlay = true;
             this._tweens  = [];
@@ -13761,8 +14082,11 @@ tm.namespace("tm.app", function() {
     tm.app.Element.prototype.getter("timeline", function() {
         if (!this._timeline) {
             this._timeline = tm.app.Timeline(this);
+            this.on("enterframe", function(e) {
+                this._timeline.update(e.app);
+            });
         }
-        
+
         return this._timeline;
     });
     
@@ -13818,10 +14142,32 @@ tm.display = tm.display || {};
             
             // シーン周り
             this._scenes = [ tm.app.Scene() ];
+
+
+            this._canvasCache = [];
+            this._canvasCacheCache = [];
+            this.on("push", function() {
+                this._draw();
+
+                var canvas = this._canvasCacheCache.pop();
+                if (!canvas) {
+                    var element = this.canvas.element.cloneNode();
+                    canvas = tm.graphics.Canvas(element);
+                }
+                canvas.clear();
+                canvas.drawTexture(this.canvas, 0, 0);
+                this._canvasCache.push(canvas);
+            });
+            this.on("poped", function() {
+                var canvas = this._canvasCache.pop();
+                this._draw();
+
+                this._canvasCacheCache.push(canvas);
+            });
         },
         
         /**
-         * @TODO ?
+         * リサイズ
          */
         resize: function(width, height) {
             this.width = width;
@@ -13831,7 +14177,7 @@ tm.display = tm.display || {};
         },
 
         /**
-         * @TODO ?
+         * ウィンドウのサイズにリサイズ
          */
         resizeWindow: function() {
             this.width = innerWidth;
@@ -13853,26 +14199,33 @@ tm.display = tm.display || {};
 
             return this;
         },
-        
+
         /**
-         * @TODO ?
          * @private
          */
         _draw: function() {
-            this.canvas.clearColor(this.background, 0, 0);
+            this.canvas.clear();
             
             this.canvas.fillStyle   = "white";
             this.canvas.strokeStyle = "white";
+            this.canvas.context.lineJoin = "round";
+            this.canvas.context.lineCap  = "round";
+
+            // スタックしたキャンバスを描画
+            if (this._canvasCache.last)
+                this.canvas.drawTexture(this._canvasCache.last, 0, 0);
+            
+            // this._canvasCache.each(function(bitmap, index) {
+            //     this.canvas.drawBitmap(bitmap, 0, 0);
+            // }, this);
+
             
             // 描画は全てのシーン行う
             this.canvas.save();
-            for (var i=0, len=this._scenes.length; i<len; ++i) {
-                this.renderer.render(this._scenes[i]);
-//                this._scenes[i]._draw(this.canvas);
-            }
+
+            this.renderer.render(this.currentScene);
+
             this.canvas.restore();
-            
-            //this.currentScene._draw(this.canvas);
         },
         
     });
@@ -13894,6 +14247,18 @@ tm.display = tm.display || {};
     tm.display.CanvasApp.prototype.accessor("height", {
         "get": function()   { return this.canvas.height; },
         "set": function(v)  { this.canvas.height = v; }
+    });
+    
+    /**
+     * @property    height
+     * 高さ
+     */
+    tm.display.CanvasApp.prototype.accessor("background", {
+        "get": function()   { return this._background; },
+        "set": function(v)  {
+            this._background = v;
+            this.element.style.background = v;
+        }
     });
 
 })();
@@ -13917,10 +14282,10 @@ tm.display = tm.display || {};
     tm.display.CanvasElement = tm.createClass({
         superClass: tm.app.Object2D,
 
-        /** 更新フラグ */
-        isUpdate: true,
         /** 表示フラグ */
         visible: true,
+        /** クリッピングフラグ */
+        clipping: false,
         /** fillStyle */
         fillStyle: "white",
         /** strokeStyle */
@@ -13931,11 +14296,11 @@ tm.display = tm.display || {};
         blendMode: "source-over",
         /** シャドウカラー */
         shadowColor: "black",
-        /** @TODO ? */
+        /** シャドウオフセットX */
         shadowOffsetX: 0,
-        /** @TODO ? */
+        /** シャドウオフセットY */
         shadowOffsetY: 0,
-        /** @TODO ? */
+        /** シャドウオフブラー */
         shadowBlur: 0,
 
         /**
@@ -13946,7 +14311,7 @@ tm.display = tm.display || {};
         },
 
         /**
-         * @TODO ?
+         * アルファをセット
          */
         setAlpha: function(alpha) {
             this.alpha = alpha;
@@ -13954,7 +14319,7 @@ tm.display = tm.display || {};
         },
 
         /**
-         * @TODO ?
+         * シャドウカラーをセット
          */
         setShadowColor: function(color) {
             this.shadowColor = color;
@@ -13962,7 +14327,7 @@ tm.display = tm.display || {};
         },
         
         /**
-         * @TODO ?
+         * シャドウブラーをセット
          */
         setShadowBlur: function(blur) {
             this.shadowBlur = blur;
@@ -13970,7 +14335,7 @@ tm.display = tm.display || {};
         },
         
         /**
-         * @TODO ?
+         * シャドウオフセットをセット
          */
         setShadowOffset: function(x, y) {
             this.shadowOffsetX = x;
@@ -13979,7 +14344,7 @@ tm.display = tm.display || {};
         },
 
         /**
-         * @TODO ?
+         * バウンディングサークルを描画
          */
         drawBoundingCircle: function(canvas) {
             canvas.save();
@@ -13989,7 +14354,7 @@ tm.display = tm.display || {};
         },
 
         /**
-         * @TODO ?
+         * バウンディングレクトを描画
          */
         drawBoundingRect: function(canvas) {
             canvas.save();
@@ -13999,14 +14364,14 @@ tm.display = tm.display || {};
         },
 
         /**
-         * @TODO ?
+         * ????
          */
         drawFillRect: function(ctx) {
             ctx.fillRect(-this.width/2, -this.height/2, this.width, this.height);
             return this;
         },
         /**
-         * @TODO ?
+         * ????
          */
         drawStrokeRect: function(ctx) {
             ctx.strokeRect(-this.width/2, -this.height/2, this.width, this.height);
@@ -14014,7 +14379,7 @@ tm.display = tm.display || {};
         },
 
         /**
-         * @TODO ?
+         * ????
          */
         drawFillArc: function(ctx) {
             ctx.beginPath();
@@ -14024,7 +14389,7 @@ tm.display = tm.display || {};
             return this;
         },
         /**
-         * @TODO ?
+         * ????
          */
         drawStrokeArc: function(ctx) {
             ctx.beginPath();
@@ -14035,7 +14400,15 @@ tm.display = tm.display || {};
         },
 
         /**
-         * @TODO ?
+         * 表示/非表示をセット
+         */
+        setVisible: function(flag) {
+            this.visible = flag;
+            return this;
+        },
+
+        /**
+         * 表示
          */
         show: function() {
             this.visible = true;
@@ -14043,7 +14416,7 @@ tm.display = tm.display || {};
         },
 
         /**
-         * @TODO ?
+         * 非表示
          */
         hide: function() {
             this.visible = false;
@@ -14051,7 +14424,7 @@ tm.display = tm.display || {};
         },
 
         /**
-         * @TODO ?
+         * 塗りつぶしスタイルをセット
          */
         setFillStyle: function(style) {
             this.fillStyle = style;
@@ -14059,7 +14432,7 @@ tm.display = tm.display || {};
         },
 
         /**
-         * @TODO ?
+         * ストロークスタイルをセット
          */
         setStrokeStyle: function(style) {
             this.strokeStyle = style;
@@ -14067,7 +14440,7 @@ tm.display = tm.display || {};
         },
 
         /**
-         * @TODO ?
+         * ブレンドモードをセット
          */
         setBlendMode: function(blendMode) {
             this.blendMode = blendMode;
@@ -14075,7 +14448,7 @@ tm.display = tm.display || {};
         },
 
         /**
-         * @TODO ?
+         * ロード
          */
         load: function(data) {
             var self = this;
@@ -14115,41 +14488,6 @@ tm.display = tm.display || {};
         },
 
         /**
-         * @TODO ?
-         */
-        fromJSON: function(data) {
-            for (var key in data) {
-                var value = data[key];
-                if (key == "children") {
-                    for (var i=0,len=value.length; i<len; ++i) {
-                        var data = value[i];
-                        var init = data["init"] || [];
-                        var _class = tm.using(data.type);
-                        if (Object.keys(_class).length === 0) {
-                            _class = tm.display[data.type];
-                        }
-                        var elm = _class.apply(null, init).addChildTo(this);
-                        elm.fromJSON(data);
-                        this[data.name] = elm;
-                    }
-                }
-                else {
-                    this[key] = value;
-                }
-            }
-
-            return this;
-        },
-
-        /**
-         * @TODO ?
-         */
-        toJSON: function() {
-            // TODO:
-        },
-
-        /**
-         * @TODO ?
          * @private
          */
         _calcAlpha: function() {
@@ -14164,7 +14502,6 @@ tm.display = tm.display || {};
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _dirtyCalc: function() {
@@ -14195,79 +14532,38 @@ tm.display = tm.display || {};
     tm.display.Sprite = tm.createClass({
         superClass: tm.display.CanvasElement,
         
-        /** @property srcRect */
-        /** @property width */
-        /** @property height */
+        /** @property srcRect          */
+        /** @property width            width */
+        /** @property height           height */
+        /** @property @private _image  表示しているアセット(画像) */
 
         /**
          * @constructor
          */
-        init: function(texture, width, height) {
+        init: function(image, width, height) {
             this.superInit();
             
-            console.assert(typeof texture != 'number', "Sprite の第一引数はテクスチャもしくはテクスチャ名に変わりました");
+            console.assert(typeof image != 'number', "Sprite の第一引数はテクスチャもしくはテクスチャ名に変わりました");
             
+            this._frameIndex = 0;
             this.srcRect = tm.geom.Rect(0, 0, 64, 64);
             
-            // 画像のみ渡された場合
-            if (arguments.length == 1) {
-                var texture = arguments[0];
-                if (typeof texture == "string") texture = tm.asset.AssetManager.get(texture);
-                
-                this.width = texture.width;
-                this.height= texture.height;
-                
-                this.image = texture;
-            }
-            // その他
-            else {
-                width = width   || 64;
-                height= height  || 64;
-                
-                this.width  = width;
-                this.height = height;
-                if (texture) {
-                    this.image  = texture;
-                }
-            }
-        },
-        
-        /**
-         * @TODO ?
-         */
-        setFrameIndex: function(index, width, height) {
-            var w   = width || this.width;
-            var h   = width || this.height;
-            var row = ~~(this.image.width / w)
-            var x   = index%row;
-            var y   = ~~(index/row);
-            this.srcRect.x = x*w;
-            this.srcRect.y = y*h;
-            this.srcRect.width  = w;
-            this.srcRect.height = h;
+            // 引数あり
+            if (arguments.length >= 1) {
+                this.setImage(image).fitImage();
 
-            return this;
+                if (width !== undefined) this.width = width;
+                if (height !== undefined) this.height = height;
+            }
         },
-        
+
         /**
-         * @TODO ?
-         * @private
+         * 表示するアセット(画像)をセット
          */
-        _refreshSize: function() {},
-    });
-    
-    /**
-     * @property    image
-     * 高さ
-     */
-    tm.display.Sprite.prototype.accessor("image", {
-        "get": function()   {
-            return this._image;
-        },
-        "set": function(image)  {
+        setImage: function(image, width, height) {
             if (typeof image == "string") {
                 var key = image;
-                image = tm.asset.AssetManager.get(key);
+                image = tm.asset.Manager.get(key);
                 console.assert(image != null, "don't find '" + key + "' as image.");
             }
             
@@ -14276,6 +14572,84 @@ tm.display = tm.display || {};
             this.srcRect.y = 0;
             this.srcRect.width  = image.element.width;
             this.srcRect.height = image.element.height;
+
+            if (width  !== undefined) this.width  = width;
+            if (height !== undefined) this.height = height;
+            // this.width  = (width !== undefined)  ? width  : image.element.width;
+            // this.height = (height !== undefined) ? height : image.element.height;
+
+            return this;
+        },
+
+        /**
+         * 表示しているアセット(画像)を取得
+         */
+        getImage: function() {
+            return this._image;
+        },
+
+        /**
+         * 自分自信を画像サイズと同じサイズにする
+         */
+        fitImage: function() {
+            this.width  = this.image.width;
+            this.height = this.image.height;
+
+            return this;
+        },
+        
+        /**
+         * フレームインデックスをセット
+         */
+        setFrameIndex: function(index, width, height) {
+            var tw  = width || this.width;      // tw
+            var th  = height || this.height;    // th
+            var row = ~~(this.image.width / tw);
+            var col = ~~(this.image.height / th);
+            var maxIndex = row*col;
+            index = index%maxIndex;
+            
+            var x   = index%row;
+            var y   = ~~(index/row);
+            this.srcRect.x = x*tw;
+            this.srcRect.y = y*th;
+            this.srcRect.width  = tw;
+            this.srcRect.height = th;
+
+            this._frameIndex = index;
+
+            return this;
+        },
+        
+        /**
+         * @private
+         */
+        _refreshSize: function() {},
+    });
+    
+    /**
+     * @property    image
+     * 画像
+     */
+    tm.display.Sprite.prototype.accessor("image", {
+        "get": function()   {
+            return this._image;
+        },
+        "set": function(image)  {
+            this.setImage(image);
+        }
+    });
+
+    /**
+     * @property    frameIndex
+     * フレームインデックス
+     */
+    tm.display.Sprite.prototype.accessor("frameIndex", {
+        "get": function()   {
+            return this._frameIndex;
+        },
+        "set": function(value)  {
+            this.setFrameIndex(value);
         }
     });
     
@@ -14293,8 +14667,8 @@ tm.display = tm.display || {};
     
     /**
      * @class tm.display.Shape
-     * 図形を描画するクラス
      * @extends tm.display.CanvasElement
+     * 図形を描画するクラス
      */
     tm.display.Shape = tm.createClass({
         superClass: tm.display.CanvasElement,
@@ -14302,188 +14676,76 @@ tm.display = tm.display || {};
         /** @property canvsa */
         /** @property width */
         /** @property height */
+        /** @property autoRender */
 
         /**
          * @constructor
          */
-        init: function(width, height) {
+        init: function(param) {
+            param = this._dirtyCheckParam.apply(this, arguments);
+            var param = {}.$safe(param, {
+                width: 64,
+                height: 64,
+                // bgColor: "#888",
+                bgColor: "transparent",
+
+                fillStyle: "red",
+                strokeStyle: "white",
+                lineWidth: "2",
+                shadowBlur: 0,
+                shadowColor: "red",
+            });
+            
             this.superInit();
-            
-            width = width   || 64;
-            height= height  || 64;
-            
+
+            // 
             this.canvas = tm.graphics.Canvas();
-            
-            this.width  = width;
-            this.height = height;
-            this.canvas.resize(width, height);
+            // 
+            this.$extend(param);
+            // 
+            this.render();
+            // 
+            this.autoRender = true;
         },
 
-        /**
-         * @TODO ?
-         */
-        renderCircle: function(param) {
+        _prerender: function() {
             var c = this.canvas;
-            param = {}.$extend(tm.display.Shape.DEFAULT_SHAPE_PARAM_CIRCLE, param);
-            
-            c.save();
-            
-            // パラメータセット
-            c.fillStyle = param.fillStyle;
-            c.strokeStyle = param.strokeStyle;
-            c.lineWidth = param.lineWidth;
-            
-            // 描画
-            c.fillCircle(this.width/2, this.height/2, this.radius);
-            c.strokeCircle(this.width/2, this.height/2, this.radius-Number(c.lineWidth)/2);
-            
-            c.restore();
-        },
-
-        /**
-         * @TODO ?
-         */
-        renderTriangle: function(param) {
-            var c = this.canvas;
-            param = {}.$extend(tm.display.Shape.DEFAULT_SHAPE_PARAM_TRIANGLE, param);
-            
-            c.save();
-            
-            // パラメータセット
-            c.fillStyle = param.fillStyle;
-            c.strokeStyle = param.strokeStyle;
-            c.lineWidth = param.lineWidth;
-            
-            // 描画
-            c.fillPolygon(this.width/2, this.height/2, this.radius, 3);
-            c.strokePolygon(this.width/2, this.height/2, this.radius-Number(c.lineWidth)/2, 3);
-            
-            c.restore();
-        },
-
-        /**
-         * @TODO ?
-         */
-        renderRectangle: function(param) {
-            var c = this.canvas;
-            param = {}.$extend(tm.display.Shape.DEFAULT_SHAPE_PARAM_RECTANGLE, param);
+            c.resize(this.width, this.height);
+            c.clearColor(this.bgColor);
 
             c.save();
-            
+
             // パラメータセット
-            c.fillStyle = param.fillStyle;
-            c.strokeStyle = param.strokeStyle;
-            c.lineWidth = param.lineWidth;
-            
-            // 描画
-            var lw      = Number(c.lineWidth);
-            var lw_half = lw/2;
-            c.fillRect(0, 0, this.width, this.height);
-            c.strokeRect(lw_half, lw_half, this.width-lw, this.height-lw);
-            
-            c.restore();
+            c.fillStyle   = this.fillStyle;
+            c.strokeStyle = this.strokeStyle;
+            c.lineWidth   = this.lineWidth;
+            c.shadowBlur  = this.shadowBlur;
+            c.shadowColor  = this.shadowColor;
+
+            return this;
         },
-        
-        /**
-         * 角丸四角形を描画
-         */
-        renderRoundRectangle: function(param) {
+
+        _postrender: function() {
             var c = this.canvas;
-            param = {}.$extend(tm.display.Shape.DEFAULT_SHAPE_PARAM_ROUND_RECTANGLE, param);
-
-            c.save();
-            
-            // パラメータセット
-            c.fillStyle = param.fillStyle;
-            c.strokeStyle = param.strokeStyle;
-            c.lineWidth = param.lineWidth;
-            
-            // 描画
-            var lw      = Number(c.lineWidth);
-            var lw_half = lw/2;
-            c.fillRoundRect(0, 0, this.width, this.height, param.radius);
-            c.strokeRoundRect(lw_half, lw_half, this.width-lw, this.height-lw, param.radius);
-            
             c.restore();
+
+            return this;
+        },
+
+        render: function() {
+            this._prerender();
+
+            this._render();
+
+            this._postrender();
+        },
+
+        _render: function() {
+
         },
 
         /**
-         * @TODO ?
-         */
-        renderStar: function(param) {
-            var c = this.canvas;
-            param = {}.$extend(tm.display.Shape.DEFAULT_SHAPE_PARAM_STAR, param);
-            
-            c.save();
-            
-            // パラメータセット
-            c.fillStyle = param.fillStyle;
-            c.strokeStyle = param.strokeStyle;
-            c.lineWidth = param.lineWidth;
-
-            // 描画
-            var lw          = Number(c.lineWidth);
-            var lw_half     = lw/2;
-            var sides       = param.sides;
-            var sideIndent  = param.sideIndent;
-            var offsetAngle = param.offsetAngle;
-            c.fillStar(this.width/2, this.height/2, this.radius, sides, sideIndent, offsetAngle);
-            c.strokeStar(this.width/2, this.height/2, this.radius-Number(c.lineWidth)/2, sides, sideIndent, offsetAngle);
-            
-            c.restore();
-        },
-
-        /**
-         * @TODO ?
-         */
-        renderPolygon: function(param) {
-            var c = this.canvas;
-            param = {}.$extend(tm.display.Shape.DEFAULT_SHAPE_PARAM_POLYGON, param);
-            
-            c.save();
-            
-            // パラメータセット
-            c.fillStyle = param.fillStyle;
-            c.strokeStyle = param.strokeStyle;
-            c.lineWidth = param.lineWidth;
-            c.textAlign = "center";
-            c.textBaseline = "middle";
-            
-            // 描画
-            var lw          = Number(c.lineWidth);
-            var lw_half     = lw/2;
-            var sides       = param.sides;
-            var sideIndent  = param.sideIndent;
-            var offsetAngle = param.offsetAngle;
-            c.fillPolygon(this.width/2, this.height/2, this.radius, sides, offsetAngle);
-            c.strokePolygon(this.width/2, this.height/2, this.radius-Number(c.lineWidth)/2, sides, offsetAngle);
-            
-            c.restore();
-        },
-
-        /**
-         * @TODO ?
-         */
-        renderHeart: function(param) {
-            var c = this.canvas;
-            param = {}.$extend(tm.display.Shape.DEFAULT_SHAPE_PARAM_HEART, param);
-
-            c.save();
-            
-            // パラメータセット
-            c.fillStyle     = param.fillStyle;
-            c.strokeStyle   = param.strokeStyle;
-            c.lineWidth     = param.lineWidth;
-            
-            // 描画
-            c.fillHeart(this.width/2, this.height/2, this.radius, param.angle);
-            c.strokeHeart(this.width/2, this.height/2, this.radius-Number(c.lineWidth)/2, param.angle);
-            
-            c.restore();
-        },
-
-        /**
-         * @TODO ?
+         * テキスト描画
          */
         renderText: function(param) {
             var c = this.canvas;
@@ -14505,79 +14767,42 @@ tm.display = tm.display || {};
             
             c.restore();
         },
+
+
+        // TODO: old support(plan delete)
+        _dirtyCheckParam: function(param) {
+            var param = param;
+            if (arguments.length >= 2) {
+                var width = arguments[0];
+                var height= arguments[1];
+                var param = arguments[2] || {};
+                param.width = width;
+                param.height = height;
+
+                console.warn("tmlib.js warn: arguments of shape init is only param from version 0.4");
+            }
+
+            return param;
+        },
         
     });
 
-    /** @static @property  */
-    tm.display.Shape.DEFAULT_SHAPE_PARAM_CIRCLE = {
-        fillStyle: "red",
-        strokeStyle: "white",
-        lineWidth: "2",
-    };
+    ["width", "height", "bgColor", "strokeStyle", "fillStyle", "lineWidth", "shadowBlur", "shadowColor"].each(function(prop) {
+        var propName = '_' + prop;
 
-    /** @static @property  */
-    tm.display.Shape.DEFAULT_SHAPE_PARAM_TRIANGLE = {
-        fillStyle: "green",
-        strokeStyle: "white",
-        lineWidth: "2",
-    };
+        tm.display.Shape.prototype.accessor(prop, {
+            "get": function()   {
+                return this[propName];
+            },
+            "set": function(v)  {
+                this[propName] = v;
+                if (this.autoRender === true) {
+                    this.render();
+                }
+            }
+        });
+    });
 
-    /** @static @property  */
-    tm.display.Shape.DEFAULT_SHAPE_PARAM_RECTANGLE = {
-        fillStyle: "blue",
-        strokeStyle: "white",
-        lineWidth: "2",
-    };
-
-    /** @static @property  */
-    tm.display.Shape.DEFAULT_SHAPE_PARAM_ROUND_RECTANGLE = {
-        fillStyle: "blue",
-        strokeStyle: "white",
-        lineWidth: "2",
-        radius: 10,
-    };
-
-    /** @static @property  */
-    tm.display.Shape.DEFAULT_SHAPE_PARAM_STAR = {
-        fillStyle: "yellow",
-        strokeStyle: "white",
-        lineWidth: "2",
-        
-        sides: 5,
-        sideIndent: undefined,
-        offsetAngle: undefined,
-    };
-
-    /** @static @property  */
-    tm.display.Shape.DEFAULT_SHAPE_PARAM_POLYGON = {
-        fillStyle: "cyan",
-        strokeStyle: "white",
-        lineWidth: "2",
-        
-        sides: 5,
-        offsetAngle: undefined,
-    };
-
-    /** @static @property  */
-    tm.display.Shape.DEFAULT_SHAPE_PARAM_HEART = {
-        fillStyle: "pink",
-        strokeStyle: "white",
-        lineWidth: "2",
-        
-        angle: 45,
-    };
-
-    /** @static @property  */
-    tm.display.Shape.DEFAULT_SHAPE_PARAM_TEXT = {
-        text: "hello, world",
-        fillStyle: "pink",
-        strokeStyle: "white",
-        lineWidth: "1",
-        textAlign: "center",
-        textBaseline: "middle",
-        font: "24px 'Consolas', 'Monaco', 'ＭＳ ゴシック'",
-    };
-    
 })();
 
 
@@ -14585,24 +14810,32 @@ tm.display = tm.display || {};
     
     /**
      * @class tm.display.CircleShape
-     * 簡単に円を描画できるクラス
      * @extends tm.display.Shape
+     * 簡単に円を描画できるクラス
      * 
      *      @example display
      *      var shape = tm.display.CircleShape().addChildTo(this);
      *      shape.setPosition(50, 50);
      */
-    tm.display.CircleShape = tm.createClass({
-        
+    tm.define("tm.display.CircleShape", {
         superClass: tm.display.Shape,
         
         /**
          * @constructor
          */
-        init: function(width, height, param) {
-            this.superInit(width, height);
+        init: function(param) {
+            param = this._dirtyCheckParam.apply(this, arguments);
+            this.superInit(param);
+
+            this.render();
+        },
+
+        _render: function() {
+            var c = this.canvas;
             // 描画
-            this.renderCircle(param);
+            var radius = Math.min(this.width, this.height)/2;
+            c.fillCircle(this.width/2, this.height/2, radius);
+            c.strokeCircle(this.width/2, this.height/2, radius-Number(c.lineWidth)/2);
         },
     });
     
@@ -14618,19 +14851,33 @@ tm.display = tm.display || {};
      * 簡単に三角形を描画できるクラス
      * @extends tm.display.Shape
      */
-    tm.display.TriangleShape = tm.createClass({
-        
+    tm.define("tm.display.TriangleShape", {
         superClass: tm.display.Shape,
         
         /**
          * @constructor
          */
-        init: function(width, height, param) {
-            this.superInit(width, height);
-            // 描画
-            this.renderTriangle(param);
+        init: function(param) {
+            param = this._dirtyCheckParam.apply(this, arguments);
+            param = {}.$safe(param, {
+                fillStyle: "green",
+            });
+            this.superInit(param);
+
+            this.render();
         },
-        
+
+        _render: function() {
+            var c = this.canvas;
+
+            // 描画
+            var x = this.width/2;
+            var y = this.height/2;
+            var radius = Math.min(this.width, this.height)/2;
+            var offsetLine = Number(c.lineWidth)*1;
+            c.fillPolygon(x, y, radius, 3);
+            c.strokePolygon(x, y, radius-offsetLine, 3);
+        },
     });
     
 })();
@@ -14645,19 +14892,30 @@ tm.display = tm.display || {};
      * 簡単に矩形を描画できるクラス
      * @extends tm.display.Shape
      */
-    tm.display.RectangleShape = tm.createClass({
-        
+    tm.define("tm.display.RectangleShape", {
         superClass: tm.display.Shape,
         
         /**
          * @constructor
          */
-        init: function(width, height, param) {
-            this.superInit(width, height);
-            // 描画
-            this.renderRectangle(param);
+        init: function(param) {
+            param = this._dirtyCheckParam.apply(this, arguments);
+            param = {}.$safe(param, {
+                fillStyle: "blue",
+            });
+            this.superInit(param);
+
+            this.render();
         },
-        
+
+        _render: function() {
+            var c = this.canvas;
+            // 描画
+            var lw = this.lineWidth;
+            var lw_half = lw/2;
+            c.fillRect(0, 0, this.width, this.height);
+            c.strokeRect(lw_half, lw_half, this.width-lw, this.height-lw);
+        },
     });
     
 })();
@@ -14672,21 +14930,48 @@ tm.display = tm.display || {};
      * 簡単に矩形を描画できるクラス
      * @extends tm.display.Shape
      */
-    tm.display.RoundRectangleShape = tm.createClass({
-        
+    tm.define("tm.display.RoundRectangleShape", {
         superClass: tm.display.Shape,
         
         /**
          * @constructor
          */
-        init: function(width, height, param) {
-            this.superInit(width, height);
-            // 描画
-            this.renderRoundRectangle(param);
+        init: function(param) {
+            param = this._dirtyCheckParam.apply(this, arguments);
+            param = {}.$safe(param, {
+                fillStyle: "blue",
+                cornerRadius: 8,
+            });
+            this.superInit(param);
+
+            this.render();
         },
-        
+
+        _render: function() {
+            var c = this.canvas;
+            // 描画
+            var lw = this.lineWidth;
+            var lw_half = lw/2;
+
+            c.fillRoundRect(lw_half, lw_half, this.width-lw, this.height-lw, this.cornerRadius);
+            c.strokeRoundRect(lw_half, lw_half, this.width-lw, this.height-lw, this.cornerRadius);
+        },
     });
-    
+
+    ["cornerRadius"].each(function(prop) {
+        var propName = '_' + prop;
+
+        tm.display.RoundRectangleShape.prototype.accessor(prop, {
+            "get": function()   {
+                return this[propName];
+            },
+            "set": function(v)  {
+                this[propName] = v;
+                if (this.autoRender === true) { this.render(); }
+            }
+        });
+    });
+
 })();
 
 
@@ -14697,19 +14982,56 @@ tm.display = tm.display || {};
      * 簡単に星形を描画できるクラス
      * @extends tm.display.Shape
      */
-    tm.display.StarShape = tm.createClass({
-        
+    tm.define("tm.display.StarShape", {
         superClass: tm.display.Shape,
         
         /**
          * @constructor
          */
-        init: function(width, height, param) {
-            this.superInit(width, height);
-            // 描画
-            this.renderStar(param);
+        init: function(param) {
+            param = this._dirtyCheckParam.apply(this, arguments);
+            param = {}.$safe(param, {
+                fillStyle: "yellow",
+                sides: 5,
+                sideIndent: 0.38,
+                offsetAngle: -90,
+            });
+            this.superInit(param);
+
+            this.render();
         },
-        
+
+        _render: function() {
+            var c = this.canvas;
+
+            var sides       = this.sides;
+            var sideIndent  = this.sideIndent;
+            var offsetAngle = this.offsetAngle;
+            
+            // 描画
+            var x = this.width/2;
+            var y = this.height/2;
+            var radius = Math.min(this.width, this.height)/2;
+            var offsetLine = Number(c.lineWidth)*1.5;
+            c.fillStar(x, y, radius, sides, sideIndent, offsetAngle);
+            c.strokeStar(x, y, radius-offsetLine, sides, sideIndent, offsetAngle);
+        },
+    });
+
+    ["sides", "sideIndent", "offsetAngle"].each(function(prop) {
+        var propName = '_' + prop;
+
+        tm.display.StarShape.prototype.accessor(prop, {
+            "get": function()   {
+                return this[propName];
+            },
+            "set": function(v)  {
+                this[propName] = v;
+                if (this.autoRender === true) {
+                    this.render();
+                }
+            }
+        });
     });
     
 })();
@@ -14720,22 +15042,58 @@ tm.display = tm.display || {};
     
     /**
      * @class tm.display.PolygonShape
-     * @TODO なにを描画するクラス？
      * @extends tm.display.Shape
+     * ポリゴン描画クラス
      */
-    tm.display.PolygonShape = tm.createClass({
-        
+    tm.define("tm.display.PolygonShape", {
         superClass: tm.display.Shape,
         
         /**
          * @constructor
          */
-        init: function(width, height, param) {
-            this.superInit(width, height);
-            // 描画
-            this.renderPolygon(param);
+        init: function(param) {
+            param = this._dirtyCheckParam.apply(this, arguments);
+            param = {}.$safe(param, {
+                fillStyle: "cyan",
+                sides: 5,
+                sideIndent: 0.38,
+                offsetAngle: -90,
+            });
+            this.superInit(param);
+
+            this.render();
         },
-        
+
+        _render: function() {
+            var c = this.canvas;
+
+            var sides       = this.sides;
+            var offsetAngle = this.offsetAngle;
+            
+            // 描画
+            var x = this.width/2;
+            var y = this.height/2;
+            var radius = Math.min(this.width, this.height)/2;
+            var offsetLine = Number(c.lineWidth)*0.6;
+            c.fillPolygon(x, y, radius, sides, offsetAngle);
+            c.strokePolygon(x, y, radius-offsetLine, sides, offsetAngle);
+        },
+    });
+
+    ["sides", "offsetAngle"].each(function(prop) {
+        var propName = '_' + prop;
+
+        tm.display.PolygonShape.prototype.accessor(prop, {
+            "get": function()   {
+                return this[propName];
+            },
+            "set": function(v)  {
+                this[propName] = v;
+                if (this.autoRender === true) {
+                    this.render();
+                }
+            }
+        });
     });
     
 })();
@@ -14750,32 +15108,61 @@ tm.display = tm.display || {};
      * 簡単にハートを描画できるクラス
      * @extends tm.display.Shape
      */
-    tm.display.HeartShape = tm.createClass({
-        
+    tm.define("tm.display.HeartShape", {
         superClass: tm.display.Shape,
         
         /**
          * @constructor
          */
-        init: function(width, height, param) {
-            this.superInit(width, height);
-            // 描画
-            this.renderHeart(param);
+        init: function(param) {
+            param = this._dirtyCheckParam.apply(this, arguments);
+            param = {}.$safe(param, {
+                fillStyle: "pink",
+                cornerAngle: 45,
+            });
+            this.superInit(param);
+
+            this.render();
         },
-        
+
+        _render: function() {
+            var c = this.canvas;
+            // 描画
+            var x = this.width/2;
+            var y = this.height/2;
+            var radius = Math.min(this.width, this.height)/2;
+            c.fillHeart(x, y, radius, this.cornerAngle);
+            c.strokeHeart(x, y, radius-Number(c.lineWidth)/2, this.cornerAngle);
+        },
     });
-    
+
+    ["cornerAngle"].each(function(prop) {
+        var propName = '_' + prop;
+
+        tm.display.HeartShape.prototype.accessor(prop, {
+            "get": function()   {
+                return this[propName];
+            },
+            "set": function(v)  {
+                this[propName] = v;
+                if (this.autoRender === true) { this.render(); }
+            }
+        });
+    });
+
 })();
 
 
 
 
 (function() {
+
+    var dummyCanvas = null;
     
     /**
      * @class tm.display.TextShape
-     * @TODO なにするクラス？
      * @extends tm.display.Shape
+     * テキスト描画クラス
      */
     tm.define("tm.display.TextShape", {
 
@@ -14785,11 +15172,66 @@ tm.display = tm.display || {};
          * @constructor
          */
         init: function(width, height, param) {
-            this.superInit(width, height);
-            // 描画
-            this.renderText(param);
+            param = this._dirtyCheckParam.apply(this, arguments);
+            param = {}.$safe(param, {
+                fillStyle: "black",
+                lineWidth: 4,
+                text: "hello, world!",
+                fontSize: 64,
+                fontWeight: "",
+                fontFamily: "'HiraKakuProN-W3'",
+            });
+            this.superInit(param);
+
+            this.fit();
+
+            this.render();
         },
+
+        fit: function() {
+            if (!dummyCanvas) {
+                dummyCanvas = tm.graphics.Canvas();
+            }
+            dummyCanvas.font = "{fontWeight} {fontSize}px {fontFamily}".format(this);
+            var textWidth = dummyCanvas.context.measureText(this.text).width + (10);
+            var textHeight = dummyCanvas.context.measureText('あ').width*1.5;
+            this.width = textWidth;
+            this.height = textHeight;
+        },
+
+        _render: function() {
+            var c = this.canvas;
+
+            c.fillStyle = this.fillStyle;
+            c.strokeStyle = this.strokeStyle;
+            c.font = "{fontWeight} {fontSize}px {fontFamily}".format(this);
+            c.textAlign = "center";
+            c.textBaseline = "middle";
+
+            var textWidth = c.context.measureText(this.text).width;
+
+            var hw = this.width/2;
+            var hh = this.height/2
+            c.strokeText(this.text, hw, hh);
+            c.fillText(this.text, hw, hh);
+        },
+
     });
+
+    ['text', "fontWeight", "fontSize", "fontFamily"].each(function(prop) {
+        var propName = '_' + prop;
+
+        tm.display.TextShape.prototype.accessor(prop, {
+            "get": function()   {
+                return this[propName];
+            },
+            "set": function(v)  {
+                this[propName] = v;
+                if (this.autoRender === true) { this.render(); }
+            }
+        });
+    });
+
     
 })();
 
@@ -14820,9 +15262,9 @@ tm.display = tm.display || {};
 
 (function() {
     
-    var dummyCanvas  = null;
-    var dummyContext = null;
-    
+    var dummyCanvas = document.createElement("canvas");
+    var dummyContext = dummyCanvas.getContext('2d');
+
     /**
      * @class tm.display.Label
      * システムフォントを描画するクラス
@@ -14836,13 +15278,17 @@ tm.display = tm.display || {};
         fill: true,
         /** ストロークフラグ */
         stroke: false,
-        /** @TODO ? */
+        /** デバッグボックス */
         debugBox: false,
+        /** キャッシュ */
+        _cache: null,
+
 
         /** @property _fontSize @private */
         /** @property _fontFamily @private */
         /** @property _fontWeight @private */
         /** @property _lineHeight @private */
+        /** @property _rowWidth @private */
         /** @property align */
         /** @property baseline */
         /** @property maxWidth */
@@ -14853,22 +15299,22 @@ tm.display = tm.display || {};
         init: function(text, size) {
             this.superInit();
             
-            this.text       = text || "";
+            this.text       = text;
             
             this._fontSize   = size || 24;
-            this._fontFamily = "'Consolas', 'Monaco', 'ＭＳ ゴシック'";
+            this._fontFamily = tm.display.Label.default.fontFamily;
             this._fontWeight = "";
             this._lineHeight = 1.2;
             this._updateFont();
             
-            this.align      = "start";
-            this.baseline   = "alphabetic";
+            this.align = tm.display.Label.default.align;
+            this.baseline = tm.display.Label.default.baseline;
 
             this.maxWidth   = null;
         },
         
         /**
-         * @TODO ?
+         * アラインをセット
          */
         setAlign: function(align) {
             this.align = align;
@@ -14876,7 +15322,7 @@ tm.display = tm.display || {};
         },
         
         /**
-         * @TODO ?
+         * ベースラインをセット
          */
         setBaseline: function(baseline) {
             this.baseline = baseline;
@@ -14884,7 +15330,7 @@ tm.display = tm.display || {};
         },
         
         /**
-         * @TODO ?
+         * フォントサイズをセット
          */
         setFontSize: function(size) {
             this.fontSize = size;
@@ -14892,7 +15338,7 @@ tm.display = tm.display || {};
         },
         
         /**
-         * @TODO ?
+         * フォントファミリーをセット
          */
         setFontFamily: function(family) {
             this.fontFamily= family;
@@ -14900,7 +15346,7 @@ tm.display = tm.display || {};
         },
 
         /**
-         * @TODO ?
+         * フォントウェイトをセット
          */
         setFontWeight: function(weight) {
             this.fontWeight= weight;
@@ -14908,25 +15354,89 @@ tm.display = tm.display || {};
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _updateFont: function() {
             this.fontStyle = "{fontWeight} {fontSize}px {fontFamily}".format(this);
-            if (!dummyCanvas) {
-                dummyCanvas = document.createElement("canvas");
-                dummyContext = dummyCanvas.getContext('2d');
-            }
-            dummyContext.font = this.fontStyle;
-            this.textSize = dummyContext.measureText('あ').width * this.lineHeight;
+
+            this._cache = tm.display.Label._cache[this.fontStyle];
+
+            this.textSize = this.measure('あ') * this.lineHeight;
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _updateLines: function() {
-            this._lines = (this._text+'').split('\n');
+            var lines = this._lines = (this._text + '').split('\n');
+
+            if (this._rowWidth) {
+                var rowWidth = this._rowWidth;
+                //どのへんで改行されるか目星つけとく
+                var defaultIndex = rowWidth / this.measure('あ') | 0;
+                var cache = this._cache || (this._cache = tm.display.Label._cache[this.fontStyle] = {});
+                for (var i = lines.length; i--;) {
+                    var text = lines[i], index, len, j = 0, width, char;
+                    while (true) {
+                        if (rowWidth > (cache[text] || (cache[text] = dummyContext.measureText(text).width))) break;
+
+                        index = index || defaultIndex;
+                        len = text.length;
+                        if (len <= index) index = len - 1;
+
+                        if (rowWidth < (width = cache[char = text.substring(0, index)] || (cache[char] = dummyContext.measureText(char).width))) {
+                            while (rowWidth < (width -= cache[char = text[--index]] || (cache[char] = dummyContext.measureText(char).width)));
+                        } else {
+                            while (rowWidth >= (width += cache[char = text[index++]] || (cache[char] = dummyContext.measureText(char).width)));
+                            --index;
+                        }
+
+                        //index が 0 のときは無限ループになるので、1にしとく
+                        if (index === 0) index = 1;
+                        lines.splice(i + j++, 1, text.substring(0, index), text = text.substring(index, len));
+                    }
+
+                }
+            }
+        },
+
+        /**
+         * このLabelインスタンスの設定で文字を描画したときの幅
+         * newLine true 指定で\nによる改行も考慮する
+         */
+        measure: function (text, newLine) {
+            dummyContext.font = this.fontStyle;
+            text = text == null ? '' : text + '';
+
+            if (newLine) {
+                text = text.split('\n');
+                var max = 0;
+
+                text.forEach(function (text) {
+                    var width = dummyContext.measureText(text).width;
+                    if (width > max) max = width;
+                });
+
+                return max;
+            }
+
+            return dummyContext.measureText(text).width;
+        },
+
+        /**
+         * 列の幅をセット
+         */
+        setRowWidth: function (rowWidth) {
+            this.rowWidth = rowWidth;
+            return this;
+        },
+
+        /**
+         * 文字列をセット
+         */
+        setText: function (text) {
+            this.text = text;
+            return this;
         },
         
     });
@@ -14937,13 +15447,9 @@ tm.display = tm.display || {};
      */
     tm.display.Label.prototype.accessor("text", {
         "get": function() { return this._text; },
-        "set": function(v){
-            if (v == null || v == undefined) {
-                this._text = "";
-            }
-            else {
-                this._text = v;
-            }
+        "set": function (v) {
+            if (this._text === v) return;
+            this._text = (v != null) ? v : '';
             this._updateLines();
         }
     });
@@ -14986,6 +15492,27 @@ tm.display = tm.display || {};
         },
     });
 
+
+    /**
+     * @property rowWidth
+     */
+    tm.display.Label.prototype.accessor("rowWidth", {
+        "get": function () { return this._rowWidth; },
+        "set": function (v) {
+            this._rowWidth = v; this._updateLines();
+        },
+    });
+    
+    tm.display.Label.default = {
+        align: "center",
+        baseline: "middle",
+        fontFamily: "'HiraKakuProN-W3'", // Hiragino or Helvetica
+        // align: "start",
+        // baseline: "alphabetic",
+    };
+
+    tm.display.Label._cache = {};
+
     
 })();
 
@@ -15023,7 +15550,7 @@ tm.display = tm.display || {};
             this.superInit();
 
             if (typeof ss == "string") {
-                var ss = tm.asset.AssetManager.get(ss);
+                var ss = tm.asset.Manager.get(ss);
                 console.assert(ss, "not found " + ss);
             }
 
@@ -15060,7 +15587,7 @@ tm.display = tm.display || {};
         },
 
         /**
-         * @TODO ?
+         * 再生
          */
         gotoAndPlay: function(name) {
             name = (name !== undefined) ? name : "default";
@@ -15075,7 +15602,7 @@ tm.display = tm.display || {};
         },
 
         /**
-         * @TODO ?
+         * ストップ
          */
         gotoAndStop: function(name) {
             name = (name !== undefined) ? name : "default";
@@ -15090,7 +15617,7 @@ tm.display = tm.display || {};
         },
 
         /**
-         * @TODO ?
+         * フレーム数のカウントアップ
          * @private
          */
         _updateFrame: function() {
@@ -15099,7 +15626,6 @@ tm.display = tm.display || {};
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _normalizeFrame: function() {
@@ -15148,8 +15674,10 @@ tm.display = tm.display || {};
         /** @property chipWidth */
         /** @property chipHeight */
         /** @property originX */
+        /** @property originY */
         /** @property width */
         /** @property height */
+        /** @property tileset */
 
         /**
          * @constructor
@@ -15158,7 +15686,7 @@ tm.display = tm.display || {};
             this.superInit();
 
             if (typeof mapSheet == "string") {
-                this.mapSheet = tm.asset.AssetManager.get(mapSheet);
+                this.mapSheet = tm.asset.Manager.get(mapSheet);
             }
             else {
                 this.mapSheet = mapSheet;
@@ -15172,33 +15700,27 @@ tm.display = tm.display || {};
             this.width = chipWidth*this.mapSheet.width;
             this.height= chipWidth*this.mapSheet.height;
 
+            this.tileset = [];
+            this.tilesetInfo = {};
             this._build();
         },
 
-        isHitPointTile: function(x, y, layer) {
-            layer = layer || 0;
-
-            var p = this.globalToLocal(tm.geom.Vector2(x, y));
-            var axisX = Math.floor((x / this.width) * this.mapSheet.width);
-            var axisY = Math.floor((y / this.height) * this.mapSheet.height);
-
-            if (axisX < 0 || this.mapSheet.width <= axisX || axisY < 0 || this.mapSheet.height <= axisY) {
-                return false;
-            }
-
-            return this.mapSheet.layers[layer].data[axisY * this.mapSheet.width + axisX] !== -1;
-        },
-
         /**
-         * @TODO ?
          * @private
          */
         _build: function() {
             var self = this;
 
+            this.mapSheet.tilesets.each(function(tileset, index) {
+                self._buildTileset(tileset, index);
+            });
+
             this.mapSheet.layers.each(function(layer, hoge) {
                 if (layer.type == "objectgroup") {
                     self._buildObject(layer);
+                }
+                else if (layer.type == "imagelayer") {
+                    self._buildImageLayer(layer);
                 }
                 else {
                     self._buildLayer(layer);
@@ -15207,18 +15729,71 @@ tm.display = tm.display || {};
         },
 
         /**
-         * @TODO ?
+         * @private
+         */
+        _buildTileset: function(tileset, index) {
+            var self      = this;
+            var mapSheet  = this.mapSheet;
+            var texture   = tm.asset.Manager.get(tileset.image);
+            var xIndexMax = (texture.width / mapSheet.tilewidth)|0;
+            var yIndexMax = (texture.height / mapSheet.tileheight)|0;
+
+            var info = {
+                begin: self.tileset.length,
+                end: self.tileset.length + xIndexMax * yIndexMax
+            };
+
+            self.tilesetInfo[index] = info;
+
+            if (tileset.name !== undefined) {
+                self.tilesetInfo[tileset.name] = info;
+            }
+
+            yIndexMax.times(function(my) {
+                xIndexMax.times(function(mx) {
+                    var rect = tm.geom.Rect(
+                        mx * mapSheet.tilewidth,
+                        my * mapSheet.tileheight,
+                        mapSheet.tilewidth,
+                        mapSheet.tileheight
+                        );
+                    self.tileset.push({
+                        image: tileset.image,
+                        rect: rect
+                    });
+                });
+            });
+        },
+
+        /**
          * @private
          */
         _buildLayer: function(layer) {
-            var self        = this;
-            var mapSheet    = this.mapSheet;
-            var texture     = tm.asset.AssetManager.get(mapSheet.tilesets[0].image);
-            var xIndexMax   = (texture.width/mapSheet.tilewidth)|0;
-            var shape       = tm.display.Shape(this.width, this.height).addChildTo(this);
-            var visible = (layer.visible === 1) || (layer.visible === undefined);
-            var opacity = layer.opacity === undefined ? 1 : layer.opacity;
+            var self     = this;
+            var mapSheet = this.mapSheet;
+            var shape    = tm.display.Shape({
+                width: this.width,
+                height: this.height
+            }).addChildTo(this);
+            var visible  = (layer.visible === 1) || (layer.visible === undefined);
+            var opacity  = layer.opacity === undefined ? 1 : layer.opacity;
+            var tileset  = [];
             shape.origin.set(0, 0);
+
+            if (layer.tilesets !== undefined) {
+                var tilesets = null;
+                if (Array.isArray(layer.tilesets)) {
+                    tilesets = layer.tilesets;
+                } else {
+                    tilesets = [layer.tilesets];
+                }
+                tilesets.each(function(n) {
+                    var info = self.tilesetInfo[n];
+                    tileset = tileset.concat(self.tileset.slice(info.begin, info.end));
+                });
+            } else {
+                tileset = self.tileset;
+            }
 
             if (visible) {
                 layer.data.each(function(d, index) {
@@ -15227,19 +15802,23 @@ tm.display = tm.display || {};
                         return ;
                     }
                     type = Math.abs(type);
+                    if (tileset[type] === undefined) {
+                        return ;
+                    }
 
                     var xIndex = index%mapSheet.width;
                     var yIndex = (index/mapSheet.width)|0;
-
-                    var mx = (type%xIndexMax);
-                    var my = (type/xIndexMax)|0;
-
                     var dx = xIndex*self.chipWidth;
                     var dy = yIndex*self.chipHeight;
 
+                    var tile = tileset[type];
+
+                    var texture = tm.asset.Manager.get(tile.image);
+                    var rect = tile.rect;
+
                     shape.canvas.globalAlpha = opacity;
                     shape.canvas.drawTexture(texture,
-                        mx*mapSheet.tilewidth, my*mapSheet.tileheight, mapSheet.tilewidth, mapSheet.tileheight,
+                        rect.x, rect.y, rect.width, rect.height,
                         dx, dy, self.chipWidth, self.chipHeight
                         );
                 }.bind(this));
@@ -15248,15 +15827,14 @@ tm.display = tm.display || {};
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _buildObject: function(layer) {
             var self = this;
 
             var group = tm.display.CanvasElement().addChildTo(self);
-            group.width = layer.width;
-            group.height = layer.height;
+            group.width = self.width;
+            group.height = self.height;
 
             layer.objects.forEach(function(obj) {
                 var _class = tm.using(obj.type);
@@ -15288,6 +15866,19 @@ tm.display = tm.display || {};
 
         },
 
+        /**
+         * @private
+         */
+        _buildImageLayer: function(layer) {
+            var sprite = tm.display.Sprite(layer.image.source).setOrigin(0, 0).addChildTo(this);
+            sprite.x = layer.x;
+            sprite.y = layer.y;
+            sprite.alpha = layer.alpha;
+            sprite.visible = layer.visible;
+
+            this[layer.name] = sprite;
+        }
+
     });
 
 })();
@@ -15304,13 +15895,13 @@ tm.display = tm.display || {};
     
     /**
      * @class tm.display.CanvasRenderer
-     * @TODO キャンバス描画クラス？
+     * キャンバス描画クラス
      */
     tm.define("tm.display.CanvasRenderer", {
         /** キャンバス */
         canvas: null,
 
-        /** @property _context @private */
+        /** @property @private _context     コンテキスト */
 
         /**
          * @constructor
@@ -15322,8 +15913,7 @@ tm.display = tm.display || {};
         },
 
         /**
-         * @property
-         * @TODO ?
+         * 描画
          */
         render: function(root) {
             this.canvas.save();
@@ -15332,16 +15922,32 @@ tm.display = tm.display || {};
         },
 
         /**
-         * @property
-         * @TODO ?
+         * オブジェクトを描画
          */
         renderObject: function(obj) {
-            obj._dirtyCalc();
-
             if (obj.visible === false) return ;
             var context = this._context;
 
-            if (!obj.draw) this._setRenderFunction(obj);
+            // TODO: 別の場所で呼ぶよう調整する
+            obj._dirtyCalc && obj._dirtyCalc();
+
+            // 描画可能かをチェック
+            if (!this._checkRenderable(obj)) {
+                // 子供達のみ描画実行
+                if (obj.children.length > 0) {
+                    var tempChildren = obj.children.slice();
+                    for (var i=0,len=tempChildren.length; i<len; ++i) {
+                        this.renderObject(tempChildren[i]);
+                    }
+                }
+
+                return ;
+            }
+
+            // 
+            if (!obj.draw) {
+                this._setRenderFunction(obj);
+            }
 
             // 情報をセット
             if (obj.fillStyle)   context.fillStyle   = obj.fillStyle;
@@ -15365,20 +15971,55 @@ tm.display = tm.display || {};
             var m = obj._worldMatrix.m;
             context.setTransform( m[0], m[3], m[1], m[4], m[2], m[5] );
             
-            obj.draw(this.canvas);
-            
-            // 子供達も実行
-            if (obj.children.length > 0) {
-                var tempChildren = obj.children.slice();
-                for (var i=0,len=tempChildren.length; i<len; ++i) {
-                    this.renderObject(tempChildren[i]);
+
+            if (obj.clipping) {
+                context.save();
+
+                // クリップ処理を実行
+                if (obj.clip) {
+                    obj.clip();
+                }
+                else {
+                    onclip.call(obj, this.canvas);
+                }
+                context.clip();
+
+                obj.draw(this.canvas);
+                
+                // 子供達も実行
+                if (obj.children.length > 0) {
+                    var tempChildren = obj.children.slice();
+                    for (var i=0,len=tempChildren.length; i<len; ++i) {
+                        this.renderObject(tempChildren[i]);
+                    }
+                }
+
+                context.restore();
+            }
+            else {
+                obj.draw(this.canvas);
+                
+                // 子供達も実行
+                if (obj.children.length > 0) {
+                    var tempChildren = obj.children.slice();
+                    for (var i=0,len=tempChildren.length; i<len; ++i) {
+                        this.renderObject(tempChildren[i]);
+                    }
                 }
             }
         },
 
         /**
-         * @property
-         * @TODO ?
+         * @private
+         */
+        _checkRenderable: function(obj) {
+            if (obj._renderable === undefined) {
+                obj._renderable = (obj instanceof tm.display.CanvasElement);
+            }
+            return obj._renderable;
+        },
+
+        /**
          * @private
          */
         _setRenderFunction: function(obj) {
@@ -15419,18 +16060,8 @@ tm.display = tm.display || {};
         },
         "label": function(canvas) {
             canvas.setText(this.fontStyle, this.align, this.baseline);
-            if (this.fill) {
-                if (this.maxWidth) {
-                    this._lines.each(function(elm, i) {
-                        canvas.fillText(elm, 0, this.textSize*i, this.maxWidth);
-                    }.bind(this));
-                }
-                else {
-                    this._lines.each(function(elm, i) {
-                        canvas.fillText(elm, 0, this.textSize*i);
-                    }.bind(this));
-                }
-            }
+            if (this.lineWidth) canvas.lineWidth = this.lineWidth;
+            
             if (this.stroke) {
                 if (this.maxWidth) {
                     this._lines.each(function(elm, i) {
@@ -15443,11 +16074,33 @@ tm.display = tm.display || {};
                     }.bind(this));
                 }
             }
+            if (this.fill) {
+                if (this.maxWidth) {
+                    this._lines.each(function(elm, i) {
+                        canvas.fillText(elm, 0, this.textSize*i, this.maxWidth);
+                    }.bind(this));
+                }
+                else {
+                    this._lines.each(function(elm, i) {
+                        canvas.fillText(elm, 0, this.textSize*i);
+                    }.bind(this));
+                }
+            }
             
             if (this.debugBox) {
                 canvas.strokeRect(0, 0, this.width, -this.size);
             }
         }
+    };
+
+    var onclip = function(c) {
+        c.beginPath();
+        c.rect(
+            -this.width*this.origin.x,
+            -this.height*this.origin.y,
+            this.width,
+            this.height
+            );
     };
 
 })();
@@ -15459,7 +16112,7 @@ tm.display = tm.display || {};
     
     /**
      * @class tm.display.BoundingRectRenderer
-     * @TODO なにをするクラス？
+     * バウンディング表示レンダー
      * @extends tm.display.CanvasRenderer
      */
     tm.define("tm.display.BoundingRectRenderer", {
@@ -15474,8 +16127,6 @@ tm.display = tm.display || {};
         },
 
         /**
-         * @property
-         * @TODO ?
          * @private
          */
         _setRenderFunction: function(obj) {
@@ -15483,10 +16134,6 @@ tm.display = tm.display || {};
         }
     });
 
-    /**
-     * @TODO ?
-     * コンストラクタ
-     */
     var render = function(canvas) {
         canvas.save();
         canvas.lineWidth = 2;
@@ -15548,7 +16195,6 @@ tm.ui = tm.ui || {};
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _createCircle: function() {
@@ -15561,24 +16207,15 @@ tm.ui = tm.ui || {};
             c.fillCircle(40, 40, 35);
         },
 
-        /**
-         * @TODO ?
-         */
         onpointingstart: function() {
             this.isTouching = true;
         },
 
-        /**
-         * @TODO ?
-         */
         onpointingend: function() {
             this.isTouching = false;
             this.circle.position.set(0, 0);
         },
 
-        /**
-         * @TODO ?
-         */
         onpointingmove: function(e) {
             if (this.isTouching==false) return ;
             var p = e.pointing;
@@ -15611,7 +16248,49 @@ tm.ui = tm.ui || {};
 tm.ui = tm.ui || {};
 
 
-(function() {
+;(function() {
+
+    tm.define("tm.ui.BaseButton", {
+        superClass: "tm.display.CanvasElement",
+
+        init: function(param) {
+            this.superInit();
+
+            param = param || {};
+            this.width = param.width || 64;
+            this.height = param.height || 64;
+
+            this.setInteractive(true);
+            this.boundingType = "rect";
+
+            this.on("pointingend", function() {
+                this.flare('push');
+            });
+        },
+    });
+
+})();
+
+
+;(function() {
+
+    tm.define("tm.ui.SpriteButton", {
+        superClass: "tm.ui.BaseButton",
+
+        init: function(image) {
+            this.superInit();
+
+            this.sprite = tm.display.Sprite(image).addChildTo(this);
+
+            this.width = this.sprite.width;
+            this.height = this.sprite.height;
+        },
+    });
+
+})();
+
+
+;(function() {
     
     /**
      * @class tm.ui.LabelButton
@@ -15676,25 +16355,14 @@ tm.ui = tm.ui || {};
         /**
          * @constructor
          */
-        init: function(texture) {
-            if (texture) {
-                this.superInit(texture, texture.width, texture.height);
-            }
-            else {
-                this.superInit();
-            }
-            
-            this.alpha = tm.ui.IconButton.DEFAULT_ALPHA;
+        init: function() {
+            this.superInit.apply(this, arguments);
             
             this.setInteractive(true);
             this.boundingType = "rect";
-            this.addEventListener("pointingover", function() {
-                this.tweener.clear();
-                this.tweener.fade(1, 250);
-            });
-            this.addEventListener("pointingout", function() {
-                this.tweener.clear();
-                this.tweener.fade(tm.ui.LabelButton.DEFAULT_ALPHA, 250);
+
+            this.on("pointingend", function() {
+                this.flare('push');
             });
         },
     });
@@ -15748,7 +16416,7 @@ tm.ui = tm.ui || {};
         },
 
         /**
-         * @TODO ?
+         * 背景色をセット
          */
         setBackgroundColor: function(backgroundColor) {
             this.backgroundColor = backgroundColor;
@@ -15759,7 +16427,7 @@ tm.ui = tm.ui || {};
         },
 
         /**
-         * @TODO ?
+         * リフレッシュ
          * @private
          */
         _refresh: function() {
@@ -15812,34 +16480,33 @@ tm.ui = tm.ui || {};
      * @extends tm.display.Shape
      */
     tm.define("tm.ui.FlatButton", {
-        superClass: tm.display.Shape,
+        superClass: "tm.ui.BaseButton",
 
         /**
          * @constructor
          */
         init: function(param) {
-            param.$safe({
-                width: 300,
-                height: 100,
-                bgColor: "rgb(180, 180, 180)",
-                text: "ABC",
-                fontSize: 50,
-                fontFamily: "'ヒラギノ角ゴ Pro W3', 'Hiragino Kaku Gothic Pro', 'メイリオ', 'Meiryo', 'ＭＳ Ｐゴシック', 'MS PGothic', sans-serif",
-            });
+            param = (param || {}).$safe(tm.ui.FlatButton.defaults);
 
-            this.superInit(param.width, param.height);
+            this.superInit(param);
 
-            this.canvas.clearColor(param.bgColor);
-
-            this.setInteractive(true);
-            this.setBoundingType("rect");
+            this.shape = tm.display.RoundRectangleShape(param).addChildTo(this);
 
             this.label = tm.display.Label(param.text).addChildTo(this);
             this.label.setFontSize(param.fontSize).setFontFamily(param.fontFamily).setAlign("center").setBaseline("middle");
         },
     });
 
-
+    tm.ui.FlatButton.defaults = {
+        width: 300,
+        height: 100,
+        fillStyle: "hsl(180, 60%, 50%)",
+        strokeStyle: "transparent",
+        text: "START",
+        fontSize: 50,
+        cornerRadius: 8,
+        fontFamily: "'ヒラギノ角ゴ Pro W3', 'Hiragino Kaku Gothic Pro', 'メイリオ', 'Meiryo', 'ＭＳ Ｐゴシック', 'MS PGothic', sans-serif",
+    };
 
 })();
 
@@ -15906,8 +16573,8 @@ tm.ui = tm.ui || {};
             this.menu = [].concat(params.menu);
             this._selected = ~~params.defaultSelected;
             this.showExit = !!params.showExit;
-            if (params.menuDesctiptions) {
-                this.descriptions = params.menuDesctiptions;
+            if (params.menuDescriptions) {
+                this.descriptions = params.menuDescriptions;
             } else {
                 this.descriptions = [].concat(params.menu);
             }
@@ -15938,7 +16605,6 @@ tm.ui = tm.ui || {};
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _onOpen: function() {
@@ -15993,7 +16659,6 @@ tm.ui = tm.ui || {};
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _createCursor: function() {
@@ -16018,14 +16683,14 @@ tm.ui = tm.ui || {};
         },
 
         /**
-         * @TODO ?
+         * 更新
          */
         update: function(app) {
             this.description.text = this.descriptions[this._selected];
         },
 
         /**
-         * @TODO ?
+         * 閉じる
          */
         closeDialog: function(result) {
             this._finished = true;
@@ -16062,7 +16727,7 @@ tm.ui = tm.ui || {};
         },
 
         /**
-         * @TODO ?
+         * 描画
          */
         draw: function(canvas) {
             canvas.fillStyle = "rgba(0,0,0,0.8)";
@@ -16096,11 +16761,13 @@ tm.ui = tm.ui || {};
         /**
          * @constructor
          */
-        init: function(width, height, param) {
-            this.superInit(width, height);
-            
-            param = param || {};
+        init: function(param) {
+            param = this._dirtyCheckParam.apply(this, arguments);
             param.$safe(DEFAULT_PARAM);
+            this.superInit(param);
+            
+            this.autoRender = false;
+            
             this._setup(param);
         },
         
@@ -16129,7 +16796,19 @@ tm.ui = tm.ui || {};
             this.on("pointingmove", function(e) {
                 var p = e.app.pointing;
                 self._drawLine(p.prevPosition, p.position);
+                self.points.push({
+                    x: p.x-this.left,
+                    y: p.y-this.top,
+                });
             });
+            this.on("pointingend", function(e) {
+                self.pointsList.push(self.points);
+                self.points = [];
+            });
+
+            // ポイントスタック
+            this.pointsList = [];
+            this.points = [];
         },
         
         /**
@@ -16138,6 +16817,9 @@ tm.ui = tm.ui || {};
         clear: function() {
             this.canvas.clear();
             this.canvas.clearColor(this.bgColor);
+
+            this.pointsList = [];
+            this.points = [];
             
             return this;
         },
@@ -16244,31 +16926,29 @@ tm.ui = tm.ui || {};
         },
 
         /**
-         * @TODO ?
+         * 満タンかをチェック
          */
         isFull: function() {
-            return this.targetProp === this._maxValue;
+            return this._value === this._maxValue;
         },
 
         /**
-         * @TODO ?
+         * 空っぽかをチェック
          */
         isEmpty: function() {
-            return this.targetProp == 0;
+            return this._value === 0;
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _reset: function(direction) {
             this.originX = 0;
-            this._value = 100;
-            this._value = this._maxValue = 100;
+            this._realValue = this._value = this._maxValue = 100;
         },
 
         /**
-         * @TODO ?
+         * 値をセット
          */
         setValue: function(value) {
             value= Math.clamp(value, 0, this._maxValue);
@@ -16289,52 +16969,87 @@ tm.ui = tm.ui || {};
                     .to({ "_value":value }, time)
                     .call(function() {
                         this.fire(tm.event.Event("changed"));
+
+                        if (this.isEmpty()) {
+                            this.fire(tm.event.Event("empty"));
+                        }
+                        else if (this.isFull()) {
+                            this.fire(tm.event.Event("full"));
+                        }
                     }.bind(this));
             }
             else {
                 this._value = value;
-                this.fire(tm.event.Event("change"));
                 this.fire(tm.event.Event("changed"));
+                
+                if (this.isEmpty()) {
+                    this.fire(tm.event.Event("empty"));
+                }
+                else if (this.isFull()) {
+                    this.fire(tm.event.Event("full"));
+                }
             }
             
             return this;
         },
 
         /**
-         * @TODO ?
+         * 値をゲット
          */
         getValue: function() {
             return this.value;
         },
 
+
         /**
-         * @TODO ?
+         * 値をゲット
+         */
+        getRealValue: function () {
+            return this._realValue;
+        },
+
+        /**
+         * 値を％でセット
          */
         setPercent: function(percent) {
             return this.setValue(this._maxValue*percent*0.01);
         },
 
         /**
-         * @TODO ?
+         * 値を％でゲット
          */
-        getPercent: function() {
-            return (this._value/this._maxValue)*100;
+        getPercent: function () {
+            return (this._value / this._maxValue) * 100;
         },
 
         /**
-         * @TODO ?
+         * 値を％でゲット
+         */
+        getRealPercent: function () {
+            return (this._realValue / this._maxValue) * 100;
+        },
+
+        /**
+         * 値を比率でセット
          */
         setRatio: function(ratio) {
-            return this.setValue(this._maxValue*percent);
+            return this.setValue(this._maxValue*ratio);
         },
 
         /**
-         * @TODO ?
+         * 値を比率でゲット
          */
-        getRatio: function() {
-            return this._value/this._maxValue;
+        getRatio: function () {
+            return this._value / this._maxValue;
         },
-        
+
+        /**
+         * 値を比率でゲット
+         */
+        getRealRatio: function () {
+            return this._realValue / this._maxValue;
+        },
+
         isAnimation: function() {
             return this.animationFlag;
         },
@@ -16372,6 +17087,20 @@ tm.ui = tm.ui || {};
         },
     });
 
+
+    /**
+     * @property    realValue
+     * 値
+     */
+    tm.ui.Gauge.prototype.accessor("realValue", {
+        get: function () {
+            return this._realValue;
+        },
+        set: function (v) {
+            this.setValue(v);
+        },
+    });
+
     /**
      * @property    percent
      * パーセント
@@ -16382,6 +17111,19 @@ tm.ui = tm.ui || {};
         },
         set: function(v) {
             this.setPercent(v);
+        },
+    });
+
+    /**
+     * @property    percent
+     * パーセント
+     */
+    tm.ui.Gauge.prototype.accessor("realPercent", {
+        get: function () {
+            return this.getRealPercent();
+        },
+        set: function (v) {
+            this.setRealPercent(v);
         },
     });
     
@@ -16395,6 +17137,19 @@ tm.ui = tm.ui || {};
             return this.getRatio();
         },
         set: function(v) {
+            this.setRatio(v);
+        },
+    });
+
+    /**
+     * @property    ratio
+     * 比率
+     */
+    tm.ui.Gauge.prototype.accessor("realRatio", {
+        get: function () {
+            return this.getRealRatio();
+        },
+        set: function (v) {
             this.setRatio(v);
         },
     });
@@ -16504,6 +17259,618 @@ tm.ui = tm.ui || {};
 
 
 
+
+;(function() {
+    
+    /**
+     * @class tm.ui.LabelArea
+     * @extends tm.display.Shape
+     * ラベルエリアクラス
+     */
+    tm.define("tm.ui.LabelArea", {
+        superClass: "tm.display.Shape",
+        
+        init: function(param) {
+            param = param || {};
+            this.superInit(param.width || 150, param.height || 60);
+            this.canvas.clearColor("red");
+            this.$extend({
+                mode:         param.mode       || "horizon",
+                _fillStyle:   param.fillStyle  || "#aaa",
+                _bgColor:     param.bgColor    || "transparent",
+                _fontSize:    param.fontSize   || 24,
+                _fontFamily:  param.fontFamily || "'Consolas', 'Monaco', 'ＭＳ ゴシック'",
+                _fontWeight:  param.fontWeight || "",
+                lineSpace:    param.lineSpace  || 1, // 行間, 文字サイズ(px)に対する倍率
+            });
+            this._updateFont();
+            this.setText(param.text || "こんにちは,世界!");
+        },
+        
+        setText: function(text) {
+            if (this._text === text) { return ; }
+            
+            this._text =  text;
+            
+            this._renderText();
+        },
+        
+        _renderText: function() {
+            this.canvas.width  =this.width;
+            this.canvas.height =this.height;
+            
+            this.canvas.clearColor(this.bgColor);
+            
+            this.canvas.font = this.fontStyle;
+            this.canvas.fillStyle = this.fillStyle;
+            this.canvas.fillLabelArea({
+                text: this._text,
+                x: 0,
+                y: 0,
+                width: this.width,
+                height: this.height,
+                mode: this.mode,
+                lineSpace: this.lineSpace,
+            });
+        },
+
+        /**
+         * @private
+         */
+        _updateFont: function() {
+            this.fontStyle = "{fontWeight} {fontSize}px {fontFamily}".format(this);
+            if (this.text) {
+                this._renderText();
+            }
+        },
+    });
+    
+    
+    /**
+     * @property    text
+     * 文字
+     */
+    tm.ui.LabelArea.prototype.accessor("text", {
+        "get": function() { return this._text; },
+        "set": function(v){
+            this.setText(v);
+        }
+    });
+    
+    /**
+     * @property    fontSize
+     * フォントサイズ
+     */
+    tm.ui.LabelArea.prototype.accessor("fontSize", {
+        "get": function() { return this._fontSize; },
+        "set": function(v){ this._fontSize = v; this._updateFont(); }
+    });
+    
+    /**
+     * @property    fontFamily
+     * フォント
+     */
+    tm.ui.LabelArea.prototype.accessor("fontFamily", {
+        "get": function() { return this._fontFamily; },
+        "set": function(v){ this._fontFamily = v; this._updateFont(); }
+    });
+    
+    /**
+     * @property    fontWeight
+     */
+    tm.ui.LabelArea.prototype.accessor("fontWeight", {
+        "get": function() { return this._fontWeight; },
+        "set": function(v) {
+            this._fontWeight = v; this._updateFont();
+        },
+    });
+    
+    /**
+     * @property    fillStyle
+     */
+    tm.ui.LabelArea.prototype.accessor("fillStyle", {
+        "get": function() { return this._fillStyle; },
+        "set": function(v) {
+            this._fillStyle = v; this._updateFont();
+        },
+    });
+    
+    /**
+     * @property    bgColor
+     */
+    tm.ui.LabelArea.prototype.accessor("bgColor", {
+        "get": function() { return this._bgColor; },
+        "set": function(v) {
+            this._bgColor = v; this._updateFont();
+        },
+    });
+
+    /**
+     * @property    width
+     * dummy
+     */
+    tm.ui.LabelArea.prototype.accessor("width", {
+        "get": function() { return this._width; },
+        "set": function(v){
+            this._width = v;
+            if (this.text) {
+                this._renderText();
+            }
+        }
+    });
+    
+    /**
+     * @property    height
+     * dummy
+     */
+    tm.ui.LabelArea.prototype.accessor("height", {
+        "get": function() { return this._height; },
+        "set": function(v){
+            this._height = v;
+            if (this.text) {
+                this._renderText();
+            }
+        }
+    });
+
+    
+})();
+
+
+;(function() {
+
+    tm.game = tm.game || {};
+
+
+    tm.game.setup = function(param) {
+        param.$safe({
+            query: "#world",
+            title: "Title",
+            background: "rgba(250, 250, 250, 1.0)",
+            width: 640,
+            height: 960,
+            startLabel: 'title',
+            fitting: true,
+            fps: 30,
+            assets: window.ASSETS || null,
+        });
+
+        tm.globalize();
+
+        this.expand(param);
+
+        var scenes = [
+            {
+                className: "SplashScene",
+                arguments: {
+                    width: param.width,
+                    height: param.height,
+                },
+                label: "splash",
+                nextLabel: "title",
+            },
+            {
+                className: "TitleScene",
+                arguments: {
+                    title: param.title,
+                    width: param.width,
+                    height: param.height,
+                },
+                label: "title",
+            },
+            {
+                className: "GameScene",
+                label: "game",
+                nextLabel: "result",
+            },
+            {
+                className: "ResultScene",
+                arguments: {
+                    message: param.title,
+                    width: param.width,
+                    height: param.height,
+                },
+                label: "result",
+                nextLabel: "title",
+            },
+
+            {
+                className: "PauseScene",
+                label: "pause",
+            },
+        ];
+
+        tm.main(function() {
+            var app = tm.app.CanvasApp(param.query);    // 生成
+            app.resize(SCREEN_WIDTH, SCREEN_HEIGHT);    // サイズ(解像度)設定
+            if (param.fitting) { app.fitWindow(); }     // 自動フィッティング有効
+            app.background = param.background;          // 背景色
+            app.fps = param.fps;                        // fps
+
+            tm.game.app = app;
+
+            if (param.assets) {
+                var loading = tm.game.LoadingScene({
+                    assets: param.assets,
+                    width: SCREEN_WIDTH,
+                    height: SCREEN_HEIGHT,
+                });
+                loading.onload = function() {
+                    app.replaceScene(tm.game.ManagerScene({
+                        startLabel: param.startLabel,
+                        scenes: scenes,
+                    }));
+                };
+                app.replaceScene(loading);
+            }
+            else {
+                app.replaceScene(tm.game.ManagerScene({
+                    startLabel: param.startLabel,
+                    scenes: scenes,
+                }));
+            }
+
+            app.run();
+        });
+    };
+
+    tm.game.expand = function(param) {
+        tm.global.$extend({
+            SCREEN_WIDTH: param.width,
+            SCREEN_HEIGHT: param.height,
+            SCREEN_CENTER_X: param.width/2,
+            SCREEN_CENTER_Y: param.height/2,
+            SCREEN_GRID_X: GridSystem(param.width, 16),
+            SCREEN_GRID_Y: GridSystem(param.height, 16),
+            QUERY: tm.util.QueryString.parse(location.search.substr(1)),
+        });
+
+    };
+
+})();
+
+/*
+ * TitleScene
+ */
+
+    
+(function() {
+
+    tm.define("tm.game.TitleScene", {
+        superClass: "tm.app.Scene",
+
+        init: function(param) {
+            this.superInit();
+
+            param = {}.$extend(tm.game.TitleScene.default, param);
+            this.param = param;
+
+            this.fromJSON({
+                children: {
+                    bg: {
+                        type: "tm.display.RectangleShape",
+                        init: {
+                            width: param.width,
+                            height: param.height,
+                            fillStyle: param.bgColor,
+                            strokeStyle: "transparent",
+                        },
+                        originX: 0,
+                        originY: 0,
+                    }
+                }
+            });
+
+            if (param.bgImage) {
+                this.fromJSON({
+                    children: {
+                        bgImage: {
+                            type: "tm.display.Sprite",
+                            init: [param.bgImage],
+                            originX: 0,
+                            originY: 0,
+                        }
+                    }
+                });
+            }
+
+            this.fromJSON({
+                children: {
+                    titleLabel: {
+                        type: "Label", name: "titleLabel",
+                        text: param.title,
+                        x: this._toGridX(6),
+                        y: this._toGridY(3),
+                        fillStyle: param.fontColor,
+                        fontSize: param.fontSize,
+                        fontFamily: "'Helvetica-Light' 'Meiryo' sans-serif",
+                        align: "center",
+                        baseline: "middle",
+                    },
+                    messageLabel: {
+                        type: "Label", name: "nextLabel",
+                        text: param.message || "",
+                        x: this._toGridX(6),
+                        y: this._toGridY(6),
+                        fillStyle: param.fontColor,
+                        fontSize: param.fontSize*0.36,
+                        fontFamily: "'Helvetica-Light' 'Meiryo' sans-serif",
+                        align: "center",
+                        baseline: "middle",
+                    },
+                    touchLabel: {
+                        type: "Label", name: "nextLabel",
+                        text: "TOUCH START",
+                        x: this._toGridX(6),
+                        y: this._toGridY(9),
+                        fillStyle: param.fontColor,
+                        fontSize: param.fontSize*0.4,
+                        fontFamily: "'Helvetica-Light' 'Meiryo' sans-serif",
+                        align: "center",
+                        baseline: "middle",
+                    }
+                }
+            });
+            
+            this.touchLabel.tweener
+                .fadeOut(500)
+                .fadeIn(1000)
+                .setLoop(true);
+
+            this.autopop = param.autopop;
+        },
+
+        _toGridX: function(index) {
+            return this.param.width/12*index;
+        },
+
+        _toGridY: function(index) {
+            return this.param.height/12*index;
+        },
+
+        onpointingstart: function() {
+            this.flare("finish");
+
+            if (this.autopop) {
+                this.app.popScene();
+            }
+        },
+    });
+
+    tm.game.TitleScene.default = {
+        title: "Time is money",
+        message: "",
+        fontSize: 72,
+        fontColor: "#444",
+        width: 640,
+        height: 960,
+        bgColor: "rgb(240,240,240)",
+        bgImage: null,
+        autopop: true,
+    };
+
+})();
+
+
+/*
+ * ResultScene
+ */
+
+    
+(function() {
+
+    tm.define("tm.game.ResultScene", {
+        superClass: "tm.app.Scene",
+
+        init: function(param) {
+            this.superInit();
+
+            param = {}.$extend(tm.game.ResultScene.default, param);
+            this.param = param;
+
+            var userData = this._getUserData();
+            var bestScore = (userData.bestScore) ? userData.bestScore : 0;
+            var highScoreFlag = (param.score > bestScore);
+
+            if (param.record) {
+                if (highScoreFlag) {
+                    userData.bestScore = param.score;
+                    this._record(userData);
+                }
+            }
+
+            this.fromJSON({
+                children: {
+                    bg: {
+                        type: "tm.display.RectangleShape",
+                        init: {
+                            width: param.width,
+                            height: param.height,
+                            fillStyle: param.bgColor,
+                            strokeStyle: "transparent",
+                        },
+                        originX: 0,
+                        originY: 0,
+                    }
+                }
+            });
+
+            if (param.bgImage) {
+                this.fromJSON({
+                    children: {
+                        bgImage: {
+                            type: "tm.display.Sprite",
+                            init: [param.bgImage],
+                            originX: 0,
+                            originY: 0,
+                        }
+                    }
+                });
+            }
+
+            var baseLabelParam = {
+                type: "Label",
+                fillStyle: param.fontColor,
+                fontFamily: "'Helvetica-Light' 'Meiryo' sans-serif",
+            };
+
+            this.fromJSON({
+                children: {
+                    scoreText: baseLabelParam.$extend({
+                        text: "score",
+                        x: this._toGridX(4),
+                        y: this._toGridY(3),
+                        fontSize: param.fontSize*0.5,
+                    }),
+                    scoreLabel: {
+                        type: "Label",
+                        text: param.score,
+                        x: this._toGridX(4),
+                        y: this._toGridY(4),
+                        fillStyle: param.fontColor,
+                        fontSize: param.fontSize,
+                        fontFamily: "'Helvetica-Light' 'Meiryo' sans-serif",
+                    },
+                    bestText: {
+                        type: "Label",
+                        text: "best",
+                        x: this._toGridX(8),
+                        y: this._toGridY(3),
+                        fillStyle: param.fontColor,
+                        fontSize: param.fontSize*0.5,
+                        fontFamily: "'Helvetica-Light' 'Meiryo' sans-serif",
+                    },
+                    bestLabel: {
+                        type: "Label",
+                        text: bestScore,
+                        x: this._toGridX(8),
+                        y: this._toGridY(4),
+                        fillStyle: param.fontColor,
+                        fontSize: param.fontSize,
+                        fontFamily: "'Helvetica-Light' 'Meiryo' sans-serif",
+                    },
+
+                    newRecordText: {
+                        type: "Label",
+                        text: "new record!",
+                        x: this._toGridX(6),
+                        y: this._toGridY(6),
+                        fillStyle: param.fontColor,
+                        fontSize: param.fontSize*0.5,
+                        fontFamily: "'Helvetica-Light' 'Meiryo' sans-serif",
+                        visible: false,
+                    },
+
+                    messageText: {
+                        type: "Label",
+                        text: param.message,
+                        x: this._toGridX(6),
+                        y: this._toGridY(7),
+                        fillStyle: param.fontColor,
+                        fontSize: param.fontSize*0.5,
+                        fontFamily: "'Helvetica-Light' 'Meiryo' sans-serif",
+                    },
+
+                    shareButton: {
+                        type: "FlatButton",
+                        init: {
+                            text: "Share",
+                            width: 200,
+                            fillStyle: "hsl(240, 100%, 64%)",
+                        },
+                        x: this._toGridX(4),
+                        y: this._toGridY(9),
+                    },
+                    backButton: {
+                        type: "FlatButton",
+                        init: {
+                            text: "Back",
+                            width: 200,
+                            fillStyle: "hsl(240, 80%, 0%)",
+                        },
+                        x: this._toGridX(8),
+                        y: this._toGridY(9),
+                    }
+                }
+            });
+
+            // setup tweet
+            var text = "SCORE: {score}, {message}".format(param);
+            var twitterURL = tm.social.Twitter.createURL({
+                type    : "tweet",
+                text    : text,
+                hashtags: param.hashtags,
+                url     : param.url, // or window.document.location.href
+            });
+            this.shareButton.onclick = function() {
+                window.open(twitterURL, 'share window', 'width=400, height=300');
+            };
+
+            // setup back
+            this.backButton.onpointingstart = this._back.bind(this);
+            this.autopop = param.autopop;
+
+            // setup record
+            if (highScoreFlag) {
+                this.newRecordText.show();
+                this.newRecordText.tweener
+                    .set({alpha:0.0})
+                    .fadeIn(2000)
+                    .setLoop(true)
+                    ;
+            }
+        },
+
+        _getUserData: function() {
+            var key = location.pathname.toCRC32();
+            var data = localStorage.getItem(key);
+            return (data) ? JSON.parse(data) : {};
+        },
+
+        _record: function(data) {
+            var key = location.pathname.toCRC32();
+            var dataString = JSON.stringify(data);
+            localStorage.setItem(key, dataString);
+            return this;
+        },
+
+        _toGridX: function(index) {
+            return this.param.width/12*index;
+        },
+
+        _toGridY: function(index) {
+            return this.param.height/12*index;
+        },
+
+        _back: function() {
+            this.flare("finish");
+
+            if (this.autopop) {
+                this.app.popScene();
+            }
+        },
+    });
+
+    tm.game.ResultScene.default = {
+        score: 0,
+        message: "this is tmlib.js project.",
+        hashtags: "tmlibjs,game",
+        related: "tmlib.js tmlife javascript",
+        url: "http://phi-jp.github.io/tmlib.js/",
+
+        width: 640,
+        height: 960,
+        fontColor: "#444",
+        fontSize: 90,
+        bgColor: "rgba(255,255,255, 0.9)",
+        bgImage: null,
+        record: true,
+        autopop: true,
+    };
+
+})();
+
+
 /*
  * loadingscene.js
  */
@@ -16514,74 +17881,187 @@ tm.ui = tm.ui || {};
     var DEFAULT_PARAM = {
         width: 465,
         height: 465,
+        bgColor: "transparent",
     };
     
-    tm.define("tm.ui.LoadingScene", {
+    tm.define("tm.game.LoadingScene", {
         superClass: "tm.app.Scene",
         
         init: function(param) {
             this.superInit();
             
-            param = {}.$extend(DEFAULT_PARAM, param);
-            
-            this.bg = tm.display.Shape(param.width, param.height).addChildTo(this);
-            this.bg.canvas.clearColor("hsla(200, 80%, 70%, 1.0)");
-            this.bg.setOrigin(0, 0);
-            
-            var label = tm.display.Label("Loading");
-            label.x = param.width/2;
-            label.y = param.height/2;
-            label.width = param.width;
-            label.align     = "center";
-            label.baseline  = "middle";
-            label.fontSize = 32;
-            label.counter = 0;
-            label.update = function(app) {
-                if (app.frame % 30 == 0) {
-                    this.text += ".";
-                    this.counter += 1;
-                    if (this.counter > 3) {
-                        this.counter = 0;
-                        this.text = "Loading";
-                    }
+            this.param = param = {}.$extend(DEFAULT_PARAM, param);
+
+            this.fromJSON({
+                children: {
+                    stage: {
+                        type: "tm.display.CanvasElement",
+                    },
                 }
-            };
-            label.addChildTo(this.bg);
+            });
 
+            this.stage.fromJSON({
+                children: {
+                    bg: {
+                        type: "tm.display.Shape",
+                        init: {
+                            width: param.width,
+                            height: param.height,
+                        },
+                        originX: 0,
+                        originY: 0,
+                    },
+                    piyoLayer: {
+                        type: "tm.display.CanvasElement",
+                    },
+                    label: {
+                        type: "tm.display.Label",
+                        text: "LOADING",
+                        x: param.width/2,
+                        y: param.height/2-20,
+                        align: "center",
+                        baseline: "middle",
+                        fontSize: 46,
+                        shadowBlur: 4,
+                        shadowColor: "hsl(190, 100%, 50%)",
+                    },
+                    // piyo: {
+                    //     type: "tm.display.Shape",
+                    //     init: [84, 84],
+                    // },
+                    bar: {
+                        type: "tm.ui.Gauge",
+                        init: [{
+                            width: param.width,
+                            height: 10,
+                            color: "hsl(200, 100%, 80%)",
+                            bgColor: "transparent",
+                            borderColor: "transparent",
+                            borderWidth: 0,
+                        }],
+                        x: 0,
+                        y: 0,
+                    },
+                }
+            });
+            
+            // bg
+            var bg = this.stage.bg;
+            bg.canvas.clearColor(param.bgColor);
+
+            // label
+            var label = this.stage.label;
+            label.tweener
+                .to({alpha:1}, 1000)
+                .to({alpha:0.5}, 1000)
+                .setLoop(true)
+
+            // bar
+            var bar = this.stage.bar;
+            bar.animationFlag = false;
+            bar.value = 0;
+            bar.animationFlag = true;
+            bar.animationTime = 100;
+            
             // ひよこさん
-            var piyo = tm.display.Shape(84, 84);
-            piyo.setPosition(param.width, param.height - 80);
-            piyo.canvas.setColorStyle("white", "yellow").fillCircle(42, 42, 32);
-            piyo.canvas.setColorStyle("white", "black").fillCircle(27, 27, 2);
-            piyo.canvas.setColorStyle("white", "brown").fillRect(40, 70, 4, 15).fillTriangle(0, 40, 11, 35, 11, 45);
-            piyo.update = function(app) {
-                piyo.x -= 4;
-                if (piyo.x < -80) piyo.x = param.width;
-                piyo.rotation -= 7;
-            };
-            piyo.addChildTo(this.bg);
+            this._createHiyoko(param).addChildTo(this.stage.piyoLayer);
 
-            this.alpha = 0.0;
-            this.bg.tweener.clear().fadeIn(100).call(function() {
+            // load
+            var stage = this.stage;
+            stage.alpha = 0.0;
+            stage.tweener.clear().fadeIn(100).call(function() {
                 if (param.assets) {
-                    tm.asset.AssetManager.onload = function() {
-                        this.bg.tweener.clear().wait(200).fadeOut(200).call(function() {
+                    var loader = tm.asset.Loader();
+                    loader.onload = function() {
+                        stage.tweener.clear().wait(200).fadeOut(200).call(function() {
                             if (param.nextScene) {
                                 this.app.replaceScene(param.nextScene());
                             }
                             var e = tm.event.Event("load");
                             this.fire(e);
+
+                            if (param.autopop == true) {
+                                this.app.popScene();
+                            }
                         }.bind(this));
                     }.bind(this);
-                    tm.asset.AssetManager.load(param.assets);
                     
-                    tm.asset.AssetManager.onprogress = function() {
-                        var e = tm.event.Event("progress");
-                        e.progress = tm.asset.AssetManager.getProgress();
-                        this.fire(e);
+                    loader.onprogress = function(e) {
+                        // update bar
+                        bar.value = e.progress*100;
+
+                        // dispatch event
+                        var event = tm.event.Event("progress");
+                        event.progress = e.progress;
+                        this.fire(event);
                     }.bind(this);
+                    
+                    loader.load(param.assets);
                 }
             }.bind(this));
+        },
+
+        onpointingstart: function(app) {
+            // ひよこさん生成
+            var p = app.pointing;
+            var piyo = this._createHiyoko(this.param).addChildTo(this.stage.piyoLayer);
+            piyo.x = p.x;
+            piyo.y = p.y;
+        },
+
+        _createHiyoko: function(param) {
+            // ひよこさん
+            var piyo = tm.display.Shape({
+                width: 84,
+                height: 84,
+            });
+            piyo.x = tm.util.Random.randint(0, param.width);
+            piyo.y = tm.util.Random.randint(0, param.height);
+            piyo.canvas.setColorStyle("white", "yellow").fillCircle(42, 42, 32);
+            piyo.canvas.setColorStyle("white", "black").fillCircle(27, 27, 2);
+            piyo.canvas.setColorStyle("white", "brown").fillRect(40, 70, 4, 15).fillTriangle(0, 40, 11, 35, 11, 45);
+            piyo.dir = tm.geom.Vector2.random(0, 360, 4);
+            var rect = tm.geom.Rect(0, 0, param.width, param.height);
+            rect.padding(42);
+            piyo.update = function(app) {
+                this.position.add(this.dir);
+
+                if (this.x < rect.left) {
+                    this.x = rect.left;
+                    this.dir.x*=-1;
+                }
+                else if (this.x > rect.right) {
+                    this.x = rect.right;
+                    this.dir.x*=-1;
+                }
+                if (this.y < rect.top) {
+                    this.y = rect.top;
+                    this.dir.y*=-1;
+                }
+                else if (this.y > rect.bottom) {
+                    this.y = rect.bottom;
+                    this.dir.y*=-1;
+                }
+
+                if (this.dir.x<0) {
+                    this.rotation -= 7;
+                    this.scaleX = 1;
+                }
+                else {
+                    this.rotation += 7;
+                    this.scaleX = -1;
+                }
+
+                // // 向き更新
+                // if (app.pointing.getPointingStart()) {
+                //     var p = app.pointing.position;
+                //     var v = tm.geom.Vector2.sub(p, this.position);
+                //     this.dir = v.normalize().mul(4);
+                // }
+
+            };
+
+            return piyo;
         },
     });
     
@@ -16592,6 +18072,378 @@ tm.ui = tm.ui || {};
 
 
 
+/*
+ * splash
+ */
+
+;(function() {
+    var SPLASH_IMAGE_PATH = "https://files.gitter.im/phi-jp/tmlib.js/t5F7/splash.png";
+
+    tm.define("SplashScene", {
+        superClass: "tm.app.Scene",
+
+        init: function(param) {
+            this.superInit();
+
+            this.param = param;
+
+            this.splashImage = tm.asset.Texture(param.path || SPLASH_IMAGE_PATH);
+            this.splashImage.onload = this._init.bind(this);
+        },
+
+        _init: function() {
+            var width = this.param.width;
+            var height = this.param.height;
+            
+            tm.display.Shape({
+                width: width,
+                height: height,
+                bgColor: "white"
+            }).setOrigin(0, 0).addChildTo(this);
+
+            tm.display.Sprite(this.splashImage, width, height)
+                .setOrigin(0, 0)
+                .setAlpha(0)
+                .addChildTo(this)
+                .tweener
+                    .clear()
+                    .wait(250)
+                    .fadeIn(500)
+                    .wait(1000)
+                    .fadeOut(500)
+                    .wait(250)
+                    .call(function() {
+                        this.app.popScene();
+                    }.bind(this));
+        },
+    });
+})();
+
+
+/*
+ *
+ */
+
+;(function() {
+
+    /**
+     * @class tm.game.ManagerScene
+     * マネージャーシーン
+     * @extends tm.app.Scene
+     */
+    tm.define("tm.game.ManagerScene", {
+        superClass: "tm.app.Scene",
+
+        /**
+         * @constructor
+         */
+        init: function(param) {
+            this.superInit();
+
+            this.setScenes(param.scenes);
+
+            this.on("enter", function() {
+                this.gotoScene(param.startLabel || 0);
+            }.bind(this));
+
+            this.on("resume", this.onnext.bind(this));
+
+            this.commonArguments = {};
+        },
+
+        /**
+         * scenes をセット
+         */
+        setScenes: function(scenes) {
+            this.scenes = scenes;
+            this.sceneIndex = 0;
+
+            return this;
+        },
+
+        /**
+         * index(or label) のシーンへ飛ぶ
+         */
+        gotoScene: function(index, args) {
+            index = (typeof index == 'string') ? this.labelToIndex(index) : index||0;
+
+            // イベント発火
+            var e = tm.event.Event("prepare");
+            this.fire(e);
+
+            var data = this.scenes[index];
+            var klass = tm.using(data.className);
+            var initArguments = data.arguments;
+            var initArguments = {}.$extend(initArguments, args);
+            var scene = klass.call(null, initArguments);
+            if (!scene.nextLabel) {
+                scene.nextLabel = data.nextLabel;
+            }
+            if (!scene.nextArguments) {
+                scene.nextArguments = data.nextArguments;
+            }
+            this.app.pushScene(scene);
+
+            this.sceneIndex = index;
+            this.currentScene = scene;
+
+            // イベント発火
+            var e = tm.event.Event("goto");
+            e.scene = scene;
+            this.fire(e);
+
+            return this;
+        },
+
+        /**
+         * 次のシーンへ飛ぶ
+         */
+        gotoNext: function(args) {
+            var data = this.scenes[this.sceneIndex];
+            var nextIndex = null;
+
+            // 次のラベルが設定されていた場合
+            if (data.nextLabel) {
+                nextIndex = this.labelToIndex(data.nextLabel);
+            }
+            // 次のシーンに遷移
+            else if (this.sceneIndex+1 < this.scenes.length) {
+                nextIndex = this.sceneIndex+1;
+            }
+
+            if (nextIndex !== null) {
+                this.gotoScene(nextIndex, args);
+            }
+            else {
+                this.fire(tm.event.Event("finish"));
+            }
+
+            return this;
+        },
+
+        /**
+         * シーンインデックスを取得
+         */
+        getCurrentIndex: function() {
+            return this.sceneIndex;
+        },
+
+        /**
+         * シーンラベルを取得
+         */
+        getCurrentLabel: function() {
+            return this.scenes[this.sceneIndex].label;
+        },
+
+        /**
+         * ラベルからインデックスに変換
+         */
+        labelToIndex: function(label) {
+            var data = this.scenes.filter(function(data) {
+                return data.label == label;
+            })[0];
+
+            return this.scenes.indexOf(data);
+        },
+
+        /**
+         * インデックスからラベルに変換
+         */
+        indexToLabel: function(index) {
+            return this.scenes[index].label;
+        },
+
+        onnext: function(e) {
+            var nextLabel = e.prevScene.nextLabel;
+            var nextArguments = e.prevScene.nextArguments;
+            if (nextLabel) {
+                this.gotoScene(nextLabel, nextArguments);
+            }
+            else {
+                this.gotoNext(nextArguments);
+            }
+        },
+    });
+
+})();
+
+
+;(function() {
+
+	tm.define("tm.game.NumericalInputScene", {
+		superClass: "tm.app.Scene",
+
+		init: function(param) {
+			this.superInit();
+
+			this.fromJSON({
+				children: {
+					inputLabel: {
+						type: "tm.display.Label",
+						fillStyle: "white",
+						text: "",
+						fontSize: 64,
+						x: 320,
+						y: 120,
+					},
+					buttonGroup: {
+						type: "tm.display.CanvasElement",
+					},
+				},
+			});
+
+
+			[1, 2, 3, 4, 5, 6, 7, 8, 9, 'C', 0, 'OK'].each(function(n, i) {
+				var button = this._createButton(n.toString()).addChildTo(this.buttonGroup);
+				var xIndex = i%3;
+				var yIndex = (i/3)|0;
+				button.x = 190*xIndex + 130;
+				button.y = 177*yIndex + 280;
+			}, this);
+
+			var self = this;
+			var buttons = this.buttonGroup.children;
+			buttons.each(function(button) {
+				button.setInteractive(true).setBoundingType("circle");
+				button.radius = 145/2;
+				button.onpointingstart = function() {
+					if (this.label.text == 'OK') {
+						var e = tm.event.Event("decided");
+						e.value = Number(self.inputLabel.text);
+						self.fire(e);
+					}
+					else if (this.label.text == 'C') {
+						var e = tm.event.Event("push");
+						self.inputLabel.text = "";
+						self.flare("clear");
+					}
+					else {
+						self.inputLabel.text += this.label.text;
+						self.flare("push", {
+							select: this.label.text,
+						});
+					}
+				}
+			});
+		},
+
+		_createButton: function(n) {
+			var button = tm.display.CanvasElement();
+
+			button.fromJSON({
+				children: {
+					bg: {
+						type: "tm.display.CircleShape",
+						init: [145, 145, {
+							fillStyle: "transparent",
+							strokeStyle: "white",
+						}],
+					},
+					label: {
+						type: "tm.display.Label",
+						text: n,
+						fontSize: 64,
+						fillStyle: "white",
+					},
+				},
+			});
+
+			return button;
+		},
+	});
+
+})();
+
+/*
+ * countscene.js
+ */
+
+;(function() {
+
+    tm.define("tm.game.CountScene", {
+        superClass: "tm.app.Scene",
+
+        init: function(param) {
+            this.superInit();
+
+            param = param.$safe({
+                width: 640,
+                height: 960,
+                bgColor: '#444',
+                count: 3,
+                autopop: true,
+                fontSize: 180,
+            });
+
+            param = param || {};
+
+            this.fromJSON({
+                children: {
+                    bg: {
+                        type: "tm.display.Shape",
+                        width: param.width,
+                        height: param.height,
+                        bgColor: param.bgColor,
+                        originX: 0,
+                        originY: 0,
+                    },
+                    label: {
+                        type: "tm.display.Label",
+                        fillStyle: "white",
+                        fontSize: param.fontSize,
+                        x: SCREEN_CENTER_X,
+                        y: SCREEN_CENTER_Y,
+                    },
+                }
+            });
+
+            if (param.count instanceof Array) {
+                this.countList = param.count.reverse();
+            }
+            else {
+                this.countList = Array.range(1, param.count+1);
+            }
+            this.counter = this.countList.length;
+            this.autopop = param.autopop;
+            this._updateCount();
+        },
+
+        _updateCount: function() {
+            var endFlag = this.counter <= 0;
+            var index = --this.counter;
+
+            this.label.text = this.countList[index];
+
+            this.label.scale.set(1, 1);
+            this.label.tweener
+                .clear()
+                .to({
+                    scaleX: 1,
+                    scaleY: 1,
+                    alpha: 1,
+                }, 250)
+                .wait(500)
+                .to({
+                    scaleX: 1.5,
+                    scaleY: 1.5,
+                    alpha: 0.0
+                }, 250)
+                .call(function() {
+                    if (this.counter <= 0) {
+                        this.flare('finish');
+                        if (this.autopop) {
+                            this.app.popScene();
+                        }
+                    }
+                    else {
+                        this._updateCount();
+                    }
+                }, this);
+        },
+
+    });
+
+})();
 /*
  * three.js
  */
@@ -16777,7 +18629,7 @@ tm.three = tm.three || {};
          */
         _update: function(app) {
             // 更新有効チェック
-            if (this.isUpdate == false) return ;
+            if (this.awake == false) return ;
             
             this.update(app);
             
@@ -17067,6 +18919,8 @@ tm.sound = tm.sound || {};
      * サウンドクラス
      */
     tm.sound.Sound = tm.createClass({
+        superClass: tm.event.EventDispatcher,
+
         /** element */
         element     : null,
         /** loaded */
@@ -17078,6 +18932,8 @@ tm.sound = tm.sound || {};
          * @constructor
          */
         init: function(src) {
+            this.superInit();
+            
             this.element = new Audio();
             this.element.src = src;
             this.element.load();
@@ -17086,6 +18942,7 @@ tm.sound = tm.sound || {};
             var self = this;
             this.element.addEventListener("canplaythrough", function(){
                 self.loaded = true;
+                self.fire(tm.event.Event("load"));
             });
             this.element.addEventListener("ended", function(){
                 self.isPlay = false;
@@ -17203,123 +19060,15 @@ tm.sound = tm.sound || {};
     
 })();
 
-
-(function(){
-    
-    //? モバイル系ブラウザ対応
-    var DEFAULT_CACHE_NUM = (tm.isMobile) ? 1 : 4;
-    
-    /**
-     * @class tm.sound.SoundManager
-     * サウンドを管理するクラス
-     */
-    tm.sound.SoundManager = {
-        sounds: {}
-    };
-    
-    /**
-     * @static
-     * @method
-     * サウンドを追加
-     */
-    tm.sound.SoundManager.add = function(name, src, cache) {
-        cache = cache || DEFAULT_CACHE_NUM;
-        
-        // 拡張子チェック
-        if (src.split('/').at(-1).indexOf('.') == -1) {
-            src += "." + tm.sound.Sound.SUPPORT_EXT;
-        }
-        
-        var cacheList = this.sounds[name] = [];
-        for (var i=0; i<cache; ++i) {
-            var sound = tm.sound.Sound(src);
-            cacheList.push( sound );
-        }
-        
-        return this;
-    };
-    
-    /**
-     * @static
-     * @method
-     * サウンドを取得
-     */
-    tm.sound.SoundManager.get = function(name) {
-        var cacheList = this.sounds[name];
-        for (var i=0,len=cacheList.length; i<len; ++i) {
-            if (cacheList[i].isPlay == false) {
-                return cacheList[i];
-            }
-        }
-        // 仕方なく0番目を返す
-        return cacheList[0];
-    };
-    
-    /**
-     * @static
-     * @method
-     * サウンドを取得(index 指定版)
-     */
-    tm.sound.SoundManager.getByIndex = function(name, index) {
-        return this.sounds[name][index];
-    };
-    
-    /**
-     * @static
-     * @method
-     * サウンドを削除
-     */
-    tm.sound.SoundManager.remove = function(name) {
-        // TODO:
-        
-        return this;
-    };
-    
-    /**
-     * @static
-     * @method
-     * ボリュームをセット
-     */
-    tm.sound.SoundManager.setVolume = function(name, volume) {
-        // TODO:
-        
-        return this;
-    };
-    
-    /**
-     * @static
-     * @method
-     * ロードチェック
-     */
-    tm.sound.SoundManager.isLoaded = function() {
-        for (var key in this.sounds) {
-            var soundList = this.sounds[key];
-            
-            for (var i=0,len=soundList.length; i<len; ++i) {
-                if (soundList[i].loaded == false) {
-                    return false;
-                }
-            }
-        }
-        return true;
-    };
-    
-    tm.addLoadCheckList(tm.sound.SoundManager);
-    
-})();
-
-
 /*
  * webaudio.js
  */
 
 tm.sound = tm.sound || {};
 
-
 (function() {
 
-    var isAvailable = tm.global.webkitAudioContext ? true : false;
-    var context = isAvailable ? new webkitAudioContext() : null;
+    var context = null;
 
     /**
      * @class tm.sound.WebAudio
@@ -17337,6 +19086,10 @@ tm.sound = tm.sound || {};
         panner: null,
         /** volume */
         volume: 0.8,
+        /** playing **/
+        playing: false,
+
+        _pannerEnabled: true,
 
         /**
          * @constructor
@@ -17368,13 +19121,19 @@ tm.sound = tm.sound || {};
          * - noteGrainOn ... http://www.html5rocks.com/en/tutorials/casestudies/munkadoo_bouncymouse/
          */
         play: function(time) {
+            if (this.playing == true) { return ; }
+            this.playing = true;
+
             if (time === undefined) time = 0;
-            this.source.noteOn(this.context.currentTime + time);
-            /*
-            this.source.noteGrainOn(this.context.currentTime + time, 0, this.buffer.duration);
-            console.dir(this.buffer.duration);
-            console.dir(this.context.currentTime)
-            */
+
+            this.source.start(this.context.currentTime + time);
+
+            var self = this;
+            var time = (this.source.buffer.duration/this.source.playbackRate.value)*1000;
+            window.setTimeout(function() {
+                var e = tm.event.Event("ended");
+                self.fire(e);
+            }, time);
 
             return this;
         },
@@ -17383,15 +19142,21 @@ tm.sound = tm.sound || {};
          * 停止
          */
         stop: function(time) {
+            if (this.playing == false) { return ; }
+            this.playing = false;
+
             if (time === undefined) time = 0;
-            this.source.noteOff(this.context.currentTime + time);
-            
+            if (this.source.playbackState == 0) {
+                return ;
+            }
+            this.source.stop(this.context.currentTime + time);
+
             var buffer = this.buffer;
             var volume = this.volume;
             var loop   = this.loop;
-            
+
             this.source = this.context.createBufferSource();
-            this.source.connect(this.panner);
+            this.source.connect(this.gainNode);
             this.buffer = buffer;
             this.volume = volume;
             this.loop = loop;
@@ -17400,7 +19165,7 @@ tm.sound = tm.sound || {};
         },
 
         /**
-         * @TODO ?
+         * ポーズ
          */
         pause: function() {
             this.source.disconnect();
@@ -17409,10 +19174,10 @@ tm.sound = tm.sound || {};
         },
 
         /**
-         * @TODO ?
+         * レジューム
          */
         resume: function() {
-            this.source.connect(this.panner);
+            this.source.connect(this.gainNode);
 
             return this;
         },
@@ -17489,56 +19254,67 @@ tm.sound = tm.sound || {};
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _load: function(src) {
-            if (!this.context) return ;
+            if (!this.context) {
+                console.warn("本環境はWebAudio未対応です。(" + src + ")");
+                return;
+            }
 
-            var xhr = new XMLHttpRequest();
             var self = this;
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === 4) {
-                    if (xhr.status === 200 || xhr.status === 0) {
-                        self.context.decodeAudioData(xhr.response, function(buffer) {
-                            self._setup();
-                            self.buffer = buffer;
-                            self.loaded = true;
-                            self.dispatchEvent( tm.event.Event("load") );
-                        });
-                    } else {
-                        console.error(xhr);
-                    }
+            tm.util.Ajax.load({
+                type: "GET",
+                url: src,
+                responseType: "arraybuffer",
+                success: function(data) {
+                    // console.debug("WebAudio ajax load success");
+                    self.context.decodeAudioData(data, function(buffer) {
+                        // console.debug("WebAudio decodeAudioData success");
+                        self._setup();
+                        self.buffer = buffer;
+                        self.loaded = true;
+                        self.dispatchEvent( tm.event.Event("load") );
+                    }, function() {
+                        console.warn("音声ファイルのデコードに失敗しました。(" + src + ")");
+                        self._setup();
+                        self.buffer = context.createBuffer(1, 1, 22050);
+                        self.loaded = true;
+                        self.dispatchEvent( tm.event.Event("load") );
+                    });
                 }
-            };
-            xhr.open("GET", src, true);
-            xhr.responseType = "arraybuffer";
-            xhr.send();
+            });
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _setup: function() {
             this.source     = this.context.createBufferSource();
-//            this.gainNode   = this.context.createGainNode();
-            this.panner     = this.context.createPanner();
+            this.gainNode   = this.context.createGain();
+            // this.panner     = this.context.createPanner();
             this.analyser   = this.context.createAnalyser();
 
-            this.source.connect(this.panner);
-            this.panner.connect(this.analyser);
+            this.source.connect(this.gainNode);
+            // this.gainNode.connect(this.panner);
+            // this.panner.connect(this.analyser);
+            this.gainNode.connect(this.analyser);
             this.analyser.connect(this.context.destination);
+
+            // TODO 暫定的対応
+            if (tm.BROWSER === "Firefox") {
+                this.pannerEnabled = false;
+            }
         },
 
         /**
-         * @TODO ?
+         * トーン
          */
         tone: function(hertz, seconds) {
             // handle parameter
             hertz   = hertz !== undefined ? hertz : 200;
             seconds = seconds !== undefined ? seconds : 1;
-            // set default value    
+            // set default value
             var nChannels   = 1;
             var sampleRate  = 44100;
             var amplitude   = 2;
@@ -17559,7 +19335,7 @@ tm.sound = tm.sound || {};
 
     /**
      * @property    buffer
-     * @TODO ?
+     * バッファー
      */
     tm.sound.WebAudio.prototype.accessor("buffer", {
         get: function()  { return this.source.buffer; },
@@ -17568,7 +19344,7 @@ tm.sound = tm.sound || {};
 
     /**
      * @property    loop
-     * @TODO ?
+     * ループフラグ
      */
     tm.sound.WebAudio.prototype.accessor("loop", {
         get: function()  { return this.source.loop; },
@@ -17577,28 +19353,276 @@ tm.sound = tm.sound || {};
 
     /**
      * @property    valume
-     * @TODO ?
+     * ボリューム
      */
     tm.sound.WebAudio.prototype.accessor("volume", {
-        get: function()  { return this.source.gain.value; },
-        set: function(v) { this.source.gain.value = v; }
+        get: function()  { return this.gainNode.gain.value; },
+        set: function(v) { this.gainNode.gain.value = v; }
     });
 
     /**
      * @property    playbackRate
-     * @TODO ?
+     * プレイバックレート
      */
     tm.sound.WebAudio.prototype.accessor("playbackRate", {
         get: function()  { return this.source.playbackRate.value; },
         set: function(v) { this.source.playbackRate.value = v; }
     });
 
-    /** @static @property */
-    tm.sound.WebAudio.isAvailable = tm.global.webkitAudioContext ? true : false;
+    /**
+     * @property    pannerEnabled
+     * panner有効
+     */
+    tm.sound.WebAudio.prototype.accessor("pannerEnabled", {
+        get: function()  { return this._pannerEnabled; },
+        set: function(v) {
+            this.gainNode.disconnect();
+            this.panner.disconnect();
+            if (v) {
+                this.gainNode.connect(this.panner);
+                this.panner.connect(this.analyser);
+            } else {
+                this.gainNode.connect(this.analyser);
+            }
+            this._pannerEnabled = v;
 
+            // console.debug("WebAudio pannerEnabled: " + v);
+        }
+    });
+
+    /**
+     * @property    loopStart
+     * ループ開始位置（秒）
+     */
+    tm.sound.WebAudio.prototype.accessor("loopStart", {
+        get: function()  { return this.source.loopStart; },
+        set: function(v) { this.source.loopStart = v; }
+    });
+
+    /**
+     * @property    loopEnd
+     * ループ終了位置（秒）
+     */
+    tm.sound.WebAudio.prototype.accessor("loopEnd", {
+        get: function()  { return this.source.loopEnd; },
+        set: function(v) { this.source.loopEnd = v; }
+    });
+
+    /** @static @property */
+    tm.sound.WebAudio.isAvailable = (tm.global.AudioContext || tm.global.webkitAudioContext || tm.global.mozAudioContext) ? true : false;
+
+    tm.sound.WebAudio.createContext = function() {
+        if (tm.global.AudioContext) {
+            context = new AudioContext();
+        }
+        else if (tm.global.webkitAudioContext) {
+            context = new webkitAudioContext();
+        }
+        else if (tm.global.mozAudioContext) {
+            context = new mozAudioContext();
+        }
+
+        tm.sound.WebAudio.context = context;
+    };
+
+    /**
+     * @static
+     * iOSでWebAudioを使う場合、window.ontouchend等でこの関数を実行する
+     */
+    tm.sound.WebAudio.unlock = function() {
+        var unlockBuffer = context.createBuffer(1, 1, 22050);
+        var unlockSrc = context.createBufferSource();
+        unlockSrc.buffer = unlockBuffer;
+        unlockSrc.connect(context.destination);
+        unlockSrc.start(0);
+    };
+
+    tm.sound.WebAudio.createContext();
 })();
 
 
+
+
+/*
+ * soundmanager.js
+ */
+
+;(function() {
+
+    /*
+     * tm.sound.SoundManager
+     * ### Ref
+     * - http://evolve.reintroducing.com/_source/classes/as3/SoundManager/SoundManager.html
+     * - https://github.com/nicklockwood/SoundManager
+     */
+    tm.sound.SoundManager = {
+        volume: 0.8,
+        musicVolume: 0.8,
+        muteFlag: false,
+        currentMusic: null,
+
+        /*
+         * 再生
+         */
+        play: function(name, volume, startTime, loop) {
+            var origin = tm.asset.Manager.get(name);
+            if (origin == null) {
+                console.warn('not found ' + name);
+                return ;
+            }
+            var sound = origin.clone();
+
+            sound.volume = this.getVolume();
+            sound.play();
+
+            return sound;
+        },
+        stop: function() {
+            // TODO: 
+        },
+        pause: function() {
+            // TODO: 
+        },
+        fade: function() {
+            // TODO: 
+        },
+        setVolume: function(volume) {
+            this.volume = volume;
+        },
+        getVolume: function() {
+            return this.isMute() ? 0 : this.volume;
+        },
+        /*
+         * ミュート(toggle)
+         */
+        mute: function() {
+            this.muteFlag = (this.muteFlag === true) ? false : true;
+
+            if (this.currentMusic) {
+                this.currentMusic.volume = this.getVolumeMusic();
+            }
+
+            return this;
+        },
+        isMute: function() {
+            return this.muteFlag;
+        },
+
+        /*
+         * 音楽を再生
+         */
+        playMusic: function(name, fadeTime, loop) {
+            if (this.currentMusic) {
+                this.stopMusic(fadeTime);
+            }
+
+            var origin = tm.asset.Manager.get(name);
+            if (origin == null) {
+                console.warn('not found ' + name);
+                return ;
+            }
+            var music = origin.clone();
+
+            music.setLoop(true);
+            music.volume = this.getVolumeMusic();
+            music.play();
+
+            if (fadeTime > 0) {
+                var count = 32;
+                var counter = 0;
+                var unitTime = fadeTime/count;
+                var volume = this.getVolumeMusic();
+
+                music.volume = 0;
+                var id = setInterval(function() {
+                    counter += 1;
+                    var rate = counter/count;
+                    music.volume = rate*volume;
+
+                    if (rate >= 1) {
+                        clearInterval(id);
+                        return false;
+                    }
+
+                    return true;
+                }, unitTime);
+            }
+            else {
+                music.volume = this.getVolumeMusic();
+            }
+
+            this.currentMusic = music;
+
+            return this.currentMusic;
+        },
+
+        /*
+         * 音楽を停止
+         */
+        stopMusic: function(fadeTime) {
+            if (!this.currentMusic) { return ; }
+
+            var music = this.currentMusic;
+
+            if (fadeTime > 0) {
+                var count = 32;
+                var counter = 0;
+                var unitTime = fadeTime/count;
+                var volume = this.getVolumeMusic();
+
+                music.volume = 0;
+                var id = setInterval(function() {
+                    counter += 1;
+                    var rate = counter/count;
+                    music.volume = volume*(1-rate);
+
+                    if (rate >= 1) {
+                        music.stop();
+                        clearInterval(id);
+                        return false;
+                    }
+
+                    return true;
+                }, unitTime);
+            }
+            else {
+                this.currentMusic.stop();
+            }
+        },
+        /*
+         * 音楽を一時停止
+         */
+        pauseMusic: function() {
+            if (!this.currentMusic) { return ; }
+            this.currentMusic.pause();
+        },
+        /*
+         * 音楽を再開
+         */
+        resumeMusic: function() {
+            if (!this.currentMusic) { return ; }
+            this.currentMusic.resume();
+        },
+        /*
+         * 音楽のボリュームを設定
+         */
+        setVolumeMusic: function(volume) {
+            this.musicVolume = volume;
+            if (this.currentMusic) {
+                this.currentMusic.volume = volume;
+            }
+
+            return this;
+        },
+        /*
+         * 音楽のボリュームを取得
+         */
+        getVolumeMusic: function(volume) {
+            return this.isMute() ? 0 : this.musicVolume;
+        },
+    };
+
+})();
 
 
 /*
@@ -17771,14 +19795,19 @@ tm.social = tm.social || {};
 
 
 (function() {
-    
+
     /**
      * @class tm.social.NineLeap
      * 9leap ネームスペース
      */
     tm.social.Nineleap = tm.social.Nineleap || {};
-    
+
     var BASE_URL = "http://9leap.net/games/{id}/result?score={score}&result={result}";
+
+    /**
+     * @member      tm.social.Nineleap
+     */
+    tm.social.Nineleap.DEBUG_GAME_ID = "0";
 
     /**
      * @member      tm.social.Nineleap
@@ -17800,14 +19829,136 @@ tm.social = tm.social || {};
      */
     tm.social.Nineleap.postRanking = function(score, result) {
         if (location.hostname == 'r.jsgames.jp') {
-            var id = location.pathname.match(/^\/games\/(\d+)/)[1]; 
+            var id = location.pathname.match(/^\/games\/(\d+)/)[1];
             location.replace( this.createURL(id, score, result) );
         }
         else {
             console.warn("9leap に投稿されていません!");
         }
     };
-    
+
+    /**
+     * @member      tm.social.Nineleap
+     * @method      gotoLogin
+     * 9leapログインページヘ遷移する.
+     */
+    tm.social.Nineleap.gotoLogin = function() {
+        window.location.replace("http://9leap.net/api/login");
+    };
+
+    /**
+     * @member      tm.social.Nineleap
+     * @method      isOn9leap
+     * アプリケーションが9leap上にデプロイされているか
+     */
+    tm.social.Nineleap.isOn9leap = function() {
+        return window.location.hostname === "r.jsgames.jp";
+    };
+
+    /**
+     * @member      tm.social.Nineleap
+     * @method      getGameId
+     * 9leapのゲームIDを取得する
+     */
+    tm.social.Nineleap.getGameId = function() {
+        if (tm.social.Nineleap.isOn9leap()) {
+            return window.location.pathname.match(/^\/games\/(\d+)/)[1];
+        } else {
+            return tm.social.Nineleap.DEBUG_GAME_ID;
+        }
+    };
+
+    /**
+     * @member      tm.social.Nineleap
+     * @method      getMyData
+     * プレイヤーのゲームデータを取得する
+     */
+    tm.social.Nineleap.getMyData = function(callback) {
+        tm.util.Ajax.loadJSONP(tm.social.Nineleap.createMyDataURL(), callback);
+    };
+
+    /**
+     * @member      tm.social.Nineleap
+     * @method      postMyData
+     * プレイヤーのゲームデータを保存する
+     */
+    tm.social.Nineleap.postMyData = function(data, callback) {
+        tm.util.Ajax.load({
+            type: "POST",
+            url: tm.social.Nineleap.createMemoryURL("user_memory.json"),
+            dataType: "json",
+            data: "json=" + JSON.stringify(data),
+            contentType: "application/x-www-form-urlencoded;charset=UTF-8",
+            async: false,
+            beforeSend: function(xhr) {
+                xhr.withCredentials = true;
+            },
+            success: callback,
+            error: function(responseText) {
+                console.error(responseText);
+            }
+        });
+    };
+
+    /**
+     * @member      tm.social.Nineleap
+     * @method      createMemoryURL
+     * 9leap Memory API へアクセスするURLを生成
+     */
+    tm.social.Nineleap.createMemoryURL = function() {
+        var url = [
+            "http://9leap.net/api/memory/",
+            tm.social.Nineleap.getGameId() + "/",
+        ];
+        for (var i = 0, len = arguments.length; i < len; i++) {
+            url.push(arguments[i]);
+        }
+
+        return url.join("");
+    };
+    /**
+     * @member      tm.social.Nineleap
+     * @method      createMyDataURL
+     * ユーザデータURLを生成
+     */
+    tm.social.Nineleap.createMyDataURL = function() {
+        return tm.social.Nineleap.createMemoryURL("user_memory.json");
+    };
+    /**
+     * @member      tm.social.Nineleap
+     * @method      createUserDataURL
+     * 他のユーザのプレイデータURLを生成
+     */
+    tm.social.Nineleap.createUserDataURL = function(screenName) {
+        return tm.social.Nineleap.createMemoryURL("u/", screenName + ".json");
+    };
+    /**
+     * @member      tm.social.Nineleap
+     * @method      createRecentDataURL
+     * 最近プレイしたユーザのプレイデータURLを生成
+     */
+    tm.social.Nineleap.createRecentDataURL = function(max) {
+        max = max || 30;
+        return tm.social.Nineleap.createMemoryURL("recent_memories.json", "?max=" + max);
+    };
+    /**
+     * @member      tm.social.Nineleap
+     * @method      createFriendDataURL
+     * TwitterでフォローしているユーザのプレイデータURLを生成
+     */
+    tm.social.Nineleap.createFriendDataURL = function(max) {
+        max = max || 30;
+        return tm.social.Nineleap.createMemoryURL("friends_memories.json", "?max=" + max);
+    };
+    /**
+     * @member      tm.social.Nineleap
+     * @method      createRankingDataURL
+     * スコアランキング上位のユーザのプレイデータURLを生成
+     */
+    tm.social.Nineleap.createRankingDataURL = function(max) {
+        max = max || 30;
+        return tm.social.Nineleap.createMemoryURL("ranking_memories.json", "?max=" + max);
+    };
 })();
 
 
@@ -17901,6 +20052,7 @@ tm.google = tm.google || {};
             "CircleShape",
             "TriangleShape",
             "RectangleShape",
+            "RoundRectangleShape",
             "StarShape",
             "PolygonShape",
             "HeartShape",
@@ -17919,6 +20071,7 @@ tm.google = tm.google || {};
             "IconButton",
             "GlossyButton",
             "FlatButton",
+            "LoadingScene",
         ],
     };
     
@@ -17928,5 +20081,29 @@ tm.google = tm.google || {};
             tm.app[className] = tm[key][className];
         });
     }
+    
+    tm.asset.AssetManager = tm.asset.Manager;
+
+    tm.util.getter('Script', function() {
+        console.warn('`tm.util.Script` は `tm.asset.Script` になりました!');
+    });
+
+    tm.ui.LoadingScene = function(param) {
+        console.warn('`tm.ui.LoadingScene` は `tm.game.LoadingScene` になりました!');
+        return tm.game.LoadingScene(param);
+    };
+
+    tm.scene = tm.scene || {};
+    tm.scene.ManagerScene = tm.game.ManagerScene;
+    tm.scene.LoadingScene = tm.game.LoadingScene;
+    tm.scene.TitleScene = tm.game.TitleScene;
+    tm.scene.ResultScene = tm.game.ResultScene;
+    tm.scene.NumericalInputScene = tm.game.NumericalInputScene;
+    
+    tm.getter('scene', function() {
+        debugger;
+        console.warn('tm.scene は tm.game に変更されました');
+        return tm.game;
+    });
 
 })();

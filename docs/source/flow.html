@@ -22,8 +22,8 @@
     
 <span id='tm-util-Flow'>/**
 </span> * @class tm.util.Flow
- * it is inspire in made flow.js of @uupaa
  * @extends tm.event.EventDispatcher
+ * it is inspire in made flow.js of `@uupaa`
  */
 tm.define(&quot;tm.util.Flow&quot;, {
     superClass: &quot;tm.event.EventDispatcher&quot;,
@@ -55,10 +55,14 @@ tm.define(&quot;tm.util.Flow&quot;, {
         this.callback = callback;
         this.counter = 0;
         this.args = {};
-<span id='tm-util-Flow-method-pass'>    },
-</span>    
-    /**
-     * パス
+
+        this._check();
+
+        return this;
+    },
+    
+<span id='tm-util-Flow-method-pass'>    /**
+</span>     * パス
      */
     pass: function(key, value) {
         ++this.counter;
@@ -68,10 +72,10 @@ tm.define(&quot;tm.util.Flow&quot;, {
         }
         
         this._check();
-<span id='tm-util-Flow-method-isFinish'>    },
-</span>    
-    /**
-     * 終了チェック
+    },
+    
+<span id='tm-util-Flow-method-isFinish'>    /**
+</span>     * 終了チェック
      */
     isFinish: function() {
         return (this.counter === this.waits);

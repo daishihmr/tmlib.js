@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, user-scalable=no" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <title>tmlib.js</title>
+        <link rel="apple-touch-icon-precomposed" href="icon.png" />
+        <script src="../../build/tmlib.js"></script>
+    </head>
+    <body>
+        <canvas id="world" width="640" height="960"></canvas>
+    </body>
+</html>
+
+
+<script>
+
+// 定数
+var ASSETS = {
+    touch: "touch.wav",
+    decide: "decide.wav",
+    correct: "correct.mp3",
+    incorrect: "incorrect.mp3",
+    question: "question.wav",
+};
+
+tm.game.setup({
+    title: "Flash 暗算",
+    query: "#world",
+    width: 640,
+    height: 960,
+    startLabel: 'splash',
+    background: '#444',
+});
+
+
+tm.define("GameScene", {
+    superClass: Scene,
+    
+    init: function() {
+    	this.superInit();
+
+        this.score = 0;
+
+        this.setupQuestion();
+    },
+
+    setupQuestion: function() {
+        this.count = 0;
+        this.maxCount = 8;
+        this.numbers = Array.range(this.maxCount).map(function() {
+            return Random.randint(1, 9);
+        });
+        this.sum = this.numbers.reduce(function(prev, current) {
+            return prev + current;
+        });
+
+        this.startQuestion();
+    },
+
+    startQuestion: function() {
+    	var self = this;
+    	var number = this.numbers[this.count];
+    	var label = Label().addChildTo(this);
+
+    	label.text = number;
+    	label.x = SCREEN_CENTER_X;
+    	label.y = SCREEN_CENTER_Y;
+    	label.fontSize = 256;
+    	label.alpha = 0;
+    	label.tweener
+            .wait(100)
+            .call(function() {
+                SoundManager.play("question");
+            })
+    		.fadeIn(50)
+    		.wait(300)
+    		.fadeOut(50)
+    		.wait(100)
+    		.call(function() {
+    			label.remove();
+    			self.flare("numberfinish");
+    		}, label);
+
+    },
+
+    onnumberfinish: function() {
+    	this.count ++;
+
+    	if (this.count >= this.maxCount) {
+            var self = this;
+            // 答え入力
+            var scene = NumericalInputScene();
+
+            scene.onpush = function(e) {
+                SoundManager.play("touch");
+            };
+            scene.ondecided = function(e) {
+                SoundManager.play("decide");
+                self.judge(e.value);
+                self.app.popScene();
+            };
+            this.app.pushScene(scene);
+    	}
+    	else {
+	    	this.startQuestion();
+    	}
+    },
+
+    judge: function(v) {
+        var isCorrect = (v == this.sum);
+
+        this.fromJSON({
+            children: {
+                correctLabel: {
+                    type: "Label",
+                    text: (v == this.sum) ? "right!" : "wrong!",
+                    x: SCREEN_CENTER_X,
+                    y: SCREEN_CENTER_Y,
+                    fontSize: 128,
+                    baseline: "bottom",
+                    scaleX: 0.5,
+                    scaleY: 0.5,
+                },
+                answerLabel: {
+                    type: "Label",
+                    text: "answer: {0}".format(this.sum),
+                    x: SCREEN_CENTER_X,
+                    y: SCREEN_CENTER_Y+ 30,
+                    fontSize: 80,
+                    baseline: "top",
+                    scaleX: 0.5,
+                    scaleY: 0.5,
+                }
+            },
+        });
+
+        var se = (isCorrect) ? "correct" : "incorrect";
+        SoundManager.play(se);
+
+        this.correctLabel.tweener
+            .scale(1, 256, "easeOutBounce")
+            .wait(1000)
+            .call(function() {
+                this.correctLabel.remove();
+                this.answerLabel.remove();
+
+                if (isCorrect) {
+                    this.score += 100;
+                    this.setupQuestion();
+                }
+                else {
+                    this.nextArguments = {
+                        score: this.score,
+                    };
+                    this.app.popScene();
+                }
+            }, this)
+            ;
+    },
+});
+
+
+</script>

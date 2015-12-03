@@ -27,174 +27,85 @@ tm.display = tm.display || {};
     
 <span id='tm-display-Shape'>    /**
 </span>     * @class tm.display.Shape
-     * 図形を描画するクラス
      * @extends tm.display.CanvasElement
+     * 図形を描画するクラス
      */
     tm.display.Shape = tm.createClass({
-<span id='tm-display-Shape-property-canvsa'>        superClass: tm.display.CanvasElement,
-</span>        
-<span id='tm-display-Shape-property-width'>        /** @property canvsa */
-</span><span id='tm-display-Shape-property-height'>        /** @property width */
-</span><span id='tm-display-Shape-method-constructor'>        /** @property height */
+        superClass: tm.display.CanvasElement,
+        
+<span id='tm-display-Shape-property-canvsa'>        /** @property canvsa */
+</span><span id='tm-display-Shape-property-width'>        /** @property width */
+</span><span id='tm-display-Shape-property-height'>        /** @property height */
+</span><span id='tm-display-Shape-property-autoRender'>        /** @property autoRender */
 </span>
-        /**
-         * @constructor
+<span id='tm-display-Shape-method-constructor'>        /**
+</span>         * @constructor
          */
-        init: function(width, height) {
+        init: function(param) {
+            param = this._dirtyCheckParam.apply(this, arguments);
+            var param = {}.$safe(param, {
+                width: 64,
+                height: 64,
+                // bgColor: &quot;#888&quot;,
+                bgColor: &quot;transparent&quot;,
+
+                fillStyle: &quot;red&quot;,
+                strokeStyle: &quot;white&quot;,
+                lineWidth: &quot;2&quot;,
+                shadowBlur: 0,
+                shadowColor: &quot;red&quot;,
+            });
+            
             this.superInit();
-            
-            width = width   || 64;
-            height= height  || 64;
-            
+
+            // 
             this.canvas = tm.graphics.Canvas();
-            
-            this.width  = width;
-            this.height = height;
-            this.canvas.resize(width, height);
-<span id='tm-display-Shape-method-renderCircle'>        },
-</span>
-        /**
-         * @TODO ?
-         */
-        renderCircle: function(param) {
-            var c = this.canvas;
-            param = {}.$extend(tm.display.Shape.DEFAULT_SHAPE_PARAM_CIRCLE, param);
-            
-            c.save();
-            
-            // パラメータセット
-            c.fillStyle = param.fillStyle;
-            c.strokeStyle = param.strokeStyle;
-            c.lineWidth = param.lineWidth;
-            
-            // 描画
-            c.fillCircle(this.width/2, this.height/2, this.radius);
-            c.strokeCircle(this.width/2, this.height/2, this.radius-Number(c.lineWidth)/2);
-            
-<span id='tm-display-Shape-method-renderTriangle'>            c.restore();
-</span>        },
-
-        /**
-         * @TODO ?
-         */
-        renderTriangle: function(param) {
-            var c = this.canvas;
-            param = {}.$extend(tm.display.Shape.DEFAULT_SHAPE_PARAM_TRIANGLE, param);
-            
-            c.save();
-            
-            // パラメータセット
-            c.fillStyle = param.fillStyle;
-            c.strokeStyle = param.strokeStyle;
-            c.lineWidth = param.lineWidth;
-            
-            // 描画
-            c.fillPolygon(this.width/2, this.height/2, this.radius, 3);
-<span id='tm-display-Shape-method-renderRectangle'>            c.strokePolygon(this.width/2, this.height/2, this.radius-Number(c.lineWidth)/2, 3);
-</span>            
-            c.restore();
+            // 
+            this.$extend(param);
+            // 
+            this.render();
+            // 
+            this.autoRender = true;
         },
 
-        /**
-         * @TODO ?
-         */
-        renderRectangle: function(param) {
+        _prerender: function() {
             var c = this.canvas;
-            param = {}.$extend(tm.display.Shape.DEFAULT_SHAPE_PARAM_RECTANGLE, param);
+            c.resize(this.width, this.height);
+            c.clearColor(this.bgColor);
 
             c.save();
-            
+
             // パラメータセット
-            c.fillStyle = param.fillStyle;
-            c.strokeStyle = param.strokeStyle;
-            c.lineWidth = param.lineWidth;
-            
-            // 描画
-            var lw      = Number(c.lineWidth);
-            var lw_half = lw/2;
-            c.fillRect(0, 0, this.width, this.height);
-<span id='tm-display-Shape-method-renderStar'>            c.strokeRect(lw_half, lw_half, this.width-lw, this.height-lw);
-</span>            
-            c.restore();
+            c.fillStyle   = this.fillStyle;
+            c.strokeStyle = this.strokeStyle;
+            c.lineWidth   = this.lineWidth;
+            c.shadowBlur  = this.shadowBlur;
+            c.shadowColor  = this.shadowColor;
+
+            return this;
         },
 
-        /**
-         * @TODO ?
-         */
-        renderStar: function(param) {
+        _postrender: function() {
             var c = this.canvas;
-            param = {}.$extend(tm.display.Shape.DEFAULT_SHAPE_PARAM_STAR, param);
-            
-            c.save();
-            
-            // パラメータセット
-            c.fillStyle = param.fillStyle;
-            c.strokeStyle = param.strokeStyle;
-            c.lineWidth = param.lineWidth;
-
-            // 描画
-            var lw          = Number(c.lineWidth);
-            var lw_half     = lw/2;
-            var sides       = param.sides;
-            var sideIndent  = param.sideIndent;
-            var offsetAngle = param.offsetAngle;
-            c.fillStar(this.width/2, this.height/2, this.radius, sides, sideIndent, offsetAngle);
-<span id='tm-display-Shape-method-renderPolygon'>            c.strokeStar(this.width/2, this.height/2, this.radius-Number(c.lineWidth)/2, sides, sideIndent, offsetAngle);
-</span>            
             c.restore();
+
+            return this;
         },
 
-        /**
-         * @TODO ?
-         */
-        renderPolygon: function(param) {
-            var c = this.canvas;
-            param = {}.$extend(tm.display.Shape.DEFAULT_SHAPE_PARAM_POLYGON, param);
-            
-            c.save();
-            
-            // パラメータセット
-            c.fillStyle = param.fillStyle;
-            c.strokeStyle = param.strokeStyle;
-            c.lineWidth = param.lineWidth;
-            c.textAlign = &quot;center&quot;;
-            c.textBaseline = &quot;middle&quot;;
-            
-            // 描画
-            var lw          = Number(c.lineWidth);
-            var lw_half     = lw/2;
-            var sides       = param.sides;
-            var sideIndent  = param.sideIndent;
-            var offsetAngle = param.offsetAngle;
-            c.fillPolygon(this.width/2, this.height/2, this.radius, sides, offsetAngle);
-<span id='tm-display-Shape-method-renderHeart'>            c.strokePolygon(this.width/2, this.height/2, this.radius-Number(c.lineWidth)/2, sides, offsetAngle);
-</span>            
-            c.restore();
+        render: function() {
+            this._prerender();
+
+            this._render();
+
+            this._postrender();
         },
 
-        /**
-         * @TODO ?
-         */
-        renderHeart: function(param) {
-            var c = this.canvas;
-            param = {}.$extend(tm.display.Shape.DEFAULT_SHAPE_PARAM_HEART, param);
+        _render: function() {
 
-            c.save();
-            
-            // パラメータセット
-            c.fillStyle     = param.fillStyle;
-            c.strokeStyle   = param.strokeStyle;
-            c.lineWidth     = param.lineWidth;
-            
-            // 描画
-            c.fillHeart(this.width/2, this.height/2, this.radius, param.angle);
-<span id='tm-display-Shape-method-renderText'>            c.strokeHeart(this.width/2, this.height/2, this.radius-Number(c.lineWidth)/2, param.angle);
-</span>            
-            c.restore();
         },
 
-        /**
-         * @TODO ?
+<span id='tm-display-Shape-method-renderText'>        /**
+</span>         * テキスト描画
          */
         renderText: function(param) {
             var c = this.canvas;
@@ -211,101 +122,80 @@ tm.display = tm.display || {};
             c.textBaseline  = param.textBaseline;
 
             // 描画
-<span id='tm-display-Shape-static-property-DEFAULT_SHAPE_PARAM_CIRCLE'>            c.strokeText(param.text, this.width/2, this.height/2);
-</span>            c.fillText(param.text, this.width/2, this.height/2);
+            c.strokeText(param.text, this.width/2, this.height/2);
+            c.fillText(param.text, this.width/2, this.height/2);
             
             c.restore();
         },
+
+
+        // TODO: old support(plan delete)
+        _dirtyCheckParam: function(param) {
+            var param = param;
+            if (arguments.length &gt;= 2) {
+                var width = arguments[0];
+                var height= arguments[1];
+                var param = arguments[2] || {};
+                param.width = width;
+                param.height = height;
+
+                console.warn(&quot;tmlib.js warn: arguments of shape init is only param from version 0.4&quot;);
+            }
+
+            return param;
+        },
         
     });
 
-<span id='tm-display-Shape-static-property-DEFAULT_SHAPE_PARAM_TRIANGLE'>    /** @static @property  */
-</span>    tm.display.Shape.DEFAULT_SHAPE_PARAM_CIRCLE = {
-        fillStyle: &quot;red&quot;,
-        strokeStyle: &quot;white&quot;,
-        lineWidth: &quot;2&quot;,
-    };
+    [&quot;width&quot;, &quot;height&quot;, &quot;bgColor&quot;, &quot;strokeStyle&quot;, &quot;fillStyle&quot;, &quot;lineWidth&quot;, &quot;shadowBlur&quot;, &quot;shadowColor&quot;].each(function(prop) {
+        var propName = &#39;_&#39; + prop;
 
-<span id='tm-display-Shape-static-property-DEFAULT_SHAPE_PARAM_RECTANGLE'>    /** @static @property  */
-</span>    tm.display.Shape.DEFAULT_SHAPE_PARAM_TRIANGLE = {
-        fillStyle: &quot;green&quot;,
-        strokeStyle: &quot;white&quot;,
-        lineWidth: &quot;2&quot;,
-    };
+        tm.display.Shape.prototype.accessor(prop, {
+            &quot;get&quot;: function()   {
+                return this[propName];
+            },
+            &quot;set&quot;: function(v)  {
+                this[propName] = v;
+                if (this.autoRender === true) {
+                    this.render();
+                }
+            }
+        });
+    });
 
-<span id='tm-display-Shape-static-property-DEFAULT_SHAPE_PARAM_STAR'>    /** @static @property  */
-</span>    tm.display.Shape.DEFAULT_SHAPE_PARAM_RECTANGLE = {
-        fillStyle: &quot;blue&quot;,
-        strokeStyle: &quot;white&quot;,
-        lineWidth: &quot;2&quot;,
-    };
-
-    /** @static @property  */
-    tm.display.Shape.DEFAULT_SHAPE_PARAM_STAR = {
-<span id='tm-display-Shape-static-property-DEFAULT_SHAPE_PARAM_POLYGON'>        fillStyle: &quot;yellow&quot;,
-</span>        strokeStyle: &quot;white&quot;,
-        lineWidth: &quot;2&quot;,
-        
-        sides: 5,
-        sideIndent: undefined,
-        offsetAngle: undefined,
-    };
-
-    /** @static @property  */
-<span id='tm-display-Shape-static-property-DEFAULT_SHAPE_PARAM_HEART'>    tm.display.Shape.DEFAULT_SHAPE_PARAM_POLYGON = {
-</span>        fillStyle: &quot;cyan&quot;,
-        strokeStyle: &quot;white&quot;,
-        lineWidth: &quot;2&quot;,
-        
-        sides: 5,
-        offsetAngle: undefined,
-    };
-
-    /** @static @property  */
-<span id='tm-display-Shape-static-property-DEFAULT_SHAPE_PARAM_TEXT'>    tm.display.Shape.DEFAULT_SHAPE_PARAM_HEART = {
-</span>        fillStyle: &quot;pink&quot;,
-        strokeStyle: &quot;white&quot;,
-        lineWidth: &quot;2&quot;,
-        
-        angle: 45,
-    };
-
-    /** @static @property  */
-    tm.display.Shape.DEFAULT_SHAPE_PARAM_TEXT = {
-        text: &quot;hello, world&quot;,
-        fillStyle: &quot;pink&quot;,
-        strokeStyle: &quot;white&quot;,
-<span id='tm-display-CircleShape'>        lineWidth: &quot;1&quot;,
-</span>        textAlign: &quot;center&quot;,
-        textBaseline: &quot;middle&quot;,
-        font: &quot;24px 'Consolas', 'Monaco', 'ＭＳ ゴシック'&quot;,
-    };
-    
 })();
 
 
 (function() {
     
-    /**
-     * @class tm.display.CircleShape
-     * 簡単に円を描画できるクラス
+<span id='tm-display-CircleShape'>    /**
+</span>     * @class tm.display.CircleShape
      * @extends tm.display.Shape
+     * 簡単に円を描画できるクラス
      * 
      *      @example display
-<span id='tm-display-CircleShape-method-constructor'>     *      var shape = tm.display.CircleShape().addChildTo(this);
-</span>     *      shape.setPosition(50, 50);
+     *      var shape = tm.display.CircleShape().addChildTo(this);
+     *      shape.setPosition(50, 50);
      */
-    tm.display.CircleShape = tm.createClass({
-        
+    tm.define(&quot;tm.display.CircleShape&quot;, {
         superClass: tm.display.Shape,
         
-        /**
-         * @constructor
+<span id='tm-display-CircleShape-method-constructor'>        /**
+</span>         * @constructor
          */
-<span id='tm-display-TriangleShape'>        init: function(width, height, param) {
-</span>            this.superInit(width, height);
+        init: function(param) {
+            param = this._dirtyCheckParam.apply(this, arguments);
+            this.superInit(param);
+
+            this.render();
+        },
+
+        _render: function() {
+            var c = this.canvas;
             // 描画
-            this.renderCircle(param);
+            var radius = Math.min(this.width, this.height)/2;
+            c.fillCircle(this.width/2, this.height/2, radius);
+            c.strokeCircle(this.width/2, this.height/2, radius-Number(c.lineWidth)/2);
         },
     });
     
@@ -316,24 +206,38 @@ tm.display = tm.display || {};
 
 (function() {
     
-    /**
-<span id='tm-display-TriangleShape-method-constructor'>     * @class tm.display.TriangleShape
-</span>     * 簡単に三角形を描画できるクラス
+<span id='tm-display-TriangleShape'>    /**
+</span>     * @class tm.display.TriangleShape
+     * 簡単に三角形を描画できるクラス
      * @extends tm.display.Shape
      */
-    tm.display.TriangleShape = tm.createClass({
-        
+    tm.define(&quot;tm.display.TriangleShape&quot;, {
         superClass: tm.display.Shape,
         
-        /**
-<span id='tm-display-RectangleShape'>         * @constructor
-</span>         */
-        init: function(width, height, param) {
-            this.superInit(width, height);
-            // 描画
-            this.renderTriangle(param);
+<span id='tm-display-TriangleShape-method-constructor'>        /**
+</span>         * @constructor
+         */
+        init: function(param) {
+            param = this._dirtyCheckParam.apply(this, arguments);
+            param = {}.$safe(param, {
+                fillStyle: &quot;green&quot;,
+            });
+            this.superInit(param);
+
+            this.render();
         },
-        
+
+        _render: function() {
+            var c = this.canvas;
+
+            // 描画
+            var x = this.width/2;
+            var y = this.height/2;
+            var radius = Math.min(this.width, this.height)/2;
+            var offsetLine = Number(c.lineWidth)*1;
+            c.fillPolygon(x, y, radius, 3);
+            c.strokePolygon(x, y, radius-offsetLine, 3);
+        },
     });
     
 })();
@@ -341,77 +245,215 @@ tm.display = tm.display || {};
 
 
 
-<span id='tm-display-RectangleShape-method-constructor'>(function() {
-</span>    
-    /**
-     * @class tm.display.RectangleShape
+(function() {
+    
+<span id='tm-display-RectangleShape'>    /**
+</span>     * @class tm.display.RectangleShape
      * 簡単に矩形を描画できるクラス
      * @extends tm.display.Shape
      */
-    tm.display.RectangleShape = tm.createClass({
-        
+    tm.define(&quot;tm.display.RectangleShape&quot;, {
         superClass: tm.display.Shape,
-<span id='tm-display-StarShape'>        
-</span>        /**
-         * @constructor
+        
+<span id='tm-display-RectangleShape-method-constructor'>        /**
+</span>         * @constructor
          */
-        init: function(width, height, param) {
-            this.superInit(width, height);
+        init: function(param) {
+            param = this._dirtyCheckParam.apply(this, arguments);
+            param = {}.$safe(param, {
+                fillStyle: &quot;blue&quot;,
+            });
+            this.superInit(param);
+
+            this.render();
+        },
+
+        _render: function() {
+            var c = this.canvas;
             // 描画
-            this.renderRectangle(param);
-<span id='tm-display-StarShape-method-constructor'>        },
-</span>        
+            var lw = this.lineWidth;
+            var lw_half = lw/2;
+            c.fillRect(0, 0, this.width, this.height);
+            c.strokeRect(lw_half, lw_half, this.width-lw, this.height-lw);
+        },
     });
     
 })();
 
 
+
+
 (function() {
     
-    /**
-     * @class tm.display.StarShape
+<span id='tm-display-RoundRectangleShape'>    /**
+</span>     * @class tm.display.RoundRectangleShape
+     * 簡単に矩形を描画できるクラス
+     * @extends tm.display.Shape
+     */
+    tm.define(&quot;tm.display.RoundRectangleShape&quot;, {
+        superClass: tm.display.Shape,
+        
+<span id='tm-display-RoundRectangleShape-method-constructor'>        /**
+</span>         * @constructor
+         */
+        init: function(param) {
+            param = this._dirtyCheckParam.apply(this, arguments);
+            param = {}.$safe(param, {
+                fillStyle: &quot;blue&quot;,
+                cornerRadius: 8,
+            });
+            this.superInit(param);
+
+            this.render();
+        },
+
+        _render: function() {
+            var c = this.canvas;
+            // 描画
+            var lw = this.lineWidth;
+            var lw_half = lw/2;
+
+            c.fillRoundRect(lw_half, lw_half, this.width-lw, this.height-lw, this.cornerRadius);
+            c.strokeRoundRect(lw_half, lw_half, this.width-lw, this.height-lw, this.cornerRadius);
+        },
+    });
+
+    [&quot;cornerRadius&quot;].each(function(prop) {
+        var propName = &#39;_&#39; + prop;
+
+        tm.display.RoundRectangleShape.prototype.accessor(prop, {
+            &quot;get&quot;: function()   {
+                return this[propName];
+            },
+            &quot;set&quot;: function(v)  {
+                this[propName] = v;
+                if (this.autoRender === true) { this.render(); }
+            }
+        });
+    });
+
+})();
+
+
+(function() {
+    
+<span id='tm-display-StarShape'>    /**
+</span>     * @class tm.display.StarShape
      * 簡単に星形を描画できるクラス
      * @extends tm.display.Shape
      */
-    tm.display.StarShape = tm.createClass({
-        
-<span id='tm-display-PolygonShape'>        superClass: tm.display.Shape,
-</span>        
-        /**
-         * @constructor
-         */
-        init: function(width, height, param) {
-            this.superInit(width, height);
-            // 描画
-<span id='tm-display-PolygonShape-method-constructor'>            this.renderStar(param);
-</span>        },
-        
-    });
-    
-})();
-
-
-
-(function() {
-    
-    /**
-     * @class tm.display.PolygonShape
-     * @TODO なにを描画するクラス？
-     * @extends tm.display.Shape
-     */
-<span id='tm-display-HeartShape'>    tm.display.PolygonShape = tm.createClass({
-</span>        
+    tm.define(&quot;tm.display.StarShape&quot;, {
         superClass: tm.display.Shape,
         
-        /**
-         * @constructor
+<span id='tm-display-StarShape-method-constructor'>        /**
+</span>         * @constructor
          */
-        init: function(width, height, param) {
-            this.superInit(width, height);
-<span id='tm-display-HeartShape-method-constructor'>            // 描画
-</span>            this.renderPolygon(param);
+        init: function(param) {
+            param = this._dirtyCheckParam.apply(this, arguments);
+            param = {}.$safe(param, {
+                fillStyle: &quot;yellow&quot;,
+                sides: 5,
+                sideIndent: 0.38,
+                offsetAngle: -90,
+            });
+            this.superInit(param);
+
+            this.render();
         },
+
+        _render: function() {
+            var c = this.canvas;
+
+            var sides       = this.sides;
+            var sideIndent  = this.sideIndent;
+            var offsetAngle = this.offsetAngle;
+            
+            // 描画
+            var x = this.width/2;
+            var y = this.height/2;
+            var radius = Math.min(this.width, this.height)/2;
+            var offsetLine = Number(c.lineWidth)*1.5;
+            c.fillStar(x, y, radius, sides, sideIndent, offsetAngle);
+            c.strokeStar(x, y, radius-offsetLine, sides, sideIndent, offsetAngle);
+        },
+    });
+
+    [&quot;sides&quot;, &quot;sideIndent&quot;, &quot;offsetAngle&quot;].each(function(prop) {
+        var propName = &#39;_&#39; + prop;
+
+        tm.display.StarShape.prototype.accessor(prop, {
+            &quot;get&quot;: function()   {
+                return this[propName];
+            },
+            &quot;set&quot;: function(v)  {
+                this[propName] = v;
+                if (this.autoRender === true) {
+                    this.render();
+                }
+            }
+        });
+    });
+    
+})();
+
+
+
+(function() {
+    
+<span id='tm-display-PolygonShape'>    /**
+</span>     * @class tm.display.PolygonShape
+     * @extends tm.display.Shape
+     * ポリゴン描画クラス
+     */
+    tm.define(&quot;tm.display.PolygonShape&quot;, {
+        superClass: tm.display.Shape,
         
+<span id='tm-display-PolygonShape-method-constructor'>        /**
+</span>         * @constructor
+         */
+        init: function(param) {
+            param = this._dirtyCheckParam.apply(this, arguments);
+            param = {}.$safe(param, {
+                fillStyle: &quot;cyan&quot;,
+                sides: 5,
+                sideIndent: 0.38,
+                offsetAngle: -90,
+            });
+            this.superInit(param);
+
+            this.render();
+        },
+
+        _render: function() {
+            var c = this.canvas;
+
+            var sides       = this.sides;
+            var offsetAngle = this.offsetAngle;
+            
+            // 描画
+            var x = this.width/2;
+            var y = this.height/2;
+            var radius = Math.min(this.width, this.height)/2;
+            var offsetLine = Number(c.lineWidth)*0.6;
+            c.fillPolygon(x, y, radius, sides, offsetAngle);
+            c.strokePolygon(x, y, radius-offsetLine, sides, offsetAngle);
+        },
+    });
+
+    [&quot;sides&quot;, &quot;offsetAngle&quot;].each(function(prop) {
+        var propName = &#39;_&#39; + prop;
+
+        tm.display.PolygonShape.prototype.accessor(prop, {
+            &quot;get&quot;: function()   {
+                return this[propName];
+            },
+            &quot;set&quot;: function(v)  {
+                this[propName] = v;
+                if (this.autoRender === true) {
+                    this.render();
+                }
+            }
+        });
     });
     
 })();
@@ -421,51 +463,135 @@ tm.display = tm.display || {};
 
 (function() {
     
-    /**
-     * @class tm.display.HeartShape
+<span id='tm-display-HeartShape'>    /**
+</span>     * @class tm.display.HeartShape
      * 簡単にハートを描画できるクラス
      * @extends tm.display.Shape
      */
-<span id='tm-display-TextShape'>    tm.display.HeartShape = tm.createClass({
-</span>        
+    tm.define(&quot;tm.display.HeartShape&quot;, {
         superClass: tm.display.Shape,
         
-        /**
-         * @constructor
+<span id='tm-display-HeartShape-method-constructor'>        /**
+</span>         * @constructor
          */
-        init: function(width, height, param) {
-<span id='tm-display-TextShape-method-constructor'>            this.superInit(width, height);
-</span>            // 描画
-            this.renderHeart(param);
+        init: function(param) {
+            param = this._dirtyCheckParam.apply(this, arguments);
+            param = {}.$safe(param, {
+                fillStyle: &quot;pink&quot;,
+                cornerAngle: 45,
+            });
+            this.superInit(param);
+
+            this.render();
         },
-        
+
+        _render: function() {
+            var c = this.canvas;
+            // 描画
+            var x = this.width/2;
+            var y = this.height/2;
+            var radius = Math.min(this.width, this.height)/2;
+            c.fillHeart(x, y, radius, this.cornerAngle);
+            c.strokeHeart(x, y, radius-Number(c.lineWidth)/2, this.cornerAngle);
+        },
     });
-    
+
+    [&quot;cornerAngle&quot;].each(function(prop) {
+        var propName = &#39;_&#39; + prop;
+
+        tm.display.HeartShape.prototype.accessor(prop, {
+            &quot;get&quot;: function()   {
+                return this[propName];
+            },
+            &quot;set&quot;: function(v)  {
+                this[propName] = v;
+                if (this.autoRender === true) { this.render(); }
+            }
+        });
+    });
+
 })();
 
 
 
 
 (function() {
+
+    var dummyCanvas = null;
     
-    /**
-     * @class tm.display.TextShape
-     * @TODO なにするクラス？
+<span id='tm-display-TextShape'>    /**
+</span>     * @class tm.display.TextShape
      * @extends tm.display.Shape
+     * テキスト描画クラス
      */
     tm.define(&quot;tm.display.TextShape&quot;, {
 
         superClass: &quot;tm.display.Shape&quot;,
         
-        /**
-         * @constructor
+<span id='tm-display-TextShape-method-constructor'>        /**
+</span>         * @constructor
          */
         init: function(width, height, param) {
-            this.superInit(width, height);
-            // 描画
-            this.renderText(param);
+            param = this._dirtyCheckParam.apply(this, arguments);
+            param = {}.$safe(param, {
+                fillStyle: &quot;black&quot;,
+                lineWidth: 4,
+                text: &quot;hello, world!&quot;,
+                fontSize: 64,
+                fontWeight: &quot;&quot;,
+                fontFamily: &quot;&#39;HiraKakuProN-W3&#39;&quot;,
+            });
+            this.superInit(param);
+
+            this.fit();
+
+            this.render();
         },
+
+        fit: function() {
+            if (!dummyCanvas) {
+                dummyCanvas = tm.graphics.Canvas();
+            }
+            dummyCanvas.font = &quot;{fontWeight} {fontSize}px {fontFamily}&quot;.format(this);
+            var textWidth = dummyCanvas.context.measureText(this.text).width + (10);
+            var textHeight = dummyCanvas.context.measureText(&#39;あ&#39;).width*1.5;
+            this.width = textWidth;
+            this.height = textHeight;
+        },
+
+        _render: function() {
+            var c = this.canvas;
+
+            c.fillStyle = this.fillStyle;
+            c.strokeStyle = this.strokeStyle;
+            c.font = &quot;{fontWeight} {fontSize}px {fontFamily}&quot;.format(this);
+            c.textAlign = &quot;center&quot;;
+            c.textBaseline = &quot;middle&quot;;
+
+            var textWidth = c.context.measureText(this.text).width;
+
+            var hw = this.width/2;
+            var hh = this.height/2
+            c.strokeText(this.text, hw, hh);
+            c.fillText(this.text, hw, hh);
+        },
+
     });
+
+    [&#39;text&#39;, &quot;fontWeight&quot;, &quot;fontSize&quot;, &quot;fontFamily&quot;].each(function(prop) {
+        var propName = &#39;_&#39; + prop;
+
+        tm.display.TextShape.prototype.accessor(prop, {
+            &quot;get&quot;: function()   {
+                return this[propName];
+            },
+            &quot;set&quot;: function(v)  {
+                this[propName] = v;
+                if (this.autoRender === true) { this.render(); }
+            }
+        });
+    });
+
     
 })();
 

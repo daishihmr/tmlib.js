@@ -21,11 +21,13 @@
         /**
          * @constructor
          */
-        init: function(width, height, param) {
-            this.superInit(width, height);
-            
-            param = param || {};
+        init: function(param) {
+            param = this._dirtyCheckParam.apply(this, arguments);
             param.$safe(DEFAULT_PARAM);
+            this.superInit(param);
+            
+            this.autoRender = false;
+            
             this._setup(param);
         },
         
@@ -54,7 +56,19 @@
             this.on("pointingmove", function(e) {
                 var p = e.app.pointing;
                 self._drawLine(p.prevPosition, p.position);
+                self.points.push({
+                    x: p.x-this.left,
+                    y: p.y-this.top,
+                });
             });
+            this.on("pointingend", function(e) {
+                self.pointsList.push(self.points);
+                self.points = [];
+            });
+
+            // ポイントスタック
+            this.pointsList = [];
+            this.points = [];
         },
         
         /**
@@ -63,6 +77,9 @@
         clear: function() {
             this.canvas.clear();
             this.canvas.clearColor(this.bgColor);
+
+            this.pointsList = [];
+            this.points = [];
             
             return this;
         },

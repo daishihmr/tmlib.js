@@ -40,7 +40,7 @@
         },
 
         /**
-         * @TODO ?
+         * パース
          * @private
          */
         _parse: function(str) {
@@ -62,7 +62,6 @@
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _parseTilesets: function(xml) {
@@ -87,7 +86,6 @@
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _parseLayers: function(xml) {
@@ -97,7 +95,7 @@
             var map = xml.getElementsByTagName("map")[0];
             var layers = [];
             each.call(map.childNodes, function(elm) {
-                if (elm.tagName == "layer" || elm.tagName == "objectgroup") {
+                if (elm.tagName == "layer" || elm.tagName == "objectgroup" || elm.tagName == "imagelayer") {
                     layers.push(elm);
                 }
             });
@@ -140,13 +138,28 @@
 
                     data.push(l);
                 }
+                else if (layer.tagName == "imagelayer") {
+                    var l = {
+                        type: "imagelayer",
+                        name: layer.getAttribute("name"),
+                        x: layer.getAttribute("x") || 0,
+                        y: layer.getAttribute("y") || 0,
+                        alpha: layer.getAttribute("opacity") || 1,
+                        visible: (layer.getAttribute("visible") === undefined || layer.getAttribute("visible") != 0),
+                    };
+                    var imageElm = layer.getElementsByTagName("image")[0];
+                    l.image = {
+                        source: imageElm.getAttribute("source")
+                    };
+
+                    data.push(l);
+                }
             }.bind(this));
 
             return data;
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _parseCSV: function(data) {
@@ -182,18 +195,18 @@
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _propertiesToJson: function(elm) {
             var properties = elm.getElementsByTagName("properties")[0];
             var obj = {};
-            if (properties) {
-                for (var k = 0;k < properties.childNodes.length;k++) {
-                    var p = properties.childNodes[k];
-                    if (p.tagName === "property") {
-                        obj[p.getAttribute('name')] = p.getAttribute('value');
-                    }
+            if (properties === undefined) {
+                return obj;
+            }
+            for (var k = 0;k < properties.childNodes.length;k++) {
+                var p = properties.childNodes[k];
+                if (p.tagName === "property") {
+                    obj[p.getAttribute('name')] = p.getAttribute('value');
                 }
             }
 
@@ -201,7 +214,6 @@
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _attrToJSON: function(source) {
@@ -216,14 +228,29 @@
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _checkImage: function() {
             var self = this;
+            var imageSoruces = [];
+
+            // for tile set
             if (this.tilesets.length) {
+                Array.prototype.push.apply(imageSoruces, this.tilesets.map(function(tile) {
+                    return tile.image;
+                }));
+            }
+
+            // for image layer
+            this.layers.each(function(layer) {
+                if (layer.type == "imagelayer") {
+                    imageSoruces.push(layer.image.source);
+                }
+            });
+
+            if (imageSoruces.length) {
                 var i = 0;
-                var len = this.tilesets.length;
+                var len = imageSoruces.length;
 
                 var _onloadimage = function() {
                     i++;
@@ -234,8 +261,8 @@
                     }
                 }.bind(this);
 
-                this.tilesets.each(function(elm) {
-                    var image = tm.asset.AssetManager.get(elm.image)
+                imageSoruces.each(function(imageName) {
+                    var image = tm.asset.Manager.get(imageName);
 
                     if (image) {
                         if (image.loaded) {
@@ -252,8 +279,9 @@
                         }
                     }
                     else {
-                        tm.asset.AssetManager.load(elm.image);
-                        var texture = tm.asset.AssetManager.get(elm.image);
+                        var loader = tm.asset.Loader();
+                        loader.load(imageName);
+                        var texture = tm.asset.Manager.get(imageName);
                         texture.addEventListener("load", _onloadimage);
                     }
                 });

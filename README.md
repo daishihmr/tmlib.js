@@ -1,124 +1,44 @@
-# [tmlib.js](http://phi1618.github.com/tmlib.js)
+# [tmlib.js](http://phi-jp.github.com/tmlib.js)
 
-<img src="https://github.com/phi1618/tmlib.js/raw/master/logo.png" width="320" height="320">
+[![Join the chat at https://gitter.im/phi-jp/tmlib.js](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/phi-jp/tmlib.js?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
+<img src="https://qiita-image-store.s3.amazonaws.com/0/7756/7aa8af56-c678-0146-d101-3064923f95b9.png" width=400 style="text-align: center;">
 
 『**JavaScript をより使いやすく, より便利に, そしてより豊かに**』を  
 コンセプトに制作した JavaScript ライブラリです.
 
-やってることは
-
-- 生成時に new がいらない class 定義の仕組みを作ってみたり
-- jQuery ライクに DOM を扱えるようにしたり
-- ajax 機能をサポートしてみたり
-- HTML5 Canvas をラップして使いやすくしたり
-- アニメーションできるようにしてみたり
-- ベクトルや行列をサポートしてみたり
-- 音を鳴らせるようにしてみたり
-- 入力系をサポートしてみたり
-- 1つのコードで PC とスマホ同時対応できるようにしてみたり
-
-と色々やってます.
-
-[Examples](#examples) - [Documentation](#documentation) - [Download](#download)
+簡単にゲームを作ったりリッチなwebページを作ることができます.
+公式ページは[こちら](http://phi-jp.github.io/tmlib.js/).
 
 
+[Gitter](https://gitter.im/phi-jp/tmlib.js#)
 
-## Download
-- [tmlib.js version 0.1.8](https://raw.github.com/phi-jp/tmlib.js/0.1.8/build/tmlib.js)
-- [tmlib.min.js version 0.1.8](https://raw.github.com/phi-jp/tmlib.js/0.1.8/build/tmlib.min.js)
-- [tmlib.js version 0.1.6 Starter pack](https://github.com/phi-jp/tmlib.js/raw/0.1.6/starter-0.1.6.zip)
+## Usage
+
+使い方は tmlib.js を読み込むだけです.
+これだけで全ての機能を使う事ができます.
+
+```html
+<script src="http://cdn.rawgit.com/phi-jp/tmlib.js/0.5.0/build/tmlib.js"></script>
+```
+
+
+[runstant](http://qiita.com/phi/items/e7fe30156c43a7690c1a) で実際に体験できます.
+
+[[runstant]](http://goo.gl/B2JcWF)
 
 
 ## Documentation
 ドキュメントは[こちら](http://phi-jp.github.io/tmlib.js/docs/index.html)
 
-## Usage
-使い方
-```html
-<script src="tmlib.js"></script>
-```
-
-
-読み込み後は下記のような形で使用します.
-
-```html
-<!DOCTYPE html>
-
-<html>
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, user-scalable=no" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-
-        <title>Starter Pack | tmlib.js</title>
-        <link rel="apple-touch-icon-precomposed" href="icon.png" />
-
-        <script src="http://rawgithub.com/phi1618/tmlib.js/0.1.6/build/tmlib.js"></script>
-        <script>
-            // メイン処理(ページ読み込み後に実行される)
-            tm.main(function() {
-                // アプリケーション作成
-                var app = tm.app.CanvasApp("#world");
-                app.resizeWindow(); // 画面サイズに合わせる
-                app.fitWindow();    // リサイズ対応
-                app.background = "rgba(0, 0, 0, 1)";  // 背景色をセット
-                
-                // 星スプライト
-                var star = tm.app.Shape(64, 64);
-                star.canvas.setColorStyle("white", "yellow").fillStar(32, 32, 32, 5);
-                app.currentScene.addChild(star);    // シーンに追加
-
-                // 更新
-                app.currentScene.update = function(app) {
-                    // マウス位置 or タッチ位置に移動
-                    star.x = app.pointing.x;
-                    star.y = app.pointing.y;
-                    // クリック or タッチ中は回転させる
-                    if (app.pointing.getPointing() == true) { star.rotation += 15; }
-                };
-
-                // 実行
-                app.run();
-            });
-        </script>
-    </head>
-    <body>
-        <canvas id="world"></canvas>
-    </body>
-</html>
-```
-
-
-
-## Examples
-
-使用例です. 随時追加していきます.  
-また, 「こんなん作ってみた」とかあれば教えて下さい.
-
-<a href="http://storage.tmlife.net/libs/tmlib.js/examples/circle/"><img alt="screenshot" width="160" src="http://storage.tmlife.net/libs/tmlib.js/examples/circle/icon.png" /></a>
-<a href="http://storage.tmlife.net/libs/tmlib.js/examples/circle-collision/"><img alt="screenshot" width="160" src="http://storage.tmlife.net/libs/tmlib.js/examples/circle-collision/icon.png" /></a>
-<a href="http://storage.tmlife.net/libs/tmlib.js/examples/filter/"><img alt="screenshot" width="160" src="http://storage.tmlife.net/libs/tmlib.js/examples/filter/icon.png" /></a>
-<a href="http://storage.tmlife.net/libs/tmlib.js/examples/juggling/"><img alt="screenshot" width="160" src="http://storage.tmlife.net/libs/tmlib.js/examples/juggling/icon.png" /></a>
-<a href="http://storage.tmlife.net/libs/tmlib.js/examples/magic-square/"><img alt="screenshot" width="160" src="http://storage.tmlife.net/libs/tmlib.js/examples/magic-square/icon.png" /></a>
-<a href="http://storage.tmlife.net/libs/tmlib.js/examples/paint/"><img alt="screenshot" width="160" src="http://storage.tmlife.net/libs/tmlib.js/examples/paint/icon.png" /></a>
-<a href="http://storage.tmlife.net/libs/tmlib.js/examples/piano/"><img alt="screenshot" width="160" src="http://storage.tmlife.net/libs/tmlib.js/examples/piano/icon.png" /></a>
-<a href="http://storage.tmlife.net/libs/tmlib.js/examples/pursuit/"><img alt="screenshot" width="160" src="http://storage.tmlife.net/libs/tmlib.js/examples/pursuit/icon.png" /></a>
-<a href="http://storage.tmlife.net/libs/tmlib.js/examples/shooting/"><img alt="screenshot" width="160" src="http://storage.tmlife.net/libs/tmlib.js/examples/shooting/icon.png" /></a>
-<a href="http://storage.tmlife.net/libs/tmlib.js/examples/snow/"><img alt="screenshot" width="160" src="http://storage.tmlife.net/libs/tmlib.js/examples/snow/icon.png" /></a>
-<a href="http://storage.tmlife.net/libs/tmlib.js/examples/text-effect/"><img alt="screenshot" width="160" src="http://storage.tmlife.net/libs/tmlib.js/examples/text-effect/icon.png" /></a>
-<a href="http://storage.tmlife.net/libs/tmlib.js/examples/torne-interface/"><img alt="screenshot" width="160" src="http://storage.tmlife.net/libs/tmlib.js/examples/torne-interface/icon.png" /></a>
-<a href="http://storage.tmlife.net/libs/tmlib.js/examples/unit-circle/"><img alt="screenshot" width="160" src="http://storage.tmlife.net/libs/tmlib.js/examples/unit-circle/icon.png" /></a>
-<a href="http://storage.tmlife.net/libs/tmlib.js/examples/particle/"><img alt="screenshot" width="160" src="http://storage.tmlife.net/libs/tmlib.js/examples/particle/icon.png" /></a>
-
 
 ## License
+
 MIT License
 
 
 ## Browser
 
-対応ブラウザの一覧です.  
-IE なんて知りません.
 - [Google Chrome](http://www.google.co.jp/chrome/intl/ja/landing_ch.html)
 - [Safari](http://www.apple.com/jp/safari/)
 - [Firefox](http://mozilla.jp/firefox/)
@@ -136,5 +56,34 @@ IE なんて知りません.
 
 tmlib.js に関する最新の情報やチュートリアルなどはこちらのブログで紹介していきます.
 
-[TM Life](http://tmlife.net)
+[phiary](http://phiary.me)
+
+## Feature
+
+### 0.6
+
+- tm.game.ResultScene のデザインを変更
+- pointing の機能を強化( startPosition 保持したり, 数フレーム分の移動値をキャッシュしたり )
+- テスト改修
+- リファクタリング
+- マルチタッチ対応
+
+## Released
+
+### 0.5
+
+- [getFinalMatrix の位置が origin によってズレるバグを修正](https://github.com/phi-jp/tmlib.js/pull/143)
+- [tm.util.GridSystem を実装](https://github.com/phi-jp/tmlib.js/commit/04f26429391834b948ecf1b55e8b2d95e3d2ed2a)
+- [checkHierarchy のデフォルト値を true に変更](https://github.com/phi-jp/tmlib.js/commit/1ea9499b5ef037d5cec8ed2c8b7ccbc2ea61080c)
+- [tm.display.Grid を実装](https://github.com/phi-jp/tmlib.js/commit/90c1b986941df3adfba0847184c841dc883dc134)
+- [getChildIndex の機能が getChildAt になっていたのを修正](https://github.com/phi-jp/tmlib.js/commit/103ba47c7631d162f7a79b4c213d7830f00389f1)
+- [tm.app.Element.prototype.getChildAt を実装](https://github.com/phi-jp/tmlib.js/commit/103ba47c7631d162f7a79b4c213d7830f00389f1)
+- [tm.app.Object2D の left, right, top, bottom それぞれの setter を実装](https://github.com/phi-jp/tmlib.js/commit/a0ca57c3866663794a8aad451f94120dbaaef3a5)
+- [tm.sound.SoundManager を実装](https://github.com/phi-jp/tmlib.js/pull/147)
+- [tm.game.CountScene を作成](https://github.com/phi-jp/tmlib.js/pull/148)
+- [JavaScript ファイルのAsset対応](https://github.com/phi-jp/tmlib.js/issues/146)
+- [scene namespace を game namespace に変更](https://github.com/phi-jp/tmlib.js/pull/151)
+- [tm.game.setup で Canvas ゲーム開発を簡略化](https://github.com/phi-jp/tmlib.js/pull/152)
+- [tm.game.SplashScene を実装](https://github.com/phi-jp/tmlib.js/pull/153)
+
 

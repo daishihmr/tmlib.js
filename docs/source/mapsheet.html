@@ -27,16 +27,16 @@
      * @extends tm.event.EventDispatcher
      */
     tm.define(&quot;tm.asset.MapSheet&quot;, {
-<span id='tm-asset-MapSheet-property-loaded'>        superClass: &quot;tm.event.EventDispatcher&quot;,
+        superClass: &quot;tm.event.EventDispatcher&quot;,
+
+<span id='tm-asset-MapSheet-property-loaded'>        /** @property loaded  */
 </span>
-        /** @property loaded  */
-<span id='tm-asset-MapSheet-method-constructor'>        
-</span>        /**
-         * @constructor
+<span id='tm-asset-MapSheet-method-constructor'>        /**
+</span>         * @constructor
          */
         init: function(path) {
             this.superInit();
-            
+
             this.loaded = false;
 
             if (typeof path == &quot;string&quot;) {
@@ -51,21 +51,21 @@
             }
             else {
                 this.$extend(arguments[0]);
-                
+
                 this._checkImage();
             }
-<span id='tm-asset-MapSheet-method-_parse'>        },
-</span>
-        /**
-         * @TODO ?
+        },
+
+<span id='tm-asset-MapSheet-method-_parse'>        /**
+</span>         * パース
          * @private
          */
         _parse: function(str) {
             var each = Array.prototype.forEach;
             var data = {};
             var parser = new DOMParser();
-            var xml = parser.parseFromString(str, 'text/xml');
-            var map = this._attrToJSON(xml.getElementsByTagName('map')[0]);
+            var xml = parser.parseFromString(str, &#39;text/xml&#39;);
+            var map = this._attrToJSON(xml.getElementsByTagName(&#39;map&#39;)[0]);
 
             this.$extend(map);
 
@@ -74,38 +74,36 @@
 
             // layer
             data.layers = this._parseLayers(xml);
-            
+
             return data;
         },
-<span id='tm-asset-MapSheet-method-_parseTilesets'>        
-</span>        /**
-         * @TODO ?
-         * @private
+
+<span id='tm-asset-MapSheet-method-_parseTilesets'>        /**
+</span>         * @private
          */
         _parseTilesets: function(xml) {
             var each = Array.prototype.forEach;
             var self = this;
             var data = [];
-            var tilesets = xml.getElementsByTagName('tileset');
+            var tilesets = xml.getElementsByTagName(&#39;tileset&#39;);
             each.call(tilesets, function(tileset) {
                 var t = {};
                 var props = self._propertiesToJson(tileset);
-                
+
                 if (props.src) {
                     t.image = props.src;
                 }
                 else {
-                    t.image = tileset.getElementsByTagName('image')[0].getAttribute('source');
+                    t.image = tileset.getElementsByTagName(&#39;image&#39;)[0].getAttribute(&#39;source&#39;);
                 }
                 data.push(t);
             });
-            
+
             return data;
         },
-<span id='tm-asset-MapSheet-method-_parseLayers'>        
-</span>        /**
-         * @TODO ?
-         * @private
+
+<span id='tm-asset-MapSheet-method-_parseLayers'>        /**
+</span>         * @private
          */
         _parseLayers: function(xml) {
             var each = Array.prototype.forEach;
@@ -114,14 +112,14 @@
             var map = xml.getElementsByTagName(&quot;map&quot;)[0];
             var layers = [];
             each.call(map.childNodes, function(elm) {
-                if (elm.tagName == &quot;layer&quot; || elm.tagName == &quot;objectgroup&quot;) {
+                if (elm.tagName == &quot;layer&quot; || elm.tagName == &quot;objectgroup&quot; || elm.tagName == &quot;imagelayer&quot;) {
                     layers.push(elm);
                 }
             });
 
             layers.each(function(layer) {
                 if (layer.tagName == &quot;layer&quot;) {
-                    var d = layer.getElementsByTagName('data')[0];
+                    var d = layer.getElementsByTagName(&#39;data&#39;)[0];
                     var encoding = d.getAttribute(&quot;encoding&quot;);
                     var l = {
                         type: &quot;layer&quot;,
@@ -135,6 +133,9 @@
                         l.data = this._parseBase64(d.textContent);
                     }
 
+                    var attr = this._attrToJSON(layer);
+                    l.$extend(attr);
+
                     data.push(l);
                 }
                 else if (layer.tagName == &quot;objectgroup&quot;) {
@@ -145,26 +146,41 @@
                     };
                     each.call(layer.childNodes, function(elm) {
                         if (elm.nodeType == 3) return ;
-                        
+
                         var d = this._attrToJSON(elm);
                         d.properties = this._propertiesToJson(elm);
-                        
+
                         l.objects.push(d);
                     }.bind(this));
-                    
+
+                    data.push(l);
+                }
+                else if (layer.tagName == &quot;imagelayer&quot;) {
+                    var l = {
+                        type: &quot;imagelayer&quot;,
+                        name: layer.getAttribute(&quot;name&quot;),
+                        x: layer.getAttribute(&quot;x&quot;) || 0,
+                        y: layer.getAttribute(&quot;y&quot;) || 0,
+                        alpha: layer.getAttribute(&quot;opacity&quot;) || 1,
+                        visible: (layer.getAttribute(&quot;visible&quot;) === undefined || layer.getAttribute(&quot;visible&quot;) != 0),
+                    };
+                    var imageElm = layer.getElementsByTagName(&quot;image&quot;)[0];
+                    l.image = {
+                        source: imageElm.getAttribute(&quot;source&quot;)
+                    };
+
                     data.push(l);
                 }
             }.bind(this));
 
             return data;
-<span id='tm-asset-MapSheet-method-_parseCSV'>        },
-</span>
-        /**
-         * @TODO ?
-         * @private
+        },
+
+<span id='tm-asset-MapSheet-method-_parseCSV'>        /**
+</span>         * @private
          */
         _parseCSV: function(data) {
-            var dataList = data.split(',');
+            var dataList = data.split(&#39;,&#39;);
             var layer = [];
 
             dataList.each(function(elm, i) {
@@ -173,17 +189,17 @@
             });
 
             return layer;
-<span id='tm-asset-MapSheet-method-_parseBase64'>        },
-</span>
-        /**
-         * http://thekannon-server.appspot.com/herpity-derpity.appspot.com/pastebin.com/75Kks0WH
+        },
+
+<span id='tm-asset-MapSheet-method-_parseBase64'>        /**
+</span>         * http://thekannon-server.appspot.com/herpity-derpity.appspot.com/pastebin.com/75Kks0WH
          * @private
          */
         _parseBase64: function(data) {
             var dataList = atob(data.trim());
             var rst = [];
 
-            dataList = dataList.split('').map(function(e) {
+            dataList = dataList.split(&#39;&#39;).map(function(e) {
                 return e.charCodeAt(0);
             });
 
@@ -191,26 +207,31 @@
                 var n = dataList[i*4];
                 rst[i] = parseInt(n, 10) - 1;
             }
-            
+
             return rst;
         },
-<span id='tm-asset-MapSheet-method-_propertiesToJson'>        
-</span>        /**
-         * @TODO ?
-         * @private
+
+<span id='tm-asset-MapSheet-method-_propertiesToJson'>        /**
+</span>         * @private
          */
         _propertiesToJson: function(elm) {
+            var properties = elm.getElementsByTagName(&quot;properties&quot;)[0];
             var obj = {};
-            for (var k = 0;k &lt; properties.length;k++) {
-                obj[properties[k].getAttribute('name')] = properties[k].getAttribute('value');
+            if (properties === undefined) {
+                return obj;
             }
-            
+            for (var k = 0;k &lt; properties.childNodes.length;k++) {
+                var p = properties.childNodes[k];
+                if (p.tagName === &quot;property&quot;) {
+                    obj[p.getAttribute(&#39;name&#39;)] = p.getAttribute(&#39;value&#39;);
+                }
+            }
+
             return obj;
         },
-<span id='tm-asset-MapSheet-method-_attrToJSON'>        
-</span>        /**
-         * @TODO ?
-         * @private
+
+<span id='tm-asset-MapSheet-method-_attrToJSON'>        /**
+</span>         * @private
          */
         _attrToJSON: function(source) {
             var obj = {};
@@ -219,20 +240,35 @@
                 val = isNaN(parseFloat(val))? val: parseFloat(val);
                 obj[source.attributes[i].name] = val;
             }
-            
+
             return obj;
         },
-<span id='tm-asset-MapSheet-method-_checkImage'>        
-</span>        /**
-         * @TODO ?
-         * @private
+
+<span id='tm-asset-MapSheet-method-_checkImage'>        /**
+</span>         * @private
          */
         _checkImage: function() {
             var self = this;
+            var imageSoruces = [];
+
+            // for tile set
             if (this.tilesets.length) {
+                Array.prototype.push.apply(imageSoruces, this.tilesets.map(function(tile) {
+                    return tile.image;
+                }));
+            }
+
+            // for image layer
+            this.layers.each(function(layer) {
+                if (layer.type == &quot;imagelayer&quot;) {
+                    imageSoruces.push(layer.image.source);
+                }
+            });
+
+            if (imageSoruces.length) {
                 var i = 0;
-                var len = this.tilesets.length;
-                
+                var len = imageSoruces.length;
+
                 var _onloadimage = function() {
                     i++;
                     if (i==len) {
@@ -241,10 +277,10 @@
                         this.dispatchEvent(e);
                     }
                 }.bind(this);
-                
-                this.tilesets.each(function(elm) {
-                    var image = tm.asset.AssetManager.get(elm.image)
-                    
+
+                imageSoruces.each(function(imageName) {
+                    var image = tm.asset.Manager.get(imageName);
+
                     if (image) {
                         if (image.loaded) {
                             // ロード済み
@@ -260,12 +296,13 @@
                         }
                     }
                     else {
-                        tm.asset.AssetManager.load(elm.image);
-                        var texture = tm.asset.AssetManager.get(elm.image);
+                        var loader = tm.asset.Loader();
+                        loader.load(imageName);
+                        var texture = tm.asset.Manager.get(imageName);
                         texture.addEventListener(&quot;load&quot;, _onloadimage);
                     }
                 });
-                
+
             }
             else {
                 this.loaded = true;

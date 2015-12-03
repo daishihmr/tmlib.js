@@ -48,7 +48,7 @@ tm.event = tm.event || {};
         },
         
         /**
-         * イベント起動
+         * イベント発火
          */
         fire: function(e) {
             e.target = this;
@@ -57,11 +57,25 @@ tm.event = tm.event || {};
             
             var listeners = this._listeners[e.type];
             if (listeners) {
-                for (var i=0,len=listeners.length; i<len; ++i) {
-                    listeners[i].call(this, e);
+                var temp = listeners.clone();
+                for (var i=0,len=temp.length; i<len; ++i) {
+                    temp[i].call(this, e);
                 }
             }
             
+            return this;
+        },
+
+        /*
+         * イベント名でイベント発火
+         */
+        flare: function(eventName, param) {
+            var e = tm.event.Event(eventName);
+            if (param) {
+                e.$extend(param);
+            }
+            this.fire(e);
+
             return this;
         },
         
@@ -78,9 +92,9 @@ tm.event = tm.event || {};
             
             return this;
         },
-        
+
         /**
-         * 登録されたイベントがあるかをチェック
+         * type に登録されたイベントがあるかをチェック
          */
         hasEventListener: function(type) {
             if (this._listeners[type] === undefined && !this["on" + type]) return false;
@@ -88,7 +102,7 @@ tm.event = tm.event || {};
         },
         
         /**
-         * リスナーを全てクリア
+         * type に登録されているリスナーを全てクリア
          */
         clearEventListener: function(type) {
             var oldEventName = 'on' + type;
@@ -121,5 +135,12 @@ tm.event = tm.event || {};
      * fire と同じ
      */
     proto.dispatchEvent         = proto.fire;
+    
+    /**
+     * @member  tm.event.EventDispatcher
+     * @method  trigger
+     * fire と同じ
+     */
+    proto.trigger = proto.fire;
     
 })();

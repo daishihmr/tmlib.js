@@ -18,6 +18,8 @@
         scale: null,
         /** 回転 */
         rotation: 0,
+        /** 起きているフラグ */
+        awake: true,
         /** @private  幅 */
         _width:  64,
         /** @private  高さ */
@@ -44,17 +46,18 @@
             this._matrix.identity();
             
             this.boundingType = "circle";
+            this.checkHierarchy = true;
             this.interactive = false;
             this.hitFlags = [];
             this.downFlags= [];
+            this._clickFlag = false;
 
-            this._worldMatrix = tm.geom.Matrix33();
-            this._worldMatrix.identity();
+            this._worldMatrix = tm.geom.Matrix33().identity();
             this._worldAlpha = 1.0;
         },
         
         /**
-         * @TODO ?
+         * 最終的な行列をゲット
          */
         getFinalMatrix: function() {
             var matrix = tm.geom.Matrix33();
@@ -62,7 +65,7 @@
             if (this.parent) {
                 matrix.multiply(this.parent.getFinalMatrix());
             }
-            matrix.translate(this.centerX, this.centerY);
+            matrix.translate(this.x, this.y);
             matrix.rotateZ(this.rotation*Math.DEG_TO_RAD);
             matrix.scale(this.scaleX, this.scaleY);
  
@@ -87,7 +90,7 @@
         },
  
         /**
-         * @TODO ?
+         * 円として点と衝突判定
          * @param {Number} x
          * @param {Number} y
          */
@@ -101,7 +104,7 @@
         },
  
         /**
-         * @TODO ?
+         * 矩形として点と衝突判定
          * @param {Number} x
          * @param {Number} y
          */
@@ -212,11 +215,10 @@
          * @param {Object} elm
          */
         globalToLocal: function(p) {
-            // var matrix = this.getFinalMatrix();
             var matrix = this._worldMatrix.clone();
             matrix.invert();
             matrix.transpose();
-            
+
             return matrix.multiplyVector2(p);
         },
         
@@ -250,7 +252,7 @@
         },
 
         /**
-         * @TODO ?
+         * 回転をセット
          * @param {Number} rotation
          */
         setRotation: function(rotation) {
@@ -259,7 +261,7 @@
         },
 
         /**
-         * @TODO ?
+         * スケールをセット
          * @param {Number} x
          * @param {Number} y
          */
@@ -274,7 +276,7 @@
         },
         
         /**
-         * @TODO ?
+         * 基準点をセット
          * @param {Number} x
          * @param {Number} y
          */
@@ -317,7 +319,7 @@
          * 起動
          */
         wakeUp: function() {
-            this.isUpdate = true;
+            this.awake = true;
             return this;
         },
         
@@ -325,7 +327,7 @@
          * 停止
          */
         sleep: function() {
-            this.isUpdate = false;
+            this.awake = false;
             return this;
         },
         
@@ -333,8 +335,13 @@
          * タッチ判定の有効/無効をセット
          * @param {Boolean} flag
          */
-        setInteractive: function(flag) {
+        setInteractive: function(flag, type) {
             this.interactive = flag;
+
+            if (type) {
+                this.boundingType = type;
+            }
+
             return this;
         },
         
@@ -348,37 +355,7 @@
         },
         
         /**
-         * @TODO ?
-         * @private
-         * @param {Object} app
-         */
-        _update: function(app) {
-            // 更新有効チェック
-            if (this.isUpdate == false) return ;
-            
-            if (this.update) this.update(app);
-            
-            if (this.hasEventListener("enterframe")) {
-                var e = tm.event.Event("enterframe");
-                e.app = app;
-                this.dispatchEvent(e);
-            }
-            
-            if (this.interactive) {
-                this._checkPointing(app);
-            }
-            
-            // 子供達も実行
-            if (this.children.length > 0) {
-                var tempChildren = this.children.slice();
-                for (var i=0,len=tempChildren.length; i<len; ++i) {
-                    tempChildren[i]._update(app);
-                }
-            }
-        },
-        
-        /**
-         * @TODO ?
+         * ポインティングをチェック
          * @private
          * @param {Object} app
          */
@@ -387,7 +364,7 @@
         },
         
         /**
-         * @TODO ?
+         * マウスチェック
          * @private
          * @param {Object} app
          */
@@ -396,7 +373,7 @@
         },
 
         /**
-         * @TODO ?
+         * タッチチェック
          * @private
          * @param {Object} app
          */
@@ -409,7 +386,7 @@
         },
         
         /**
-         * @TODO ?
+         * チェックポインンティング
          * @private
          * @param {Object} app
          * @param {Object} p
@@ -419,9 +396,8 @@
             var elm = this.element;
             
             var prevHitFlag = this.hitFlags[index];
-            
             this.hitFlags[index]    = this.isHitPoint(p.x, p.y);
-            
+
             if (!prevHitFlag && this.hitFlags[index]) {
                 this._dispatchPointingEvent("mouseover", "touchover", "pointingover", app, p);
             }
@@ -434,6 +410,7 @@
                 if (p.getPointingStart()) {
                     this._dispatchPointingEvent("mousedown", "touchstart", "pointingstart", app, p);
                     this.downFlags[index] = true;
+                    this._clickFlag = true;
                 }
             }
             
@@ -448,7 +425,7 @@
         },
         
         /**
-         * @TODO ?
+         * ポイントイベントを発火する
          * @private
          * @param {Object} mouse
          * @param {Object} touch
@@ -463,7 +440,7 @@
         },
         
         /**
-         * @TODO ?
+         * ワールドマトリックスを計算
          * @private
          */
         _calcWorldMatrix: function() {
@@ -488,11 +465,11 @@
             localTransform[3] = this._sr * this.scale.x;
             localTransform[4] = this._cr * this.scale.y;
 
-            ///AAARR GETTER SETTTER!
+            // 
             localTransform[2] = this.position.x;
             localTransform[5] = this.position.y;
 
-            // Cache the matrix values (makes for huge speed increases!)
+            // cache
             var a00 = localTransform[0], a01 = localTransform[1], a02 = localTransform[2],
                 a10 = localTransform[3], a11 = localTransform[4], a12 = localTransform[5],
 
@@ -509,7 +486,7 @@
         },
         
         /**
-         * @TODO ?
+         * dirty method
          * @private
          */
         _dirtyCalc: function() {
@@ -597,7 +574,9 @@
      * 半径
      */
     tm.app.Object2D.prototype.accessor("radius", {
-        "get": function()   { return this._radius || (this.width+this.height)/4; },
+        "get": function()   {
+            return (this._radius !== undefined) ? this._radius : (this.width+this.height)/4;
+        },
         "set": function(v)  { this._radius = v; }
     });
     
@@ -605,34 +584,38 @@
      * @property    top
      * 左
      */
-    tm.app.Object2D.prototype.getter("top", function() {
-        return this.y - this.height*this.originY;
+    tm.app.Object2D.prototype.accessor("top", {
+        "get": function()   { return this.y - this.height*this.originY; },
+        "set": function(v)  { this.y = v + this.height*this.originY; },
     });
  
     /**
      * @property    right
      * 左
      */
-    tm.app.Object2D.prototype.getter("right", function() {
-        return this.x + this.width*(1-this.originX);
+    tm.app.Object2D.prototype.accessor("right", {
+        "get": function()   { return this.x + this.width*(1-this.originX); },
+        "set": function(v)  { this.x = v - this.width*(1-this.originX); },
     });
  
     /**
      * @property    bottom
      * 左
      */
-    tm.app.Object2D.prototype.getter("bottom", function() {
-        return this.y + this.height*(1-this.originY);
+    tm.app.Object2D.prototype.accessor("bottom", {
+        "get": function()   { return this.y + this.height*(1-this.originY); },
+        "set": function(v)  { this.y = v - this.height*(1-this.originY); },
     });
  
     /**
      * @property    left
      * 左
      */
-    tm.app.Object2D.prototype.getter("left", function() {
-        return this.x - this.width*this.originX;
+    tm.app.Object2D.prototype.accessor("left", {
+        "get": function()   { return this.x - this.width*this.originX; },
+        "set": function(v)  { this.x = v + this.width*this.originX; },
     });
- 
+
     /**
      * @property    centerX
      * centerX
@@ -720,7 +703,7 @@
     /**
      * @member      tm.app.Object2D
      * @property    _checkPointing
-     * @TODO ?
+     * ポイントをチェック
      * @param {Object} isMobile
      * @private
      */

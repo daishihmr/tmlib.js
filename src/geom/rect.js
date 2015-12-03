@@ -112,6 +112,10 @@ tm.geom = tm.geom || {};
             return this;
         },
 
+        contains: function(x, y) {
+            return this.left <= x && x <= this.right && this.top <= y && y <= this.bottom;
+        },
+
         /**
          * クローン
          */
@@ -120,7 +124,7 @@ tm.geom = tm.geom || {};
         },
         
         /**
-         * @TODO ?
+         * 円に変換
          */
         toCircle: function() {
             return tm.geom.Circle(
@@ -131,7 +135,7 @@ tm.geom = tm.geom || {};
         },
 
         /**
-         * @TODO ?
+         * 配列に変換
          */
         toArray: function() {
             return [this.x, this.y, this.width, this.height];

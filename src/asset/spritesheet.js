@@ -12,7 +12,7 @@
     tm.define("tm.asset.SpriteSheet", {
         superClass: "tm.event.EventDispatcher",
 
-        /** loaded  */
+        /** ロード済みかどうか */
         loaded: false,
 
         /**
@@ -35,7 +35,7 @@
         },
 
         /**
-         * @TODO ?
+         * ロード
          */
         load: function(path) {
         	tm.util.Ajax.load({
@@ -49,16 +49,17 @@
         },
 
         /**
-         * @TODO ?
+         * パース
          */
         parse: function(param) {
             this.frame = param.frame;
 
             if (typeof param.image == "string") {
-                if (!tm.asset.AssetManager.contains(param.image)) {
-                    tm.asset.AssetManager.load(param.image);
+                if (!tm.asset.Manager.contains(param.image)) {
+                    var loader = tm.asset.Loader();
+                    loader.load(param.image);
                 }
-                this.image = tm.asset.AssetManager.get(param.image);
+                this.image = tm.asset.Manager.get(param.image);
             }
             else {
                 this.image = param.image;
@@ -81,21 +82,20 @@
         },
 
         /**
-         * @TODO ?
+         * フレームを取得
          */
         getFrame: function(index) {
             return this.frames[index];
         },
         
         /**
-         * @TODO ?
+         * アニメーションを取得
          */
         getAnimation: function(name) {
             return this.animations[name];
         },
         
         /**
-         * @TODO ?
          * @private
          */
         _calcFrames: function(frame) {
@@ -122,7 +122,6 @@
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _calcAnim: function(animations) {

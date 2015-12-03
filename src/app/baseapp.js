@@ -12,6 +12,8 @@ tm.app = tm.app || {};
      * ベースアプリケーション
      */
     tm.app.BaseApp = tm.createClass({
+
+        superClass: tm.event.EventDispatcher,
         
         /** エレメント */
         element       : null,
@@ -25,14 +27,14 @@ tm.app = tm.app || {};
         keyboard      : null,
         /** 加速度センサー */
         accelerometer : null,
+        /** 更新クラス */
+        updater       : null,
         /** statsライブラリ */
         stats         : null,
-        /** フレーム */
-        frame         : 0,
-        /** フレームレート */
-        fps           : 30,
+        /** タイマー */
+        timer         : null,
         /** 現在更新中か */
-        isPlaying     : null,
+        awake         : null,
         /** @private  シーン情報の管理 */
         _scenes       : null,
         /** @private  シーンのインデックス */
@@ -43,7 +45,12 @@ tm.app = tm.app || {};
          * @param {Object} elm
          */
         init: function(elm) {
+            this.superInit();
+
             this.element = elm;
+
+            // タイマー
+            this.timer = tm.app.Timer();
 
             // マウスを生成
             this.mouse      = tm.input.Mouse(this.element);
@@ -54,12 +61,20 @@ tm.app = tm.app || {};
             
             // ポインティングをセット(PC では Mouse, Mobile では Touch)
             this.pointing   = (tm.isMobile) ? this.touch : this.mouse;
+            this.element.addEventListener("touchstart", function () {
+                this.pointing = this.touch;
+            }.bind(this));
+            this.element.addEventListener("mousedown", function () {
+                this.pointing = this.mouse;
+            }.bind(this));
             
             // 加速度センサーを生成
             this.accelerometer = tm.input.Accelerometer();
+
+            this.updater = tm.app.Updater(this);
             
             // 再生フラグ
-            this.isPlaying = true;
+            this.awake = true;
             
             // シーン周り
             this._scenes = [ tm.app.Scene() ];
@@ -67,17 +82,20 @@ tm.app = tm.app || {};
             
             // 決定時の処理をオフにする(iPhone 時のちらつき対策)
             this.element.addEventListener("touchstart", function(e) { e.stop(); });
+            this.element.addEventListener("touchmove", function(e) { e.stop(); });
             
             // ウィンドウフォーカス時イベントリスナを登録
             window.addEventListener("focus", function() {
+                this.fire(tm.event.Event("focus"));
                 this.currentScene.dispatchEvent(tm.event.Event("focus"));
             }.bind(this));
             // ウィンドウブラー時イベントリスナを登録
             window.addEventListener("blur", function() {
+                this.fire(tm.event.Event("blur"));
                 this.currentScene.dispatchEvent(tm.event.Event("blur"));
             }.bind(this));
             // クリック
-            this.element.addEventListener((tm.isMobile) ? "touchstart" : "mousedown", this._onclick.bind(this));
+            this.element.addEventListener((tm.isMobile) ? "touchend" : "mouseup", this._onclick.bind(this));
         },
         
         /**
@@ -85,28 +103,30 @@ tm.app = tm.app || {};
          */
         run: function() {
             var self = this;
-            
-            // // requestAnimationFrame version
-            // var fn = function() {
-                // self._loop();
-                // requestAnimationFrame(fn);
-            // }
-            // fn();
-            
-            tm.setLoop(function(){ self._loop(); }, 1000/this.fps);
-            
-            return ;
-            
-            if (true) {
-                setTimeout(arguments.callee.bind(this), 1000/this.fps);
-                this._loop();
-            }
-            
-            return ;
-            
-            var self = this;
-            // setInterval(function(){ self._loop(); }, 1000/self.fps);
-            tm.setLoop(function(){ self._loop(); }, 1000/self.fps);
+
+            this.startedTime = new Date();
+            this.prevTime = new Date();
+            this.deltaTime = 0;
+
+            var _run = function() {
+                // start
+                var start = (new Date()).getTime();
+
+                // run
+                self._loop();
+
+                // calculate progress time
+                var progress = (new Date()).getTime() - start;
+                // calculate next waiting time
+                var newDelay = self.timer.frameTime-progress;
+
+                // set next running function
+                setTimeout(_run, newDelay);
+            };
+
+            _run();
+
+            return this;
         },
         
         /*
@@ -121,6 +141,10 @@ tm.app = tm.app || {};
             // draw
             if (this.draw) this.draw();
             this._draw();
+
+            var now = new Date();
+            this.deltaTime = now - this.prevTime;
+            this.prevTime = now;
             
             // stats update
             if (this.stats) this.stats.update();
@@ -154,17 +178,22 @@ tm.app = tm.app || {};
          * @param {Object} scene
          */
         pushScene: function(scene) {
-            e = tm.event.Event("exit");
+            this.fire(tm.event.Event("push"));
+
+            var e = tm.event.Event("pause");
             e.app = this;
             this.currentScene.dispatchEvent(e);
             
             this._scenes.push(scene);
             ++this._sceneIndex;
             
-            e = tm.event.Event("enter");
+            this.fire(tm.event.Event("pushed"));
+
+            var e = tm.event.Event("enter");
             e.app = this;
             scene.app = this;
             scene.dispatchEvent(e);
+
 
             return this;
         },
@@ -173,17 +202,22 @@ tm.app = tm.app || {};
          * シーンをポップする(ポーズやオブション画面などで使用)
          */
         popScene: function() {
+            this.fire(tm.event.Event("pop"));
+            
             var scene = this._scenes.pop();
             --this._sceneIndex;
             
-            e = tm.event.Event("exit");
+            var e = tm.event.Event("exit");
             e.app = this;
             scene.dispatchEvent(e);
             scene.app = null;
+
+            this.fire(tm.event.Event("poped"));
             
             // 
-            e = tm.event.Event("enter");
+            var e = tm.event.Event("resume");
             e.app = this;
+            e.prevScene = scene;
             this.currentScene.dispatchEvent(e);
             
             return scene;
@@ -226,7 +260,7 @@ tm.app = tm.app || {};
          * シーンのupdateを実行するようにする
          */
         start: function() {
-            this.isPlaying = true;
+            this.awake = true;
 
             return this;
         },
@@ -235,7 +269,7 @@ tm.app = tm.app || {};
          * シーンのupdateを実行しないようにする
          */
         stop: function() {
-            this.isPlaying = false;
+            this.awake = false;
 
             return this;
         },
@@ -251,14 +285,14 @@ tm.app = tm.app || {};
             this.touch.update();
             // this.touches.update();
             
-            if (this.isPlaying) {
-                this.currentScene._update(this);
-                ++this.frame;
+            if (this.awake) {
+                this.updater.update(this.currentScene);
+                this.timer.update();
             }
         },
         
         /**
-         * @TODO ? オーバーライド予定？
+         * 描画用仮想関数
          * @private
          */
         _draw: function() {},
@@ -276,26 +310,14 @@ tm.app = tm.app || {};
          * @param {Object} e
          */
         _onclick: function(e) {
-            var px = e.pointX;
-            var py = e.pointY;
-
-            if (this.element.style.width) {
-                px *= this.element.width / parseInt(this.element.style.width);
-            }
-            if (this.element.style.height) {
-                py *= this.element.height / parseInt(this.element.style.height);
-            }
-
             var _fn = function(elm) {
                 if (elm.children.length > 0) {
-                    elm.children.each(function(elm) {
-                        if (elm.hasEventListener("click")) {
-                            if (elm.isHitPoint && elm.isHitPoint(px, py)) {
-                                elm.dispatchEvent(tm.event.Event("click"));
-                            }
-                        }
-                    });
+                    elm.children.each(function(elm) { _fn(elm); });
                 }
+                if (elm._clickFlag && elm.hasEventListener("click")) {
+                    elm.dispatchEvent(tm.event.Event("click"));
+                }
+                elm._clickFlag = false;
             };
             _fn(this.currentScene);
         },
@@ -304,11 +326,49 @@ tm.app = tm.app || {};
     /**
      * @property currentScene
      * カレントシーン
-     * @TODO どうしよう？
      */
     tm.app.BaseApp.prototype.accessor("currentScene", {
         "get": function() { return this._scenes[this._sceneIndex]; },
         "set": function(v){ this._scenes[this._sceneIndex] = v; }
     });
     
+    /**
+     * @property frame
+     * フレーム
+     */
+    tm.app.BaseApp.prototype.accessor("frame", {
+        "get": function() {
+            return this.timer.frame;
+        },
+        "set": function(v){
+            this.timer.frame = v;
+        }
+    });
+    
+    /**
+     * @property fps
+     * fps
+     */
+    tm.app.BaseApp.prototype.accessor("fps", {
+        "get": function() {
+            return this.timer.fps;
+        },
+        "set": function(v){
+            this.timer.fps = v;
+        }
+    });
+    
 })();
+
+
+
+
+
+
+
+
+
+
+
+
+

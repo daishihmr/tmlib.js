@@ -48,10 +48,32 @@ tm.display = tm.display || {};
             
             // シーン周り
             this._scenes = [ tm.app.Scene() ];
+
+
+            this._canvasCache = [];
+            this._canvasCacheCache = [];
+            this.on("push", function() {
+                this._draw();
+
+                var canvas = this._canvasCacheCache.pop();
+                if (!canvas) {
+                    var element = this.canvas.element.cloneNode();
+                    canvas = tm.graphics.Canvas(element);
+                }
+                canvas.clear();
+                canvas.drawTexture(this.canvas, 0, 0);
+                this._canvasCache.push(canvas);
+            });
+            this.on("poped", function() {
+                var canvas = this._canvasCache.pop();
+                this._draw();
+
+                this._canvasCacheCache.push(canvas);
+            });
         },
         
         /**
-         * @TODO ?
+         * リサイズ
          */
         resize: function(width, height) {
             this.width = width;
@@ -61,7 +83,7 @@ tm.display = tm.display || {};
         },
 
         /**
-         * @TODO ?
+         * ウィンドウのサイズにリサイズ
          */
         resizeWindow: function() {
             this.width = innerWidth;
@@ -83,26 +105,33 @@ tm.display = tm.display || {};
 
             return this;
         },
-        
+
         /**
-         * @TODO ?
          * @private
          */
         _draw: function() {
-            this.canvas.clearColor(this.background, 0, 0);
+            this.canvas.clear();
             
             this.canvas.fillStyle   = "white";
             this.canvas.strokeStyle = "white";
+            this.canvas.context.lineJoin = "round";
+            this.canvas.context.lineCap  = "round";
+
+            // スタックしたキャンバスを描画
+            if (this._canvasCache.last)
+                this.canvas.drawTexture(this._canvasCache.last, 0, 0);
+            
+            // this._canvasCache.each(function(bitmap, index) {
+            //     this.canvas.drawBitmap(bitmap, 0, 0);
+            // }, this);
+
             
             // 描画は全てのシーン行う
             this.canvas.save();
-            for (var i=0, len=this._scenes.length; i<len; ++i) {
-                this.renderer.render(this._scenes[i]);
-//                this._scenes[i]._draw(this.canvas);
-            }
+
+            this.renderer.render(this.currentScene);
+
             this.canvas.restore();
-            
-            //this.currentScene._draw(this.canvas);
         },
         
     });
@@ -124,6 +153,18 @@ tm.display = tm.display || {};
     tm.display.CanvasApp.prototype.accessor("height", {
         "get": function()   { return this.canvas.height; },
         "set": function(v)  { this.canvas.height = v; }
+    });
+    
+    /**
+     * @property    height
+     * 高さ
+     */
+    tm.display.CanvasApp.prototype.accessor("background", {
+        "get": function()   { return this._background; },
+        "set": function(v)  {
+            this._background = v;
+            this.element.style.background = v;
+        }
     });
 
 })();

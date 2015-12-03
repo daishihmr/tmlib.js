@@ -58,8 +58,8 @@
             this.menu = [].concat(params.menu);
             this._selected = ~~params.defaultSelected;
             this.showExit = !!params.showExit;
-            if (params.menuDesctiptions) {
-                this.descriptions = params.menuDesctiptions;
+            if (params.menuDescriptions) {
+                this.descriptions = params.menuDescriptions;
             } else {
                 this.descriptions = [].concat(params.menu);
             }
@@ -70,7 +70,9 @@
             }
 
             var height = Math.max((1+this.menu.length)*50, 50) + 40;
-            this.box = tm.display.RectangleShape(this._screenWidth * 0.8, height, {
+            this.box = tm.display.RectangleShape({
+                width: this._screenWidth * 0.8,
+                height: height,
                 strokeStyle: "rgba(0,0,0,0)",
                 fillStyle: "rgba(43,156,255, 0.8)",
             }).setPosition(this._screenWidth*0.5, this._screenHeight*0.5);
@@ -90,7 +92,6 @@
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _onOpen: function() {
@@ -145,11 +146,12 @@
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _createCursor: function() {
-            var cursor = tm.display.RectangleShape(this._screenWidth*0.7, 30, {
+            var cursor = tm.display.RectangleShape({
+                width: this._screenWidth*0.7,
+                height: 30,
                 strokeStyle: "rgba(0,0,0,0)",
                 fillStyle: "rgba(12,79,138,1)"
             }).addChildTo(this);
@@ -170,14 +172,14 @@
         },
 
         /**
-         * @TODO ?
+         * 更新
          */
         update: function(app) {
             this.description.text = this.descriptions[this._selected];
         },
 
         /**
-         * @TODO ?
+         * 閉じる
          */
         closeDialog: function(result) {
             this._finished = true;
@@ -205,16 +207,11 @@
                             this.dispatchEvent(e);
                         }.bind(this));
                 }.bind(this));
-            this.cursor.tweener
-                .clear()
-                .call(function() {
-                    this.visible = !this.visible;
-                }.bind(this.cursor))
-                .setLoop(true);
+            this.cursor.on("enterframe", function () { this.visible = !this.visible; });
         },
 
         /**
-         * @TODO ?
+         * 描画
          */
         draw: function(canvas) {
             canvas.fillStyle = "rgba(0,0,0,0.8)";

@@ -20,8 +20,6 @@ tm.app = tm.app || {};
         parent: null,
         /** 子 */
         children: null,
-        /** @private */
-        _listeners: null,
         
         /**
          * @constructor
@@ -29,7 +27,6 @@ tm.app = tm.app || {};
         init: function() {
             this.superInit();
             this.children = [];
-            this._listeners = {};
         },
         
         /**
@@ -104,6 +101,13 @@ tm.app = tm.app || {};
          * 指定で要素を取得
          */
         getChildAt: function(child) {
+            return this.children.at(child);
+        },
+        
+        /**
+         * 指定で要素を取得
+         */
+        getChildIndex: function(child) {
             return this.children.indexOf(child);
         },
         
@@ -178,28 +182,52 @@ tm.app = tm.app || {};
          * jsonをパースしてthisに展開
          */
         fromJSON: function(data) {
+            var _fromJSON = function(name, data) {
+                var init = data["init"];
+                var args = (init instanceof Array) ? init : [init];
+                var type = (DIRTY_CLASS_MAP[data.type]) ? DIRTY_CLASS_MAP[data.type] : data.type;
+                var _class = tm.using(type);
+                
+                console.assert(Object.keys(_class).length !== 0, _class + " is not defined.");
+                
+                var elm = _class.apply(null, args);
+                elm.fromJSON(data);
+                
+                this[name] = elm;
+                
+                elm.addChildTo(this);
+            }.bind(this);
+            
             for (var key in data) {
                 var value = data[key];
                 if (key == "children") {
-                    for (var i=0,len=value.length; i<len; ++i) {
-                        var data = value[i];
-                        var init = data["init"] || [];
-                        var type = (DIRTY_CLASS_MAP[data.type]) ? DIRTY_CLASS_MAP[data.type] : data.type;
-                        var _class = tm.using(type);
-                        
-                        console.assert(Object.keys(_class).length !== 0, _class + " is not defined.");
-                        
-                        var elm = _class.apply(null, init).addChildTo(this);
-                        elm.fromJSON(data);
-                        this[data.name] = elm;
+                    if (value instanceof Array) {
+                        for (var i=0,len=value.length; i<len; ++i) {
+                            var childData = value[i];
+                            _fromJSON(childData.name, childData);
+                        }
+                    }
+                    else {
+                        for (var key in value) {
+                            var childData = value[key];
+                            _fromJSON(key, childData);
+                        }
                     }
                 }
                 else {
+                    if (key == "type") key = "__key";
                     this[key] = value;
                 }
             }
 
             return this;
+        },
+        /**
+         * 要素を JSON 化する
+         * TODO: 実装する予定
+         */
+        toJSON: function() {
+            // TODO:
         },
         
     });
@@ -209,21 +237,23 @@ tm.app = tm.app || {};
      * namespaceの後方互換
      */
     var DIRTY_CLASS_MAP = {
-        "Sprite"            : "tm.display.Sprite",
-        "Label"             : "tm.display.Label",
-        "Shape"             : "tm.display.Shape",
-        "CircleShape"       : "tm.display.CircleShape",
-        "TriangleShape"     : "tm.display.TriangleShape",
-        "RectangleShape"    : "tm.display.RectangleShape",
-        "StarShape"         : "tm.display.StarShape",
-        "PolygonShape"      : "tm.display.PolygonShape",
-        "HeartShape"        : "tm.display.HeartShape",
-        "AnimationSprite"   : "tm.display.AnimationSprite",
+        "Sprite"                : "tm.display.Sprite",
+        "Label"                 : "tm.display.Label",
+        "Shape"                 : "tm.display.Shape",
+        "CircleShape"           : "tm.display.CircleShape",
+        "TriangleShape"         : "tm.display.TriangleShape",
+        "RectangleShape"        : "tm.display.RectangleShape",
+        "RoundRectangleShape"   : "tm.display.RoundRectangleShape",
+        "TextShape"             : "tm.display.TextShape",
+        "StarShape"             : "tm.display.StarShape",
+        "PolygonShape"          : "tm.display.PolygonShape",
+        "HeartShape"            : "tm.display.HeartShape",
+        "AnimationSprite"       : "tm.display.AnimationSprite",
         
-        "LabelButton"       : "tm.ui.LabelButton",
-        "IconButton"        : "tm.ui.IconButton",
-        "GlossyButton"      : "tm.ui.GlossyButton",
-        "FlatButton"        : "tm.ui.FlatButton",
+        "LabelButton"           : "tm.ui.LabelButton",
+        "IconButton"            : "tm.ui.IconButton",
+        "GlossyButton"          : "tm.ui.GlossyButton",
+        "FlatButton"            : "tm.ui.FlatButton",
     };
     
 })();

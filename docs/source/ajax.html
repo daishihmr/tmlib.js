@@ -23,10 +23,9 @@ tm.util = tm.util || {};
 
 
 (function() {
-    
+
     /*
      * @enum
-     * @TODO ?
      * @private
      */
     var AJAX_DEFAULT_SETTINGS = {
@@ -37,9 +36,11 @@ tm.util = tm.util || {};
         /* @property data */
         data: null,
         /* @property contentType */
-        contentType: 'application/x-www-form-urlencoded',
+        contentType: &#39;application/x-www-form-urlencoded&#39;,
         /* @property dataType */
-        dataType: 'text',
+        dataType: &#39;text&#39;,
+        /* @property dataType */
+        responseType: &#39;&#39;, // or &#39;arraybuffer&#39;
         /* @property username */
         username: null,
         /* @property password */
@@ -47,12 +48,14 @@ tm.util = tm.util || {};
         /* @property success */
         success : function(data){ alert(&quot;success!!\n&quot;+data); },
         /* @property error */
-        error   : function(data){ alert(&quot;error!!&quot;); }
+        error   : function(data){ alert(&quot;error!!&quot;); },
+        /* @property beforeSend */
+        beforeSend: null,
     };
-    
+
 <span id='tm-util-Ajax'>    /**
 </span>     * @class tm.util.Ajax
-     * @TODO ?
+     * Ajax クラス
      */
     tm.util.Ajax = {
 <span id='tm-util-Ajax-method-load'>        /**
@@ -62,45 +65,47 @@ tm.util = tm.util || {};
             for (var key in AJAX_DEFAULT_SETTINGS) {
                 params[key] = params[key] || AJAX_DEFAULT_SETTINGS[key];
             }
-            
+
             var httpRequest = new XMLHttpRequest();
             var ajax_params = &quot;&quot;;
             var conv_func = tm.util.Ajax.DATA_CONVERTE_TABLE[params.dataType];
-            
+
             var url = params.url;
             if (params.data) {
                 var query = &quot;&quot;;
-                if (typeof params.data == 'string') {
+                if (typeof params.data == &#39;string&#39;) {
                     query = params.data;
                     // query = encodeURIComponent(params.data);
                 }
                 else {
                     query = tm.util.QueryString.stringify(params.data);
                 }
-                
-                if (params.type == 'GET') {
-                    params.url += '?' + query;
+
+                if (params.type == &#39;GET&#39;) {
+                    params.url += &#39;?&#39; + query;
                     params.data = null;
                 }
-                else if (params.type == 'POST') {
+                else if (params.type == &#39;POST&#39;) {
                     params.data = query;
                 }
             }
-            
+
+            // httpRequest.withCredentials = true;
+
             // コールバック
             httpRequest.onreadystatechange = function() {
                 if (httpRequest.readyState == 4) {
-                    // 成功
-                    if (httpRequest.status === 200) {
-                        // タイプ別に変換をかける
-                        var data = conv_func(httpRequest.responseText);
-                        params.success(data);
-                    }
-                    // status === 0 はローカルファイル用
-                    else if (httpRequest.status === 0) {
-                        // タイプ別に変換をかける
-                        var data = conv_func(httpRequest.responseText);
-                        params.success(data);
+                    // 成功(status === 0 はローカルファイル用)
+                    if (httpRequest.status === 200 || httpRequest.status === 201 || httpRequest.status === 0) {
+                        if (params.responseType !== &quot;arraybuffer&quot;) {
+                            // タイプ別に変換をかける
+                            var data = conv_func(httpRequest.responseText);
+                            params.success(data);
+                        }
+                        else {
+                            // バイナリデータ
+                            params.success(this.response);
+                        }
                     }
                     else {
                         params.error(httpRequest.responseText);
@@ -110,34 +115,46 @@ tm.util = tm.util || {};
                     //console.log(&quot;通信中&quot;);
                 }
             };
-            
-            
+
+
             httpRequest.open(params.type, params.url, params.async, params.username, params.password);   // オープン
             if (params.type === &quot;POST&quot;) {
-<span id='tm-util-Ajax-method-loadJSONP'>                httpRequest.setRequestHeader('Content-Type', params.contentType);        // ヘッダをセット
-</span>            }
-            
+                httpRequest.setRequestHeader(&#39;Content-Type&#39;, params.contentType);        // ヘッダをセット
+            }
+
+            if (params.responseType) {
+                httpRequest.responseType = params.responseType;
+            }
+
+            if (params.beforeSend) {
+                params.beforeSend(httpRequest);
+            }
+
+            if (params.password) {
+                httpRequest.withCredentials = true;
+            }
+
             httpRequest.send(params.data);
         },
-        
-        /**
-         * loadJSONP
+
+<span id='tm-util-Ajax-method-loadJSONP'>        /**
+</span>         * loadJSONP
          */
         loadJSONP: function(url, callback) {
             var g = tm.global;
             g.tmlib_js_dummy_func_count = tm.global.tmlib_js_dummy_func || 0;
             var dummy_func_name = &quot;tmlib_js_dummy_func&quot; + (g.tmlib_js_dummy_func_count++);
             g[dummy_func_name]  = callback;
-            
+
             var elm = document.createElement(&quot;script&quot;);
             elm.type = &quot;text/javascript&quot;;
             elm.charset = &quot;UTF-8&quot;;
-            elm.src = url + &quot;&amp;callback=&quot; + dummy_func_name;
+            elm.src = url + (url.indexOf(&quot;?&quot;) &lt; 0 ? &quot;?&quot; : &quot;&amp;&quot;) + &quot;callback=&quot; + dummy_func_name;
             elm.setAttribute(&quot;defer&quot;, true);
             document.getElementsByTagName(&quot;head&quot;)[0].appendChild(elm);
         }
     };
-    
+
     /*
      * @enum tm.util.Ajax.DATA_CONVERTE_TABLE
      * データコンバータテーブル
@@ -147,26 +164,27 @@ tm.util = tm.util || {};
         undefined: function(data) {
             return data;
         },
-        
+
         /* @method */
         text: function(data) {
             return data;
         },
-        
+
         /* @method */
         xml: function(data) {
-            var div = document.createElement(&quot;div&quot;);
-            div.innerHTML = data;
-            return div;
+            var parser = new DOMParser();
+            var xml = parser.parseFromString(data, &#39;text/xml&#39;);
+
+            return xml;
         },
-        
+
         /* @method */
         dom: function(data) {
             var div = document.createElement(&quot;div&quot;);
             div.innerHTML = data;
             return tm.dom.Element(div);
         },
-        
+
         /* @method */
         json: function(data) {
             try {
@@ -177,13 +195,13 @@ tm.util = tm.util || {};
                 console.dir(data);
             }
         },
-        
+
         /* @method */
         script: function(data) {
             eval(data);
             return data;
         },
-        
+
         /*
          * @method
          * ### Reference
@@ -197,9 +215,12 @@ tm.util = tm.util || {};
             }
             return bytearray;
         },
-        
+
     };
-    
+
+
+    tm.util.Ajax.DEFAULT_SETTINGS = AJAX_DEFAULT_SETTINGS;
+
 })();
 </pre>
 </body>

@@ -4,11 +4,9 @@
 
 tm.sound = tm.sound || {};
 
-
 (function() {
 
-    var isAvailable = tm.global.webkitAudioContext ? true : false;
-    var context = isAvailable ? new webkitAudioContext() : null;
+    var context = null;
 
     /**
      * @class tm.sound.WebAudio
@@ -26,6 +24,10 @@ tm.sound = tm.sound || {};
         panner: null,
         /** volume */
         volume: 0.8,
+        /** playing **/
+        playing: false,
+
+        _pannerEnabled: true,
 
         /**
          * @constructor
@@ -57,13 +59,19 @@ tm.sound = tm.sound || {};
          * - noteGrainOn ... http://www.html5rocks.com/en/tutorials/casestudies/munkadoo_bouncymouse/
          */
         play: function(time) {
+            if (this.playing == true) { return ; }
+            this.playing = true;
+
             if (time === undefined) time = 0;
-            this.source.noteOn(this.context.currentTime + time);
-            /*
-            this.source.noteGrainOn(this.context.currentTime + time, 0, this.buffer.duration);
-            console.dir(this.buffer.duration);
-            console.dir(this.context.currentTime)
-            */
+
+            this.source.start(this.context.currentTime + time);
+
+            var self = this;
+            var time = (this.source.buffer.duration/this.source.playbackRate.value)*1000;
+            window.setTimeout(function() {
+                var e = tm.event.Event("ended");
+                self.fire(e);
+            }, time);
 
             return this;
         },
@@ -72,15 +80,21 @@ tm.sound = tm.sound || {};
          * 停止
          */
         stop: function(time) {
+            if (this.playing == false) { return ; }
+            this.playing = false;
+
             if (time === undefined) time = 0;
-            this.source.noteOff(this.context.currentTime + time);
-            
+            if (this.source.playbackState == 0) {
+                return ;
+            }
+            this.source.stop(this.context.currentTime + time);
+
             var buffer = this.buffer;
             var volume = this.volume;
             var loop   = this.loop;
-            
+
             this.source = this.context.createBufferSource();
-            this.source.connect(this.panner);
+            this.source.connect(this.gainNode);
             this.buffer = buffer;
             this.volume = volume;
             this.loop = loop;
@@ -89,7 +103,7 @@ tm.sound = tm.sound || {};
         },
 
         /**
-         * @TODO ?
+         * ポーズ
          */
         pause: function() {
             this.source.disconnect();
@@ -98,10 +112,10 @@ tm.sound = tm.sound || {};
         },
 
         /**
-         * @TODO ?
+         * レジューム
          */
         resume: function() {
-            this.source.connect(this.panner);
+            this.source.connect(this.gainNode);
 
             return this;
         },
@@ -178,56 +192,67 @@ tm.sound = tm.sound || {};
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _load: function(src) {
-            if (!this.context) return ;
+            if (!this.context) {
+                console.warn("本環境はWebAudio未対応です。(" + src + ")");
+                return;
+            }
 
-            var xhr = new XMLHttpRequest();
             var self = this;
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === 4) {
-                    if (xhr.status === 200 || xhr.status === 0) {
-                        self.context.decodeAudioData(xhr.response, function(buffer) {
-                            self._setup();
-                            self.buffer = buffer;
-                            self.loaded = true;
-                            self.dispatchEvent( tm.event.Event("load") );
-                        });
-                    } else {
-                        console.error(xhr);
-                    }
+            tm.util.Ajax.load({
+                type: "GET",
+                url: src,
+                responseType: "arraybuffer",
+                success: function(data) {
+                    // console.debug("WebAudio ajax load success");
+                    self.context.decodeAudioData(data, function(buffer) {
+                        // console.debug("WebAudio decodeAudioData success");
+                        self._setup();
+                        self.buffer = buffer;
+                        self.loaded = true;
+                        self.dispatchEvent( tm.event.Event("load") );
+                    }, function() {
+                        console.warn("音声ファイルのデコードに失敗しました。(" + src + ")");
+                        self._setup();
+                        self.buffer = context.createBuffer(1, 1, 22050);
+                        self.loaded = true;
+                        self.dispatchEvent( tm.event.Event("load") );
+                    });
                 }
-            };
-            xhr.open("GET", src, true);
-            xhr.responseType = "arraybuffer";
-            xhr.send();
+            });
         },
 
         /**
-         * @TODO ?
          * @private
          */
         _setup: function() {
             this.source     = this.context.createBufferSource();
-//            this.gainNode   = this.context.createGainNode();
-            this.panner     = this.context.createPanner();
+            this.gainNode   = this.context.createGain();
+            // this.panner     = this.context.createPanner();
             this.analyser   = this.context.createAnalyser();
 
-            this.source.connect(this.panner);
-            this.panner.connect(this.analyser);
+            this.source.connect(this.gainNode);
+            // this.gainNode.connect(this.panner);
+            // this.panner.connect(this.analyser);
+            this.gainNode.connect(this.analyser);
             this.analyser.connect(this.context.destination);
+
+            // TODO 暫定的対応
+            if (tm.BROWSER === "Firefox") {
+                this.pannerEnabled = false;
+            }
         },
 
         /**
-         * @TODO ?
+         * トーン
          */
         tone: function(hertz, seconds) {
             // handle parameter
             hertz   = hertz !== undefined ? hertz : 200;
             seconds = seconds !== undefined ? seconds : 1;
-            // set default value    
+            // set default value
             var nChannels   = 1;
             var sampleRate  = 44100;
             var amplitude   = 2;
@@ -248,7 +273,7 @@ tm.sound = tm.sound || {};
 
     /**
      * @property    buffer
-     * @TODO ?
+     * バッファー
      */
     tm.sound.WebAudio.prototype.accessor("buffer", {
         get: function()  { return this.source.buffer; },
@@ -257,7 +282,7 @@ tm.sound = tm.sound || {};
 
     /**
      * @property    loop
-     * @TODO ?
+     * ループフラグ
      */
     tm.sound.WebAudio.prototype.accessor("loop", {
         get: function()  { return this.source.loop; },
@@ -266,25 +291,91 @@ tm.sound = tm.sound || {};
 
     /**
      * @property    valume
-     * @TODO ?
+     * ボリューム
      */
     tm.sound.WebAudio.prototype.accessor("volume", {
-        get: function()  { return this.source.gain.value; },
-        set: function(v) { this.source.gain.value = v; }
+        get: function()  { return this.gainNode.gain.value; },
+        set: function(v) { this.gainNode.gain.value = v; }
     });
 
     /**
      * @property    playbackRate
-     * @TODO ?
+     * プレイバックレート
      */
     tm.sound.WebAudio.prototype.accessor("playbackRate", {
         get: function()  { return this.source.playbackRate.value; },
         set: function(v) { this.source.playbackRate.value = v; }
     });
 
-    /** @static @property */
-    tm.sound.WebAudio.isAvailable = tm.global.webkitAudioContext ? true : false;
+    /**
+     * @property    pannerEnabled
+     * panner有効
+     */
+    tm.sound.WebAudio.prototype.accessor("pannerEnabled", {
+        get: function()  { return this._pannerEnabled; },
+        set: function(v) {
+            this.gainNode.disconnect();
+            this.panner.disconnect();
+            if (v) {
+                this.gainNode.connect(this.panner);
+                this.panner.connect(this.analyser);
+            } else {
+                this.gainNode.connect(this.analyser);
+            }
+            this._pannerEnabled = v;
 
+            // console.debug("WebAudio pannerEnabled: " + v);
+        }
+    });
+
+    /**
+     * @property    loopStart
+     * ループ開始位置（秒）
+     */
+    tm.sound.WebAudio.prototype.accessor("loopStart", {
+        get: function()  { return this.source.loopStart; },
+        set: function(v) { this.source.loopStart = v; }
+    });
+
+    /**
+     * @property    loopEnd
+     * ループ終了位置（秒）
+     */
+    tm.sound.WebAudio.prototype.accessor("loopEnd", {
+        get: function()  { return this.source.loopEnd; },
+        set: function(v) { this.source.loopEnd = v; }
+    });
+
+    /** @static @property */
+    tm.sound.WebAudio.isAvailable = (tm.global.AudioContext || tm.global.webkitAudioContext || tm.global.mozAudioContext) ? true : false;
+
+    tm.sound.WebAudio.createContext = function() {
+        if (tm.global.AudioContext) {
+            context = new AudioContext();
+        }
+        else if (tm.global.webkitAudioContext) {
+            context = new webkitAudioContext();
+        }
+        else if (tm.global.mozAudioContext) {
+            context = new mozAudioContext();
+        }
+
+        tm.sound.WebAudio.context = context;
+    };
+
+    /**
+     * @static
+     * iOSでWebAudioを使う場合、window.ontouchend等でこの関数を実行する
+     */
+    tm.sound.WebAudio.unlock = function() {
+        var unlockBuffer = context.createBuffer(1, 1, 22050);
+        var unlockSrc = context.createBufferSource();
+        unlockSrc.buffer = unlockBuffer;
+        unlockSrc.connect(context.destination);
+        unlockSrc.start(0);
+    };
+
+    tm.sound.WebAudio.createContext();
 })();
 
 
